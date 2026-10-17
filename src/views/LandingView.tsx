@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTitik } from '../context/TitikContext';
 import { 
@@ -6,7 +6,13 @@ import {
   CURRENT_MONTHLY_DIGEST,
   formatRupiahShort 
 } from '../data/titikRegionalData';
-import { MapPin, ChevronRight } from 'lucide-react';
+import { 
+  MapPin, 
+  ChevronRight, 
+  Search, 
+  ArrowRight,
+  Sparkles
+} from 'lucide-react';
 
 export const LandingView: React.FC = () => {
   const navigate = useNavigate();
@@ -14,32 +20,121 @@ export const LandingView: React.FC = () => {
     facilities, 
     setSelectedFacility, 
     reports,
-    discrepancies 
+    discrepancies,
+    setIsSearchOpen 
   } = useTitik();
+
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate('/fasilitas');
+    } else {
+      setIsSearchOpen(true);
+    }
+  };
+
+  const handleQuickTagClick = (tag: string) => {
+    navigate('/fasilitas');
+  };
 
   return (
     <div className="space-y-16 pb-20">
       
-      {/* 1. EDITORIAL HERO SECTION */}
-      <section className="pt-12 sm:pt-16 pb-6 max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-6">
-        <div className="text-xs font-semibold uppercase tracking-wider text-[#6B7280]">
-          Observatorium Layanan Publik & APBD • Kota Bogor
+      {/* 1. CINEMATIC DAYLIGHT EDITORIAL HERO SECTION */}
+      <section className="relative overflow-hidden pt-8 sm:pt-14 pb-8 max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-6">
+        
+        {/* Subtle Topographic & Spatial Contour Grid Overlay (Daylight Editorial) */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-[0.04] bg-[radial-gradient(#111827_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_40%,#000_70%,transparent_100%)]" 
+          aria-hidden="true" 
+        />
+
+        {/* Top Social Proof Avatar Stack Pill */}
+        <div className="inline-flex items-center gap-3 px-3.5 py-1.5 rounded-full bg-white border border-[#E5E7EB] shadow-tactile text-xs font-medium text-[#4B5563] relative z-10 transition-transform hover:scale-[1.01]">
+          <div className="flex -space-x-2 overflow-hidden">
+            <img 
+              className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover" 
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80" 
+              alt="Warga Pelapor" 
+            />
+            <img 
+              className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover" 
+              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80" 
+              alt="Pemeriksa Teknis" 
+            />
+            <img 
+              className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover" 
+              src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&h=120&q=80" 
+              alt="Auditor Publik" 
+            />
+          </div>
+          <span className="text-[11px] sm:text-xs">
+            <strong className="text-[#111827] font-semibold">1.240+ warga & auditor</strong> aktif mengawal Kota Bogor
+          </span>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#111827] tracking-tight leading-[1.08] max-w-4xl mx-auto">
-          See the issue. <br className="hidden sm:inline" />
-          Trace the budget. <br className="hidden sm:inline" />
-          Track the impact<span className="text-[#0D9488]">.</span>
-        </h1>
+        {/* High-Impact Mixed Typography Headline (Sans + Italic Serif Accent) */}
+        <div className="space-y-3 relative z-10">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-[#111827] tracking-tight leading-[1.08] max-w-4xl mx-auto">
+            See the <span className="font-serif-editorial font-normal tracking-normal text-[#111827]">issue</span>. <br className="hidden sm:inline" />
+            Trace the <span className="font-serif-editorial font-normal tracking-normal text-[#111827]">budget</span>. <br className="hidden sm:inline" />
+            Track the <span className="font-serif-editorial font-normal tracking-normal text-[#0D9488]">impact</span>.
+          </h1>
 
-        <p className="text-base sm:text-lg text-[#4B5563] max-w-2xl mx-auto leading-relaxed">
-          Setiap fasilitas umum memiliki alokasi anggaran pemeliharaan. Periksa realisasi APBD Kota Bogor di lingkungan Anda, laporkan kerusakan fisik beserta titik koordinatnya, dan pantau perbaikan oleh dinas terkait.
-        </p>
+          <p className="text-base sm:text-lg text-[#4B5563] max-w-2xl mx-auto leading-relaxed font-normal">
+            Observatorium spasial Kota Bogor yang menghubungkan data pagu APBD murni, 24 profil fasilitas publik, dan laporan warga berbasis geotag presisi.
+          </p>
+        </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+        {/* Centered Interactive Search & Geotag Pill Container (Inspired by Reference) */}
+        <div className="max-w-2xl mx-auto pt-2 space-y-3 relative z-10">
+          <form 
+            onSubmit={handleSearchSubmit}
+            className="p-1.5 sm:p-2 bg-white rounded-full border border-[#E5E7EB] shadow-tactile flex items-center justify-between gap-2 focus-within:border-[#111827] focus-within:ring-2 focus-within:ring-[#111827]/10 transition-all group"
+          >
+            <div className="flex items-center gap-2 pl-3 sm:pl-4 flex-1 min-w-0">
+              <Search className="w-4 h-4 text-[#9CA3AF] shrink-0 group-focus-within:text-[#111827] transition-colors" />
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari fasilitas, kode proyek APBD, atau kecamatan..." 
+                className="w-full text-xs sm:text-sm text-[#111827] placeholder-[#9CA3AF] bg-transparent border-none outline-none focus:ring-0"
+              />
+            </div>
+            
+            <button 
+              type="submit"
+              className="px-5 sm:px-7 py-2.5 sm:py-3 bg-[#111827] hover:bg-[#1F2937] text-white text-xs sm:text-sm font-bold rounded-full transition-all uppercase tracking-wider shrink-0 flex items-center gap-1.5 shadow-sm active:scale-95"
+            >
+              <span>TELUSURI</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </form>
+
+          {/* Quick Suggestion Chips */}
+          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-xs text-[#6B7280]">
+            <span className="text-[11px] font-semibold text-[#9CA3AF]">Pencarian Cepat:</span>
+            {['Drainase Cibuluh', 'Puskesmas Sempur', 'SDN Menteng', 'PJU Pajajaran', 'Bogor Tengah'].map(tag => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => handleQuickTagClick(tag)}
+                className="px-2.5 py-1 bg-white hover:bg-[#F3F4F6] text-[#4B5563] hover:text-[#111827] border border-[#E5E7EB] rounded-full text-[11px] transition-colors"
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Action Buttons: Peta Spasial & Selisih Serapan */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3 relative z-10">
           <button
             onClick={() => navigate('/peta')}
-            className="w-full sm:w-auto px-6 py-3 bg-[#111827] hover:bg-[#1F2937] text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-6 py-3 bg-[#111827] hover:bg-[#1F2937] text-white text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-tactile active:scale-95"
           >
             <MapPin className="w-4 h-4 text-[#0D9488]" />
             <span>Buka Peta & Anggaran Wilayah</span>
@@ -47,59 +142,10 @@ export const LandingView: React.FC = () => {
 
           <button
             onClick={() => navigate('/analisis')}
-            className="w-full sm:w-auto px-6 py-3 bg-white hover:bg-[#F3F4F6] text-[#111827] border border-[#E5E7EB] text-sm font-semibold rounded-lg transition-colors"
+            className="w-full sm:w-auto px-6 py-3 bg-white hover:bg-[#F3F4F6] text-[#111827] border border-[#E5E7EB] text-xs sm:text-sm font-semibold rounded-xl transition-colors"
           >
             Periksa Selisih Serapan & Kondisi Fisik
           </button>
-        </div>
-
-        {/* Regional Summary Ledger */}
-        <div className="pt-8 max-w-4xl mx-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E5E7EB] bg-white rounded-xl border border-[#E5E7EB]">
-            <div className="p-4 text-left">
-              <div className="text-[11px] text-[#6B7280] font-medium">Pagu Terdata (SIKD)</div>
-              <div className="text-lg font-extrabold text-[#111827] font-mono-data mt-1">
-                Rp 20,5 M
-              </div>
-              <div className="text-[11px] text-[#4B5563] mt-0.5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0D9488]"></span>
-                <span>9 Sektor Layanan</span>
-              </div>
-            </div>
-
-            <div className="p-4 text-left">
-              <div className="text-[11px] text-[#6B7280] font-medium">Fasilitas Publik</div>
-              <div className="text-lg font-extrabold text-[#111827] font-mono-data mt-1">
-                {facilities.length} Titik
-              </div>
-              <div className="text-[11px] text-[#4B5563] mt-0.5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]"></span>
-                <span>6 Kecamatan</span>
-              </div>
-            </div>
-
-            <div className="p-4 text-left">
-              <div className="text-[11px] text-[#6B7280] font-medium">Laporan Warga Aktif</div>
-              <div className="text-lg font-extrabold text-[#111827] font-mono-data mt-1">
-                {reports.length} Kasus
-              </div>
-              <div className="text-[11px] text-[#4B5563] mt-0.5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span>
-                <span>Koordinat & Foto</span>
-              </div>
-            </div>
-
-            <div className="p-4 text-left">
-              <div className="text-[11px] text-[#6B7280] font-medium">Proyek Perlu Audit</div>
-              <div className="text-lg font-extrabold text-[#111827] font-mono-data mt-1">
-                {discrepancies.length} Paket
-              </div>
-              <div className="text-[11px] text-[#4B5563] mt-0.5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]"></span>
-                <span>Serapan vs Keluhan</span>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -132,7 +178,7 @@ export const LandingView: React.FC = () => {
                 setSelectedFacility(facility);
                 navigate(`/fasilitas/${facility.id}`);
               }}
-              className="bg-white rounded-xl border border-[#E5E7EB] hover:border-[#111827] p-4 transition-colors cursor-pointer flex flex-col justify-between group"
+              className="bg-white rounded-xl border border-[#E5E7EB] hover:border-[#111827] p-4 transition-colors cursor-pointer flex flex-col justify-between group shadow-tactile"
             >
               <div className="space-y-3">
                 <div className="relative h-36 rounded-lg overflow-hidden border border-[#E5E7EB] bg-[#F3F4F6]">
@@ -179,7 +225,7 @@ export const LandingView: React.FC = () => {
 
       {/* 3. MONTHLY REPORT ("CATATAN BULANAN") */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 sm:p-8 space-y-6">
+        <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 sm:p-8 space-y-6 shadow-tactile">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E5E7EB] pb-4">
             <div className="space-y-1">
               <div className="text-xs font-semibold uppercase tracking-wider text-[#6B7280]">
@@ -253,7 +299,7 @@ export const LandingView: React.FC = () => {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E5E7EB] bg-white rounded-xl border border-[#E5E7EB]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E5E7EB] bg-white rounded-xl border border-[#E5E7EB] shadow-tactile">
           {ACCOUNTABILITY_FUNNEL.map(item => (
             <div 
               key={item.step}
@@ -280,9 +326,9 @@ export const LandingView: React.FC = () => {
         </div>
       </section>
 
-      {/* 5. 4-TIER BUDGET CLASSIFICATION (STRICT DAYLIGHT EDITORIAL, NO DARK MODE) */}
+      {/* 5. 4-TIER BUDGET CLASSIFICATION (STRICT DAYLIGHT EDITORIAL) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 sm:p-8 space-y-6">
+        <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 sm:p-8 space-y-6 shadow-tactile">
           <div className="max-w-3xl space-y-2">
             <div className="text-xs font-semibold uppercase tracking-wider text-[#6B7280]">
               Struktur Data Keuangan Daerah

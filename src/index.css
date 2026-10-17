@@ -3,6 +3,7 @@
 @layer base {
   :root {
     --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-serif: 'Instrument Serif', Georgia, serif;
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
     --canvas-bg: #F8F9FA;
     --card-bg: #FFFFFF;
@@ -25,6 +26,13 @@
   .font-mono-data {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Instrument Serif italic editorial font class for hero headline accents */
+  .font-serif-editorial {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
   }
 
   /* Custom subtle daylight shadow */

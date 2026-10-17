@@ -23,8 +23,7 @@ import {
   Share2, 
   Layers, 
   Info,
-  Clock,
-  Sparkles
+  Clock
 } from 'lucide-react';
 
 const SAMPLE_PHOTO_PRESETS = [
@@ -599,25 +598,25 @@ export const ReportView: React.FC = () => {
                   {/* Tingkat Keparahan */}
                   <div className="space-y-2 pt-2">
                     <label className="text-xs font-bold text-[#111827]">
-                      Tingkat Keparahan Dampak (Severity Level)
+                      Tingkat Keparahan Dampak
                     </label>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {[
                         {
                           lvl: 'Rendah' as const,
-                          color: 'border-[#10B981] text-[#065F46] bg-[#ECFDF5]',
-                          desc: 'Kerusakan minor estetika, tidak memutus mobilitas warga.'
+                          dot: 'bg-[#0D9488]',
+                          desc: 'Kerusakan ringan, tidak memutus akses warga.'
                         },
                         {
                           lvl: 'Sedang' as const,
-                          color: 'border-[#F59E0B] text-[#92400E] bg-[#FFFBEB]',
-                          desc: 'Hambatan fungsi reguler, memerlukan perbaikan terencana.'
+                          dot: 'bg-[#D97706]',
+                          desc: 'Mengganggu fungsi layanan, perlu perbaikan terjadwal.'
                         },
                         {
                           lvl: 'Kritis' as const,
-                          color: 'border-[#EF4444] text-[#991B1B] bg-[#FEF2F2]',
-                          desc: 'Ancaman keselamatan jiwa, banjir meluas, atau amblas parah.'
+                          dot: 'bg-[#DC2626]',
+                          desc: 'Membahayakan warga, banjir meluas, atau jalan putus.'
                         }
                       ].map(item => (
                         <button
@@ -626,15 +625,18 @@ export const ReportView: React.FC = () => {
                           onClick={() => setSeverity(item.lvl)}
                           className={`p-3 rounded-xl border text-left transition-all ${
                             severity === item.lvl
-                              ? `${item.color} ring-2 ring-current`
-                              : 'border-[#E5E7EB] hover:bg-[#F9FAFB]'
+                              ? 'border-[#111827] bg-[#F8F9FA] ring-1 ring-[#111827]'
+                              : 'border-[#E5E7EB] bg-white hover:bg-[#F8F9FA]'
                           }`}
                         >
-                          <div className="font-bold text-xs flex items-center justify-between">
-                            <span>{item.lvl}</span>
-                            {severity === item.lvl && <span>●</span>}
+                          <div className="font-bold text-xs text-[#111827] flex items-center justify-between">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className={`w-2 h-2 rounded-full ${item.dot}`}></span>
+                              <span>{item.lvl}</span>
+                            </span>
+                            {severity === item.lvl && <span className="text-[10px] font-mono-data">Dipilih</span>}
                           </div>
-                          <p className="text-[10px] text-[#4B5563] mt-1 leading-relaxed">
+                          <p className="text-[11px] text-[#4B5563] mt-1 leading-relaxed">
                             {item.desc}
                           </p>
                         </button>
@@ -655,7 +657,7 @@ export const ReportView: React.FC = () => {
                   <button
                     onClick={handleNext}
                     disabled={!title.trim() || !description.trim()}
-                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] disabled:bg-[#D1D5DB] text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all"
+                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] disabled:bg-[#D1D5DB] text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-all"
                   >
                     <span>Lanjutkan ke Bukti Visual</span>
                     <ArrowRight className="w-4 h-4" />
@@ -669,7 +671,7 @@ export const ReportView: React.FC = () => {
               <div className="space-y-6">
                 <div className="border-b border-[#E5E7EB] pb-3">
                   <h3 className="font-extrabold text-lg text-[#111827]">
-                    Langkah 3: Bukti Visual & Geotag Presisi
+                    Langkah 3: Foto Kondisi & Koordinat Lokasi
                   </h3>
                   <p className="text-xs text-[#6B7280]">
                     Pilih foto kondisi fisik lapangan dan atur identitas pelapor.
@@ -719,7 +721,7 @@ export const ReportView: React.FC = () => {
                   {/* Reporter Handle & Privacy */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#111827]">Handle Pelapor (Civic Username)</label>
+                      <label className="text-xs font-bold text-[#111827]">Nama Akun Pelapor</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#9CA3AF]">@</span>
                         <input
@@ -741,7 +743,7 @@ export const ReportView: React.FC = () => {
                         className="w-4 h-4 rounded text-[#111827] focus:ring-0"
                       />
                       <label htmlFor="anonCheck" className="text-xs font-medium text-[#4B5563] cursor-pointer">
-                        Laporkan sebagai Anonim Terverifikasi SIKD
+                        Sembunyikan nama akun (Pelapor Anonim)
                       </label>
                     </div>
                   </div>
@@ -758,9 +760,9 @@ export const ReportView: React.FC = () => {
 
                   <button
                     onClick={handleNext}
-                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all"
+                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-all"
                   >
-                    <span>Lanjutkan ke Konteks APBD</span>
+                    <span>Lanjutkan ke Tautan APBD</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -772,10 +774,10 @@ export const ReportView: React.FC = () => {
               <div className="space-y-6">
                 <div className="border-b border-[#E5E7EB] pb-3">
                   <h3 className="font-extrabold text-lg text-[#111827]">
-                    Langkah 4: Konteks Otomatis & Konsolidasi Kasus
+                    Langkah 4: Tautan APBD & Cek Laporan Serupa
                   </h3>
                   <p className="text-xs text-[#6B7280]">
-                    Sistem mendeteksi dinas terkait, tautan pos anggaran APBD, dan potensi duplikasi laporan serupa.
+                    Periksa dinas penanggung jawab, pos anggaran terkait, dan laporan warga lain di lokasi yang sama.
                   </p>
                 </div>
 
@@ -783,13 +785,13 @@ export const ReportView: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 bg-[#F8F9FA] rounded-xl border border-[#E5E7EB] space-y-1.5">
                     <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">
-                      Instansi Penanggung Jawab Terdeteksi
+                      Instansi Penanggung Jawab
                     </div>
                     <div className="text-sm font-extrabold text-[#111827]">
                       {detectedAgency}
                     </div>
                     <p className="text-[11px] text-[#4B5563]">
-                      Laporan akan dikirimkan langsung ke dashboard pengawasan instansi ini.
+                      Dinas teknis yang berwenang menangani sarana ini di Kecamatan {subdistrict}.
                     </p>
                   </div>
 
@@ -802,23 +804,23 @@ export const ReportView: React.FC = () => {
                     </div>
                     <p className="text-[11px] text-[#4B5563]">
                       {linkedProject 
-                        ? `Pagu ${formatRupiahShort(linkedProject.budget.paguAnggaran)} • Vendor: ${linkedProject.contractorName}` 
-                        : 'Menunggu identifikasi paket kontraktual lanjutan SIKD.'}
+                        ? `Pagu ${formatRupiahShort(linkedProject.budget.paguAnggaran)} • Pelaksana: ${linkedProject.contractorName}` 
+                        : 'Menggunakan dana pemeliharaan rutin dinas terkait.'}
                     </p>
                   </div>
                 </div>
 
                 {/* Duplicate Warning / Prioritization Section */}
                 {potentialDuplicates.length > 0 && (
-                  <div className="p-4 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] space-y-3">
+                  <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB] space-y-3">
                     <div className="flex items-start gap-2.5">
-                      <AlertCircle className="w-5 h-5 text-[#D97706] shrink-0 mt-0.5" />
+                      <AlertCircle className="w-4 h-4 text-[#D97706] shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-extrabold text-xs text-[#92400E]">
-                          Pencegahan Fragmentasi: Ditemukan {potentialDuplicates.length} Kasus Serupa di Wilayah Ini
+                        <h4 className="font-extrabold text-xs text-[#111827]">
+                          Terdapat {potentialDuplicates.length} Laporan Serupa di Lokasi Ini
                         </h4>
-                        <p className="text-[11px] text-[#78350F] mt-0.5 leading-relaxed">
-                          Jika masalah yang ingin Anda laporkan sama dengan kasus di bawah, disarankan memberikan <strong>Suara Prioritas</strong> daripada membuat laporan baru, agar perhatian dinas terkonsentrasi.
+                        <p className="text-[11px] text-[#4B5563] mt-0.5 leading-relaxed">
+                          Jika masalah yang Anda temukan sama dengan laporan di bawah, berikan <strong>Suara Prioritas</strong> agar dukungan warga terkumpul pada satu kasus.
                         </p>
                       </div>
                     </div>
@@ -827,12 +829,12 @@ export const ReportView: React.FC = () => {
                       {potentialDuplicates.slice(0, 2).map(dup => (
                         <div 
                           key={dup.id}
-                          className="bg-white p-3 rounded-lg border border-[#FDE68A] flex items-center justify-between gap-3 text-xs"
+                          className="bg-white p-3 rounded-lg border border-[#E5E7EB] flex items-center justify-between gap-3 text-xs"
                         >
                           <div className="min-w-0">
                             <div className="font-bold text-[#111827] truncate">{dup.title}</div>
-                            <div className="text-[10px] text-[#6B7280]">
-                              {dup.subdistrict} • Langkah {dup.currentStep}/6 • {dup.priorityVotes} Suara
+                            <div className="text-[10px] font-mono-data text-[#6B7280]">
+                              {dup.subdistrict} • Tahap {dup.currentStep}/6 • {dup.priorityVotes} Suara
                             </div>
                           </div>
 
@@ -846,7 +848,7 @@ export const ReportView: React.FC = () => {
                             }`}
                           >
                             <ThumbsUp className="w-3 h-3" />
-                            <span>{dup.userHasVoted ? 'Didukung' : 'Dukung Ini'}</span>
+                            <span>{dup.userHasVoted ? 'Didukung' : 'Dukung Kasus'}</span>
                           </button>
                         </div>
                       ))}
@@ -865,9 +867,9 @@ export const ReportView: React.FC = () => {
 
                   <button
                     onClick={handleNext}
-                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all"
+                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-all"
                   >
-                    <span>Lanjutkan ke Tinjau & Publikasi</span>
+                    <span>Lanjutkan ke Ringkasan</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -879,10 +881,10 @@ export const ReportView: React.FC = () => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="border-b border-[#E5E7EB] pb-3">
                   <h3 className="font-extrabold text-lg text-[#111827]">
-                    Langkah 5: Tinjau & Terbitkan Bukti Publik
+                    Langkah 5: Periksa & Kirim Laporan
                   </h3>
                   <p className="text-xs text-[#6B7280]">
-                    Periksa kembali ringkasan laporan sebelum dicatat ke dalam audit trail publik TITIK.
+                    Pastikan seluruh data lokasi dan deskripsi masalah sudah sesuai sebelum dikirim.
                   </p>
                 </div>
 
@@ -899,8 +901,11 @@ export const ReportView: React.FC = () => {
                         <span className="text-[10px] font-bold bg-[#111827] text-white px-2 py-0.5 rounded">
                           {sector}
                         </span>
-                        <span className="text-[10px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] px-2 py-0.5 rounded">
-                          Tingkat {severity}
+                        <span className="text-[10px] font-bold bg-white text-[#111827] border border-[#E5E7EB] px-2 py-0.5 rounded inline-flex items-center gap-1">
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            severity === 'Kritis' ? 'bg-[#DC2626]' : severity === 'Sedang' ? 'bg-[#D97706]' : 'bg-[#0D9488]'
+                          }`}></span>
+                          <span>Keparahan: {severity}</span>
                         </span>
                       </div>
                       <h4 className="font-extrabold text-base text-[#111827] leading-snug">
@@ -930,10 +935,10 @@ export const ReportView: React.FC = () => {
                 <div className="p-3.5 bg-white rounded-xl border border-[#E5E7EB] text-[11px] text-[#4B5563] space-y-1">
                   <div className="font-bold text-[#111827] flex items-center gap-1.5">
                     <FileCheck className="w-3.5 h-3.5 text-[#0D9488]" />
-                    <span>Integritas Data Publik Terbuka</span>
+                    <span>Publikasi Data Terbuka</span>
                   </div>
                   <p>
-                    Laporan ini akan diterbitkan secara transparan untuk kepentingan pengawasan publik WIA 2026. Data koordinat dan foto bersifat terbuka dan dapat diakses oleh instansi pemerintah terkait.
+                    Laporan ini akan tampil pada peta dan direktori kasus warga Kota Bogor agar dapat dipantau bersama komunitas dan dinas terkait.
                   </p>
                 </div>
 
@@ -949,10 +954,10 @@ export const ReportView: React.FC = () => {
 
                   <button
                     type="submit"
-                    className="px-6 py-3 bg-[#111827] hover:bg-[#1F2937] text-white text-xs sm:text-sm font-bold rounded-xl shadow-tactile flex items-center gap-2 transition-all transform active:scale-95"
+                    className="px-6 py-2.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs sm:text-sm font-bold rounded-lg flex items-center gap-2 transition-all"
                   >
-                    <Sparkles className="w-4 h-4 text-[#0D9488]" />
-                    <span>Terbitkan Laporan & Mulai Kawal</span>
+                    <span>Kirim Laporan Warga</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </form>

@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTitik } from '../context/TitikContext';
 import { BudgetBreakdownCard } from '../components/BudgetBreakdownCard';
 import { 
-  Building2, 
   MapPin, 
   ArrowLeft, 
   Bookmark, 
@@ -11,8 +10,7 @@ import {
   AlertCircle, 
   Coins, 
   CheckCircle2, 
-  ThumbsUp,
-  ShieldCheck 
+  ThumbsUp
 } from 'lucide-react';
 import { formatRupiahShort } from '../data/titikRegionalData';
 
@@ -48,11 +46,7 @@ export const FacilityDetailView: React.FC = () => {
   }
 
   const isSaved = savedFacilityIds.includes(facility.id);
-
-  // Matched projects
   const linkedProjects = budgetProjects.filter(p => p.facilityId === facility.id);
-
-  // Matched reports
   const linkedReports = reports.filter(r => r.facilityId === facility.id || r.facilityName === facility.name);
 
   return (
@@ -73,7 +67,7 @@ export const FacilityDetailView: React.FC = () => {
             onClick={() => toggleSaveFacility(facility.id)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-colors ${
               isSaved 
-                ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#0D9488]' 
+                ? 'bg-[#111827] border-[#111827] text-white' 
                 : 'bg-white border-[#E5E7EB] text-[#4B5563] hover:text-[#111827]'
             }`}
           >
@@ -83,7 +77,7 @@ export const FacilityDetailView: React.FC = () => {
 
           <button
             onClick={() => navigate(`/lapor?facilityId=${facility.id}`)}
-            className="px-3.5 py-1.5 bg-[#111827] hover:bg-[#1F2937] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all"
+            className="px-3.5 py-1.5 bg-[#111827] hover:bg-[#1F2937] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
           >
             <Plus className="w-4 h-4 text-[#0D9488]" />
             <span>Laporkan Masalah</span>
@@ -92,7 +86,7 @@ export const FacilityDetailView: React.FC = () => {
       </div>
 
       {/* Hero Visual Cover */}
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden shadow-tactile">
+      <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
         <div className="relative h-64 sm:h-80 w-full bg-[#F3F4F6]">
           <img 
             src={facility.photoUrl} 
@@ -126,32 +120,32 @@ export const FacilityDetailView: React.FC = () => {
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-5 sm:p-6 bg-[#F8F9FA] border-t border-[#E5E7EB]">
-          <div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E5E7EB] bg-[#F8F9FA] border-t border-[#E5E7EB]">
+          <div className="p-4 sm:p-5">
             <div className="text-[10px] text-[#6B7280] font-bold uppercase">Kondisi Fisik</div>
             <div className="text-sm sm:text-base font-extrabold text-[#111827] mt-0.5">
               {facility.condition}
             </div>
           </div>
 
-          <div>
+          <div className="p-4 sm:p-5">
             <div className="text-[10px] text-[#6B7280] font-bold uppercase">Kapasitas Pelayanan</div>
             <div className="text-sm sm:text-base font-extrabold text-[#111827] mt-0.5">
               {facility.serviceCapacity}
             </div>
           </div>
 
-          <div>
+          <div className="p-4 sm:p-5">
             <div className="text-[10px] text-[#6B7280] font-bold uppercase">Instansi Pengelola</div>
             <div className="text-xs sm:text-sm font-bold text-[#111827] mt-0.5 truncate">
               {facility.responsibleAgency}
             </div>
           </div>
 
-          <div>
+          <div className="p-4 sm:p-5">
             <div className="text-[10px] text-[#6B7280] font-bold uppercase">Aduan Komunitas</div>
             <div className="text-sm sm:text-base font-extrabold text-[#DC2626] font-mono-data mt-0.5">
-              {facility.activeReportsCount} Aktif / {facility.resolvedReportsCount} Tuntas
+              {facility.activeReportsCount} Aktif / {facility.resolvedReportsCount} Selesai
             </div>
           </div>
         </div>
@@ -160,35 +154,35 @@ export const FacilityDetailView: React.FC = () => {
       {/* 4-Tier Budget Breakdown Card for this Facility */}
       <BudgetBreakdownCard
         budget={facility.budgetSummary}
-        title={`Pembedahan Anggaran Pemeliharaan: ${facility.name}`}
-        subtitle={`Rincian alokasi APBD Murni TA 2026 yang terikat pada koordinat fasilitas ini`}
+        title={`Rincian Anggaran Pemeliharaan: ${facility.name}`}
+        subtitle={`Alokasi APBD Kota Bogor TA 2026 pada fasilitas ini`}
       />
 
       {/* Active Projects and Citizen Cases Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         
         {/* Left: Related APBD Projects */}
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 sm:p-6 shadow-tactile space-y-4">
+        <div className="bg-white rounded-xl border border-[#E5E7EB] p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
             <h3 className="font-extrabold text-base text-[#111827] flex items-center gap-2">
               <Coins className="w-4 h-4 text-[#D97706]" />
-              Paket Pekerjaan APBD ({linkedProjects.length})
+              <span>Paket Pekerjaan APBD ({linkedProjects.length})</span>
             </h3>
             <span className="text-xs text-[#6B7280]">SIKD Kota Bogor</span>
           </div>
 
           {linkedProjects.length === 0 ? (
             <div className="p-4 bg-[#F8F9FA] rounded-xl text-xs text-[#6B7280] text-center">
-              Tidak ada paket lelang konstruksi besar aktif. Pemeliharaan berjalan dengan pos swakelola rutin dinas.
+              Tidak ada kontrak konstruksi aktif pada tahun anggaran ini. Pemeliharaan menggunakan dana rutin dinas.
             </div>
           ) : (
             <div className="space-y-3">
               {linkedProjects.map(prj => (
                 <div key={prj.id} className="p-4 bg-[#F8F9FA] rounded-xl border border-[#E5E7EB] space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono-data font-bold text-[#D97706]">{prj.code}</span>
-                    <span className="text-[11px] font-semibold text-[#0D9488] bg-[#F0FDF4] px-2 py-0.5 rounded">
-                      Progres: {prj.progressPercent}%
+                    <span className="font-mono-data font-bold text-[#111827]">{prj.code}</span>
+                    <span className="text-[11px] font-mono-data font-semibold text-[#0D9488] bg-white border border-[#E5E7EB] px-2 py-0.5 rounded">
+                      Progres {prj.progressPercent}%
                     </span>
                   </div>
 
@@ -196,7 +190,7 @@ export const FacilityDetailView: React.FC = () => {
                   <p className="text-xs text-[#4B5563] leading-relaxed">{prj.description}</p>
 
                   <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between text-[11px] text-[#6B7280]">
-                    <span>Vendor: <strong>{prj.contractorName}</strong></span>
+                    <span>Pelaksana: <strong className="text-[#111827]">{prj.contractorName}</strong></span>
                     <span className="font-mono-data font-bold text-[#111827]">
                       {formatRupiahShort(prj.budget.paguAnggaran)}
                     </span>
@@ -208,19 +202,19 @@ export const FacilityDetailView: React.FC = () => {
         </div>
 
         {/* Right: Linked Citizen Reports */}
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 sm:p-6 shadow-tactile space-y-4">
+        <div className="bg-white rounded-xl border border-[#E5E7EB] p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
             <h3 className="font-extrabold text-base text-[#111827] flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-[#DC2626]" />
-              Aduan Warga di Fasilitas Ini ({linkedReports.length})
+              <span>Laporan Warga di Fasilitas Ini ({linkedReports.length})</span>
             </h3>
-            <span className="text-xs text-[#6B7280]">Geotag Komunitas</span>
+            <span className="text-xs text-[#6B7280]">Geotag Warga</span>
           </div>
 
           {linkedReports.length === 0 ? (
             <div className="p-6 bg-[#F8F9FA] rounded-xl text-xs text-[#6B7280] text-center space-y-2">
               <CheckCircle2 className="w-6 h-6 text-[#0D9488] mx-auto" />
-              <div>Belum ada aduan warga aktif untuk fasilitas ini.</div>
+              <div>Belum ada laporan masalah aktif untuk fasilitas ini.</div>
               <button
                 onClick={() => navigate(`/lapor?facilityId=${facility.id}`)}
                 className="px-3 py-1.5 bg-[#111827] text-white rounded text-xs font-semibold mt-1"
@@ -237,18 +231,19 @@ export const FacilityDetailView: React.FC = () => {
                     setSelectedReport(rep);
                     navigate(`/lapor/${rep.id}`);
                   }}
-                  className="p-3.5 bg-[#F8F9FA] hover:bg-white hover:border-[#DC2626] border border-[#E5E7EB] rounded-xl transition-all cursor-pointer space-y-1.5 group"
+                  className="p-3.5 bg-[#F8F9FA] hover:bg-white hover:border-[#111827] border border-[#E5E7EB] rounded-xl transition-all cursor-pointer space-y-1.5 group"
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono-data font-bold text-[#DC2626] bg-[#FEF2F2] px-1.5 py-0.5 rounded">
-                      {rep.id}
+                    <span className="font-mono-data font-bold text-[#111827] bg-white border border-[#E5E7EB] px-1.5 py-0.5 rounded inline-flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span>
+                      <span>{rep.id}</span>
                     </span>
-                    <span className="text-[10px] text-[#0D9488] font-semibold">
-                      Langkah {rep.currentStep}/6
+                    <span className="text-[10px] font-mono-data text-[#4B5563] font-semibold">
+                      Tahap {rep.currentStep}/6
                     </span>
                   </div>
 
-                  <h4 className="font-bold text-xs sm:text-sm text-[#111827] group-hover:text-[#DC2626] transition-colors line-clamp-1">
+                  <h4 className="font-bold text-xs sm:text-sm text-[#111827] group-hover:text-[#2563EB] transition-colors line-clamp-1">
                     {rep.title}
                   </h4>
 
@@ -274,4 +269,3 @@ export const FacilityDetailView: React.FC = () => {
     </div>
   );
 };
-

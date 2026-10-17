@@ -45,11 +45,6 @@ export const Navbar: React.FC = () => {
                 TITIK<span className="text-[#0D9488]">.</span>
               </span>
             </Link>
-
-            <span className="hidden sm:inline text-[#D1D5DB]">|</span>
-            <span className="hidden sm:inline text-xs text-[#6B7280] font-medium whitespace-nowrap">
-              Kota Bogor • APBD 2026
-            </span>
           </div>
 
           {/* Desktop Navigation Links (Clean Editorial Text, No Rainbow Icons) */}
@@ -85,15 +80,12 @@ export const Navbar: React.FC = () => {
           {/* Right Utility & Primary CTA */}
           <div className="flex items-center gap-2 shrink-0">
             <button
+              type="button"
               onClick={() => setIsSearchOpen(true)}
-              className="px-2.5 py-1.5 text-xs text-[#4B5563] hover:text-[#111827] bg-white hover:bg-[#F3F4F6] border border-[#E5E7EB] rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
-              title="Cari fasilitas, proyek, atau laporan warga (Cmd+K)"
+              className="p-2 text-[#6B7280] hover:text-[#111827] hover:bg-[#E5E7EB]/60 rounded-lg transition-colors"
+              title="Cari fasilitas, proyek, atau aduan (⌘K)"
             >
-              <Search className="w-3.5 h-3.5 text-[#6B7280]" />
-              <span className="hidden sm:inline">Cari</span>
-              <kbd className="hidden md:inline text-[10px] font-mono-data text-[#6B7280] bg-[#F8F9FA] px-1.5 py-0.5 rounded border border-[#E5E7EB]">
-                ⌘K
-              </kbd>
+              <Search className="w-4 h-4" />
             </button>
 
             <button
