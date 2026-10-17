@@ -148,9 +148,10 @@ export const DetailDrawer: React.FC = () => {
               <button
                 type="button"
                 onClick={() => votePriority(selectedReport.id)}
+                disabled={selectedReport.userHasVoted}
                 className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-tactile active:scale-95 ${
                   selectedReport.userHasVoted
-                    ? 'bg-[#0D9488] text-white'
+                    ? 'bg-[#0D9488] text-white cursor-default'
                     : 'bg-[#111827] dark:bg-[#1C2638] dark:hover:bg-[#243042] text-white hover:bg-[#1F2937]'
                 }`}
               >
@@ -272,7 +273,7 @@ export const DetailDrawer: React.FC = () => {
                 className="p-3.5 rounded-xl border border-[#E5E4DF] dark:border-[#243042] hover:border-[#111827] dark:hover:border-[#0D9488] transition-all cursor-pointer bg-white dark:bg-[#101622] space-y-1.5 shadow-2xs hover:shadow-xs"
               >
                 <div className="flex items-center justify-between text-[11px] text-[#6B7280] dark:text-[#94A3B8] font-mono-data">
-                  <span>{rep.id} • Tahap {rep.currentStep}/6</span>
+                  <span>{rep.id} • {rep.currentStep === 6 ? 'Tuntas Terverifikasi' : 'Dalam Peninjauan'}</span>
                   <span>{rep.priorityVotes} dukungan</span>
                 </div>
                 <h5 className="font-bold text-xs sm:text-sm text-[#111827] dark:text-[#F9FAFB]">
@@ -292,7 +293,7 @@ export const DetailDrawer: React.FC = () => {
         <div className="space-y-6">
           <div>
             <div className="text-xs text-[#6B7280] dark:text-[#94A3B8] mb-1">
-              Dilaporkan oleh <strong className="text-[#111827] dark:text-[#F9FAFB]">@{selectedReport.reporterHandle}</strong> • {selectedReport.reportedAt}
+              Dilaporkan oleh <strong className="text-[#111827] dark:text-[#F9FAFB]">{selectedReport.reporterHandle && selectedReport.reporterHandle !== 'warga_terverifikasi' ? `@${selectedReport.reporterHandle}` : 'Warga Terverifikasi'}</strong> • {selectedReport.reportedAt}
             </div>
             <h3 className="font-extrabold text-lg sm:text-xl text-[#111827] dark:text-[#F9FAFB] leading-snug">
               {selectedReport.title}
@@ -342,9 +343,10 @@ export const DetailDrawer: React.FC = () => {
             <button
               type="button"
               onClick={() => votePriority(selectedReport.id)}
+              disabled={selectedReport.userHasVoted}
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0 ${
                 selectedReport.userHasVoted
-                  ? 'bg-[#0D9488] text-white'
+                  ? 'bg-[#0D9488] text-white cursor-default'
                   : 'bg-[#111827] dark:bg-[#1C2638] dark:hover:bg-[#243042] text-white hover:bg-[#1F2937]'
               }`}
             >
@@ -356,25 +358,49 @@ export const DetailDrawer: React.FC = () => {
           {/* Agency & Budget Ledger */}
           <div className="bg-[#FAF9F6] dark:bg-[#101622] rounded-xl border border-[#E5E4DF] dark:border-[#243042] divide-y divide-[#E5E4DF] dark:divide-[#243042] text-xs">
             <div className="p-3 flex justify-between gap-4">
-              <span className="text-[#6B7280] dark:text-[#94A3B8]">Dinas Tujuan</span>
+              <span className="text-[#6B7280] dark:text-[#94A3B8]">Instansi Pengampu</span>
               <span className="font-semibold text-[#111827] dark:text-[#F9FAFB] text-right">{selectedReport.responsibleAgency}</span>
             </div>
-            <div className="p-3 flex justify-between gap-4">
-              <span className="text-[#6B7280] dark:text-[#94A3B8]">Tautan Proyek APBD</span>
-              <span className="font-medium text-[#111827] dark:text-[#F9FAFB] text-right">
-                {selectedReport.isBudgetLinkConfirmed ? selectedReport.linkedProjectTitle : 'Pos Pemeliharaan Rutin'}
-              </span>
+            <div className="p-3 flex justify-between gap-4 items-center">
+              <span className="text-[#6B7280] dark:text-[#94A3B8]">Tautan Pos APBD</span>
+              <div className="text-right">
+                {selectedReport.linkedProjectTitle ? (
+                  <div className="space-y-0.5">
+                    <span className="font-medium text-[#111827] dark:text-[#F9FAFB] block">{selectedReport.linkedProjectTitle}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono-data font-bold inline-block ${
+                      selectedReport.isBudgetLinkConfirmed ? 'bg-[#0D9488]/15 text-[#0D9488]' : 'bg-[#D97706]/15 text-[#D97706]'
+                    }`}>
+                      {selectedReport.isBudgetLinkConfirmed ? 'Tautan Terkonfirmasi' : 'Korelasi Disarankan'}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-[#9CA3AF] dark:text-[#64748B]">Menunggu pencocokan pos APBD</span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Civic Audit Timeline */}
+          {/* Link to Full Report Case Page */}
+          <button
+            type="button"
+            onClick={() => {
+              handleClose();
+              navigate(`/lapor/${selectedReport.id}`);
+            }}
+            className="w-full py-2.5 bg-[#F3F4F6] hover:bg-[#E5E7EB] dark:bg-[#1C2638] dark:hover:bg-[#243042] text-[#111827] dark:text-[#F9FAFB] text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-[#E5E4DF] dark:border-[#243042]"
+          >
+            <span>Buka Lembar Kasus &amp; Jejak Verifikasi Penuh</span>
+            <ChevronRight className="w-3.5 h-3.5 text-[#0D9488]" />
+          </button>
+
+          {/* 6-Step Audit Timeline */}
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-[#E5E4DF] dark:border-[#243042] pb-2">
               <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">
-                Jejak Audit Laporan (Append-Only)
+                Riwayat Penanganan (6 Tahap)
               </h4>
-              <span className="text-xs font-mono-data font-semibold text-[#0D9488]">
-                {selectedReport.timeline?.length || 1} Peristiwa
+              <span className="text-xs font-mono-data font-semibold text-[#4B5563] dark:text-[#94A3B8]">
+                Tahap {selectedReport.currentStep}/6
               </span>
             </div>
 

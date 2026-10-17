@@ -1,23 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTitik } from '../context/TitikContext';
 import { useReports } from '../hooks/useReports';
 import { ReportWorkflowForm } from '../components/reporting/ReportWorkflowForm';
 import { SECTORS, SUBDISTRICTS } from '../data/titikRegionalData';
-import { SectorType, SubdistrictType } from '../types';
+import { PublicCivicReport, ReportStatus } from '../types/database';
+import { fetchPendingReports, moderateReport } from '../services/reportService';
 import { 
   MapPin, 
-  Building2, 
   ThumbsUp, 
   ArrowRight, 
   Search,
-  Filter,
   AlertCircle,
   Radio,
   Clock,
   CheckCircle2,
   ShieldCheck,
-  ImageIcon
+  ImageIcon,
+  XCircle,
+  RefreshCw
 } from 'lucide-react';
 
 export const ReportView: React.FC = () => {
@@ -34,16 +35,102 @@ export const ReportView: React.FC = () => {
     setSearchQuery
   } = useTitik();
 
-  const [activeTab, setActiveTab] = useState<'NEW_REPORT' | 'ALL_REPORTS'>(
-    prefilledFacilityId ? 'NEW_REPORT' : 'ALL_REPORTS'
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'NEW_REPORT' | 'ALL_REPORTS' | 'MODERATION'>(
+    prefilledFacilityId || tabParam === 'new' 
+      ? 'NEW_REPORT' 
+      : tabParam === 'moderation' 
+      ? 'MODERATION' 
+      : 'ALL_REPORTS'
   );
 
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'new') setActiveTab('NEW_REPORT');
+    else if (tab === 'moderation') setActiveTab('MODERATION');
+    else if (tab === 'all') setActiveTab('ALL_REPORTS');
+  }, [searchParams]);
+
   // Hook for live/published reports from Supabase (or transparent fallback)
-  const { reports, loading, error, isLive, vote } = useReports({
+  const { reports, loading, error, isLive, vote, refetch } = useReports({
     category: selectedSector !== 'Semua' ? selectedSector : undefined,
     subdistrict: selectedSubdistrict !== 'Semua' ? selectedSubdistrict : undefined,
     search: searchQuery || undefined,
   });
+
+  // Moderation state
+  const [pendingReports, setPendingReports] = useState<PublicCivicReport[]>([]);
+  const [loadingPending, setLoadingPending] = useState<boolean>(false);
+  const [pendingError, setPendingError] = useState<string | null>(null);
+  const [moderatingId, setModeratingId] = useState<string | null>(null);
+  const [moderatorNotes, setModeratorNotes] = useState<{ [id: string]: string }>({});
+  const [actionFeedback, setActionFeedback] = useState<{ [id: string]: { type: 'success' | 'error'; message: string } }>({});
+
+  const loadPending = async () => {
+    setLoadingPending(true);
+    setPendingError(null);
+    try {
+      const data = await fetchPendingReports();
+      setPendingReports(data);
+    } catch (err: any) {
+      setPendingError(err.message || 'Gagal memuat antrean moderasi.');
+    } finally {
+      setLoadingPending(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'MODERATION') {
+      loadPending();
+    }
+  }, [activeTab]);
+
+  const handleModerate = async (
+    reportId: string, 
+    newStatus: ReportStatus, 
+    publicationStatus: 'pending' | 'published' | 'rejected'
+  ) => {
+    setModeratingId(reportId);
+    try {
+      const notes = moderatorNotes[reportId] || (
+        publicationStatus === 'published' 
+          ? 'Bukti foto dan koordinat telah diverifikasi sesuai kondisi lapangan.'
+          : publicationStatus === 'rejected'
+          ? 'Bukti tidak memenuhi kriteria verifikasi fisik atau di luar kewenangan publik.'
+          : 'Laporan ditandai sedang dalam peninjauan bukti fisik lanjutan.'
+      );
+
+      const ok = await moderateReport(reportId, newStatus, publicationStatus, notes, 'kurator_komunitas');
+      if (ok) {
+        setActionFeedback(prev => ({
+          ...prev,
+          [reportId]: {
+            type: 'success',
+            message: publicationStatus === 'published' 
+              ? 'Laporan berhasil disetujui & dipublikasikan ke observatorium!'
+              : publicationStatus === 'rejected'
+              ? 'Laporan telah ditandai ditolak.'
+              : 'Status laporan diperbarui dalam peninjauan.'
+          }
+        }));
+
+        setTimeout(() => {
+          setPendingReports(prev => prev.filter(r => r.id !== reportId));
+          refetch();
+        }, 1200);
+      }
+    } catch (err: any) {
+      setActionFeedback(prev => ({
+        ...prev,
+        [reportId]: {
+          type: 'error',
+          message: err.message || 'Gagal memproses moderasi.'
+        }
+      }));
+    } finally {
+      setModeratingId(null);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -88,6 +175,22 @@ export const ReportView: React.FC = () => {
               }`}
             >
               + Buat Laporan Baru
+            </button>
+            <button
+              onClick={() => setActiveTab('MODERATION')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === 'MODERATION'
+                  ? 'bg-white dark:bg-[#1C2638] text-[#0D9488] shadow-xs'
+                  : 'text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB]'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Kurasi Komunitas</span>
+              {pendingReports.length > 0 && (
+                <span className="px-1.5 py-0.2 bg-[#0D9488] text-white rounded-full text-[10px] font-mono-data font-bold">
+                  {pendingReports.length}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -290,6 +393,24 @@ export const ReportView: React.FC = () => {
                         {agencyRel?.targetId || 'Dinas Teknis Terkait'}
                       </div>
                     </div>
+
+                    {projectRel && (
+                      <div className="text-[11px] text-[#4B5563] dark:text-[#94A3B8] bg-[#F8F9FA] dark:bg-[#101622] p-2.5 rounded-lg border border-[#E5E7EB] dark:border-[#243042] space-y-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-[#6B7280] dark:text-[#94A3B8] font-semibold">Korelasi APBD:</span>
+                          <span className={`font-mono-data text-[9px] px-1.5 py-0.2 rounded font-bold ${
+                            projectRel.matchStatus === 'confirmed'
+                              ? 'bg-[#ECFDF5] text-[#065F46] dark:bg-[#064E3B] dark:text-[#6EE7B7]'
+                              : 'bg-[#FFFBEB] text-[#92400E] dark:bg-[#78350F] dark:text-[#FDE68A]'
+                          }`}>
+                            {projectRel.matchStatus === 'confirmed' ? 'TERKONFIRMASI' : 'SARAN SISTEM'}
+                          </span>
+                        </div>
+                        <div className="font-mono-data text-[11px] font-medium text-[#111827] dark:text-[#F9FAFB] truncate">
+                          {projectRel.targetId}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}
@@ -336,6 +457,231 @@ export const ReportView: React.FC = () => {
         </div>
       )}
 
+      {/* ============================================================== */}
+      {/* MODE 3: COMMUNITY MODERATION & CURATION WORKFLOW */}
+      {/* ============================================================== */}
+      {activeTab === 'MODERATION' && (
+        <div className="space-y-6">
+          
+          {/* Moderation Mission Banner */}
+          <div className="bg-white dark:bg-[#151D2A] p-6 rounded-2xl border border-[#E5E7EB] dark:border-[#243042] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0D9488]">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Pintu Kurasi Bukti Independen</span>
+              </div>
+              <h2 className="text-lg font-extrabold text-[#111827] dark:text-[#F9FAFB]">
+                Antrean Verifikasi Bukti Warga
+              </h2>
+              <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] max-w-2xl leading-relaxed">
+                Setiap laporan warga dikarantina di bucket privat (<code className="font-mono-data text-[11px] text-[#0D9488]">report-evidence-private</code>) hingga bukti fisik diperiksa. Persetujuan publikasi otomatis membuka visibilitas publik dan mencatat peristiwa ke buku kas audit append-only (<code className="font-mono-data text-[11px]">report_events</code>).
+              </p>
+            </div>
+
+            <button
+              onClick={loadPending}
+              disabled={loadingPending}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold bg-[#F8F9FA] dark:bg-[#1C2638] hover:bg-[#E5E7EB] dark:hover:bg-[#243042] text-[#111827] dark:text-[#F9FAFB] rounded-lg border border-[#E5E7EB] dark:border-[#243042] transition-all shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingPending ? 'animate-spin' : ''}`} />
+              <span>Segarkan Antrean</span>
+            </button>
+          </div>
+
+          {/* Fallback Notice if Supabase not yet migrated */}
+          {!isLive && (
+            <div className="p-4 rounded-xl bg-[#FFFBEB] dark:bg-[#2B2313] border border-[#FCD34D] dark:border-[#78350F] text-xs text-[#92400E] dark:text-[#FDE68A] flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span className="font-bold">Mode Pengujian Database Lokal:</span>
+                <p>
+                  Prosedur tersimpan <code className="font-mono-data">submit_citizen_report</code> dan <code className="font-mono-data">moderate_report</code> memerlukan eksekusi migrasi di Supabase SQL Editor. Laporan yang masuk ke tabel <code className="font-mono-data">reports</code> dengan <code className="font-mono-data">publication_status = 'pending'</code> akan tampil di sini.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Pending Error */}
+          {pendingError && (
+            <div className="p-4 rounded-xl bg-[#FEF2F2] dark:bg-[#2A1215] border border-[#FCA5A5] dark:border-[#7F1D1D] text-xs text-[#991B1B] dark:text-[#FCA5A5] flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{pendingError}</span>
+            </div>
+          )}
+
+          {/* Loading */}
+          {loadingPending && (
+            <div className="p-12 text-center text-xs text-[#6B7280] dark:text-[#94A3B8]">
+              Memeriksa antrean moderasi dari database Supabase...
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loadingPending && pendingReports.length === 0 && (
+            <div className="bg-white dark:bg-[#151D2A] p-12 text-center rounded-2xl border border-[#E5E7EB] dark:border-[#243042] space-y-3">
+              <CheckCircle2 className="w-10 h-10 text-[#0D9488] mx-auto" />
+              <div className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">
+                Antrean Kurasi Bersih
+              </div>
+              <p className="text-xs text-[#6B7280] dark:text-[#94A3B8] max-w-md mx-auto leading-relaxed">
+                Tidak ada laporan warga yang menunggu peninjauan saat ini. Semua laporan yang dikirim melalui formulir pelaporan akan masuk ke antrean ini sebelum dipublikasikan.
+              </p>
+            </div>
+          )}
+
+          {/* Pending Cards List */}
+          {!loadingPending && pendingReports.length > 0 && (
+            <div className="space-y-4">
+              {pendingReports.map(report => {
+                const primaryPhoto = report.approvedMedia?.[0]?.url;
+                const feedback = actionFeedback[report.id];
+                const isProcessing = moderatingId === report.id;
+
+                return (
+                  <div
+                    key={report.id}
+                    className="bg-white dark:bg-[#151D2A] rounded-2xl border border-[#E5E7EB] dark:border-[#243042] p-5 shadow-xs space-y-4 transition-colors"
+                  >
+                    {/* Top Row: Ref & Badges */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F3F4F6] dark:border-[#243042] pb-3 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono-data font-bold bg-[#111827] dark:bg-[#0B0F17] text-white px-2.5 py-0.5 rounded text-[11px]">
+                          {report.publicReference}
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFFBEB] text-[#92400E] dark:bg-[#78350F] dark:text-[#FDE68A]">
+                          Menunggu Kurasi
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#F3F4F6] dark:bg-[#243042] text-[#4B5563] dark:text-[#94A3B8]">
+                          {report.category}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-[11px] text-[#6B7280] dark:text-[#94A3B8]">
+                        <MapPin className="w-3.5 h-3.5 text-[#DC2626]" />
+                        <span>{report.subdistrict}</span>
+                        <span>•</span>
+                        <span>{report.observedAt}</span>
+                      </div>
+                    </div>
+
+                    {/* Content & Evidence Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                      
+                      {/* Photo Evidence (Private Bucket) */}
+                      <div className="md:col-span-1 rounded-xl overflow-hidden border border-[#E5E7EB] dark:border-[#243042] bg-[#F8F9FA] dark:bg-[#101622] h-48 relative flex items-center justify-center">
+                        {primaryPhoto ? (
+                          <img
+                            src={primaryPhoto}
+                            alt={report.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="p-4 text-center text-[#9CA3AF] space-y-1">
+                            <ImageIcon className="w-8 h-8 mx-auto" />
+                            <span className="text-[11px]">Foto belum dimuat atau dalam proses dekripsi</span>
+                          </div>
+                        )}
+                        <span className="absolute bottom-2 left-2 text-[10px] font-mono-data bg-black/75 text-white px-2 py-0.5 rounded">
+                          EXIF Sanitized
+                        </span>
+                      </div>
+
+                      {/* Issue Details & Spatial Context */}
+                      <div className="md:col-span-2 space-y-3">
+                        <div>
+                          <h3 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">
+                            {report.title}
+                          </h3>
+                          <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed mt-1">
+                            {report.description}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-[11px] bg-[#F8F9FA] dark:bg-[#101622] p-3 rounded-xl border border-[#E5E7EB] dark:border-[#243042]">
+                          <div>
+                            <span className="text-[#6B7280] dark:text-[#94A3B8] block">Tingkat Dampak:</span>
+                            <span className="font-bold text-[#111827] dark:text-[#F9FAFB]">{report.severity}</span>
+                          </div>
+                          <div>
+                            <span className="text-[#6B7280] dark:text-[#94A3B8] block">Metode Akuisisi:</span>
+                            <span className="font-mono-data font-semibold text-[#111827] dark:text-[#F9FAFB] uppercase">
+                              {report.locationMethod} {report.isApproximateLocation ? '(Perkiraan)' : '(Akurat)'}
+                            </span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-[#6B7280] dark:text-[#94A3B8] block">Koordinat Publik:</span>
+                            <span className="font-mono-data text-[#111827] dark:text-[#F9FAFB]">
+                              {report.coordinates[0].toFixed(5)}, {report.coordinates[1].toFixed(5)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Moderator Notes Input */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-[#4B5563] dark:text-[#94A3B8]">
+                            Catatan Kurator / Justifikasi Audit:
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Contoh: Bukti fisik valid, lubang jalan terkonfirmasi mengganggu keselamatan..."
+                            value={moderatorNotes[report.id] || ''}
+                            onChange={(e) => setModeratorNotes(prev => ({ ...prev, [report.id]: e.target.value }))}
+                            className="w-full px-3 py-1.5 text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg text-[#111827] dark:text-[#F9FAFB] focus:outline-none focus:border-[#0D9488]"
+                          />
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <button
+                            onClick={() => handleModerate(report.id, 'published', 'published')}
+                            disabled={isProcessing}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0D9488] hover:bg-[#0F766E] text-white text-xs font-bold rounded-lg transition-all disabled:opacity-50"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Setujui &amp; Publikasikan</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleModerate(report.id, 'rejected', 'rejected')}
+                            disabled={isProcessing}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent hover:bg-[#FEE2E2] dark:hover:bg-[#3D1418] text-[#DC2626] border border-[#FCA5A5] dark:border-[#7F1D1D] text-xs font-bold rounded-lg transition-all disabled:opacity-50"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Tolak Laporan</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleModerate(report.id, 'under_review', 'pending')}
+                            disabled={isProcessing}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent hover:bg-[#FEF3C7] dark:hover:bg-[#3E2C0C] text-[#D97706] border border-[#FCD34D] dark:border-[#78350F] text-xs font-bold rounded-lg transition-all disabled:opacity-50"
+                          >
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Tandai Dalam Tinjauan</span>
+                          </button>
+                        </div>
+
+                        {/* Status feedback */}
+                        {feedback && (
+                          <div className={`p-2.5 rounded-lg text-xs font-semibold ${
+                            feedback.type === 'success'
+                              ? 'bg-[#ECFDF5] text-[#065F46] dark:bg-[#064E3B] dark:text-[#6EE7B7]'
+                              : 'bg-[#FEF2F2] text-[#991B1B] dark:bg-[#2A1215] dark:text-[#FCA5A5]'
+                          }`}>
+                            {feedback.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+        </div>
+      )}
+
     </div>
   );
 };
+

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTitik } from '../context/TitikContext';
 import { SubdistrictType } from '../types';
-import { MapPin, Building2, Coins, AlertCircle } from 'lucide-react';
 
 interface Props {
   onSelectSubdistrict?: (sub: SubdistrictType) => void;

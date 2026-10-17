@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTitik } from '../context/TitikContext';
 import { Modal } from './Modal';
@@ -55,7 +55,7 @@ export const Navbar: React.FC = () => {
   const location = useLocation();
 
   // Navigation Items Definition with Submenus
-  const navItems: NavItem[] = [
+  const navItems: NavItem[] = useMemo(() => [
     {
       id: 'beranda',
       label: 'Beranda',
@@ -75,9 +75,9 @@ export const Navbar: React.FC = () => {
       icon: Compass,
       description: 'Sebaran geospasial fasilitas publik & aduan warga',
       subItems: [
-        { id: 'semua-peta', label: 'Observatorium Peta Lengkap', path: '/peta', description: 'Visualisasi titik geospasial Jabodetabek' },
-        { id: 'titik-kritis', label: 'Fasilitas Rusak & Kritis', path: '/peta', description: 'Intervensi prioritas infrastruktur darurat' },
-        { id: 'aduan-spasial', label: 'Sebaran Aduan Warga', path: '/peta', description: 'Titik laporan lapangan terverifikasi' }
+        { id: 'semua-peta', label: 'Observatorium Peta Spasial', path: '/peta', description: 'Visualisasi titik geospasial Jabodetabek' },
+        { id: 'titik-kritis', label: 'Fasilitas Rusak & Kritis', path: '/peta#kritis', description: 'Intervensi prioritas infrastruktur darurat' },
+        { id: 'aduan-spasial', label: 'Sebaran Aduan Warga', path: '/peta#laporan', description: 'Titik laporan lapangan terverifikasi' }
       ]
     },
     {
@@ -88,8 +88,8 @@ export const Navbar: React.FC = () => {
       description: 'Pagu alokasi, realisasi SIKD, dan serapan belanja',
       subItems: [
         { id: 'ringkasan-apbd', label: 'Pagu APBD Tahun 2026', path: '/anggaran', description: 'Total pagu anggaran di 9 sektor layanan' },
-        { id: 'realisasi-sikd', label: 'Sinkronisasi SIKD Kemenkeu', path: '/anggaran', description: 'Kompilasi serapan riil vs kontrak fisik' },
-        { id: 'distribusi-skpd', label: 'Alokasi per SKPD Dinas', path: '/anggaran', description: 'Disdik, Dinkes, PUPR, dan Dinas Teknis' }
+        { id: 'realisasi-sikd', label: 'Sinkronisasi SIKD Kemenkeu', path: '/anggaran#tabel-program', description: 'Kompilasi serapan riil vs kontrak fisik' },
+        { id: 'distribusi-skpd', label: 'Alokasi per SKPD Dinas', path: '/anggaran#grafik-sektor', description: 'Disdik, Dinkes, PUPR, dan Dinas Teknis' }
       ]
     },
     {
@@ -99,7 +99,6 @@ export const Navbar: React.FC = () => {
       icon: Building2,
       description: 'Katalog sarana pendidikan, kesehatan, jalan & drainase',
       subItems: [
-        { id: 'semua-fasilitas', label: `Semua Fasilitas (${facilities.length})`, path: '/fasilitas', description: 'Direktori lengkap fasilitas terdata se-Jabodetabek' },
         { id: 'pendidikan', label: 'Pendidikan & Sekolah', path: '/fasilitas?sektor=Pendidikan', description: 'SDN, SMPN, SMAN di wilayah Jabodetabek' },
         { id: 'kesehatan', label: 'Kesehatan & Puskesmas', path: '/fasilitas?sektor=Kesehatan', description: 'Puskesmas kecamatan & RSUD daerah' },
         { id: 'drainase', label: 'Drainase & Lingkungan', path: '/fasilitas?sektor=Lingkungan+%26+Drainase', description: 'Saluran air pencegah banjir lokal' },
@@ -114,7 +113,7 @@ export const Navbar: React.FC = () => {
       description: 'Deteksi selisih pelaporan fisik vs realisasi belanja',
       subItems: [
         { id: 'anomali-utama', label: 'Anomali Fisik vs Anggaran', path: '/analisis', description: '4 temuan deviasi serapan prioritas inspektorat' },
-        { id: 'indeks-skpd', label: 'Indeks Transparansi Dinas', path: '/analisis', description: 'Peringkat kepatuhan pelaporan instansi' }
+        { id: 'indeks-skpd', label: 'Indeks Transparansi Dinas', path: '/analisis#peringkat', description: 'Peringkat kepatuhan pelaporan instansi' }
       ]
     },
     {
@@ -125,11 +124,12 @@ export const Navbar: React.FC = () => {
       badgeCount: reports.length,
       description: 'Partisipasi publik & pemantauan tindak lanjut laporan',
       subItems: [
-        { id: 'daftar-laporan', label: `Daftar Aduan Terkini (${reports.length})`, path: '/lapor', description: 'Laporan warga terverifikasi & statusnya' },
-        { id: 'buat-laporan', label: 'Tandai Titik Masalah Baru', path: '/lapor', description: 'Unggah bukti foto & koordinat GPS' }
+        { id: 'daftar-laporan', label: `Daftar Aduan Terkini (${reports.length})`, path: '/lapor', description: 'Laporan warga terverifikasi & jejak audit' },
+        { id: 'buat-laporan', label: 'Tandai Titik Masalah Baru', path: '/lapor?tab=new', description: 'Unggah bukti foto & koordinat GPS' },
+        { id: 'kurasi-komunitas', label: 'Kurasi Komunitas', path: '/lapor?tab=moderation', description: 'Pintu moderasi bukti warga independen' }
       ]
     }
-  ];
+  ], [reports.length, facilities.length]);
 
   // Drawer & Popover State
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -155,7 +155,7 @@ export const Navbar: React.FC = () => {
     setMobileDrawerStep('categories');
     setIsVisible(true);
     lastScrollYRef.current = typeof window !== 'undefined' ? window.scrollY : 0;
-  }, [location.pathname]);
+  }, [location.pathname, navItems]);
 
   // Handle ESC key to close open menus
   useEffect(() => {
@@ -582,12 +582,12 @@ export const Navbar: React.FC = () => {
       </nav>
 
       {/* ==================================================================== */}
-      {/* 4. CASCADING NAVIGATION MODAL (Rail & Flyout Directory)             */}
+      {/* 4. STREAMLINED NAVIGATION MODAL (Clean 2-Panel Command Center)       */}
       {/* ==================================================================== */}
       <Modal
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        maxWidth="4xl"
+        maxWidth="3xl"
         title="Pusat Navigasi Observatorium"
         subtitle="Jelajahi modul pemantauan, peta titik prioritas, dan transparansi anggaran Jabodetabek"
         icon={<Compass className="w-5 h-5 text-[#0D9488]" />}
@@ -598,206 +598,175 @@ export const Navbar: React.FC = () => {
         }
         bodyClassName="p-0 overflow-hidden"
       >
-        <div className="flex flex-col sm:flex-row h-[520px] max-h-[70vh]">
-          {/* COLUMN 1: VERTICAL ICON RAIL */}
-          <div className="w-full sm:w-16 bg-[#FAF9F6] dark:bg-[#0B0F17] border-b sm:border-b-0 sm:border-r border-[#E5E4DF] dark:border-[#243042] flex sm:flex-col items-center py-2.5 sm:py-4 px-2 sm:px-0 justify-between shrink-0 overflow-x-auto sm:overflow-x-visible">
-            <div className="flex sm:flex-col items-center gap-2 sm:gap-2.5 w-full">
-              {navItems.map(item => {
-                const isSelected = activeDrawerCategory === item.id;
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setActiveDrawerCategory(item.id);
-                      setMobileDrawerStep('subitems');
-                    }}
-                    onMouseEnter={() => setActiveDrawerCategory(item.id)}
-                    className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-all relative shrink-0 ${
-                      isSelected 
-                        ? 'bg-[#0D9488]/15 text-[#0D9488] dark:text-[#2DD4BF] shadow-2xs font-semibold' 
-                        : 'text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-white dark:hover:bg-[#151D2A]'
-                    }`}
-                    title={item.label}
-                  >
-                    <Icon className="w-5 h-5" />
-                    {isSelected && (
-                      <span className="hidden sm:block absolute left-0 top-2.5 bottom-2.5 w-1 bg-[#0D9488] dark:bg-[#2DD4BF] rounded-r-full" />
-                    )}
-                  </button>
-                );
-              })}
+        <div className="flex flex-col sm:flex-row h-[480px] max-h-[72vh]">
+          {/* PANEL 1: KATEGORI UTAMA (Clean Master List) */}
+          <div className="w-full sm:w-64 bg-[#FAF9F6] dark:bg-[#101622] border-b sm:border-b-0 sm:border-r border-[#E5E7EB] dark:border-[#243042] flex flex-col justify-between py-3 shrink-0">
+            <div>
+              <div className="px-4 pb-2 border-b border-[#E5E7EB]/60 dark:border-[#243042] flex items-center justify-between">
+                <span className="text-[10px] font-mono-data uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8] font-bold">
+                  Pilih Modul
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0D9488]" />
+              </div>
+
+              <div className="py-2 space-y-1 px-2.5 overflow-y-auto max-h-[350px]">
+                {navItems.map(item => {
+                  const isSelected = activeDrawerCategory === item.id;
+                  const Icon = item.icon;
+
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveDrawerCategory(item.id);
+                        setMobileDrawerStep('subitems');
+                      }}
+                      onMouseEnter={() => setActiveDrawerCategory(item.id)}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all text-left group ${
+                        isSelected 
+                          ? 'bg-white dark:bg-[#151D2A] text-[#0D9488] dark:text-[#2DD4BF] font-bold shadow-xs border border-[#E5E7EB] dark:border-[#243042]' 
+                          : 'text-[#4B5563] dark:text-[#94A3B8] hover:bg-white/70 dark:hover:bg-[#151D2A]/60 hover:text-[#111827] dark:hover:text-[#F9FAFB] font-medium border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 truncate">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                          isSelected 
+                            ? 'bg-[#0D9488]/15 text-[#0D9488] dark:text-[#2DD4BF]' 
+                            : 'bg-[#F3F4F6] dark:bg-[#1A2232] text-[#6B7280] dark:text-[#94A3B8] group-hover:text-[#111827] dark:group-hover:text-[#F9FAFB]'
+                        }`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <span className="truncate">{item.label}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        {item.badgeCount !== undefined && item.badgeCount > 0 && (
+                          <span className={`text-[10px] font-mono-data px-1.5 py-0.2 rounded-full font-bold ${
+                            isSelected ? 'bg-[#0D9488] text-white' : 'bg-[#E5E7EB] dark:bg-[#243042] text-[#4B5563] dark:text-[#CBD5E1]'
+                          }`}>
+                            {item.badgeCount}
+                          </span>
+                        )}
+                        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${
+                          isSelected ? 'text-[#0D9488] dark:text-[#2DD4BF] translate-x-0.5' : 'text-[#9CA3AF] opacity-0 group-hover:opacity-100'
+                        }`} />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Rail Bottom Utility */}
-            <div className="hidden sm:flex flex-col items-center gap-2">
+            {/* Quick Utilities at Bottom of Left Panel */}
+            <div className="pt-2.5 px-3 border-t border-[#E5E7EB]/60 dark:border-[#243042] flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="w-10 h-10 rounded-xl text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-white dark:hover:bg-[#151D2A] flex items-center justify-center transition-colors"
+                className="flex-1 py-1.5 px-2.5 rounded-lg text-[11px] font-medium text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-white dark:hover:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] flex items-center justify-center gap-1.5 transition-colors"
                 title={theme === 'dark' ? "Mode Terang" : "Mode Gelap"}
               >
                 {theme === 'dark' ? (
-                  <Sun className="w-4 h-4 text-amber-400" />
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Terang</span>
+                  </>
                 ) : (
-                  <Moon className="w-4 h-4 text-[#6B7280]" />
+                  <>
+                    <Moon className="w-3.5 h-3.5 text-[#6B7280]" />
+                    <span>Gelap</span>
+                  </>
                 )}
               </button>
 
               <button
+                type="button"
                 onClick={() => {
                   setIsDrawerOpen(false);
                   setIsDataSourceModalOpen(true);
                 }}
-                className="w-10 h-10 rounded-xl text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-white dark:hover:bg-[#151D2A] flex items-center justify-center transition-colors"
+                className="flex-1 py-1.5 px-2.5 rounded-lg text-[11px] font-medium text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-white dark:hover:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] flex items-center justify-center gap-1.5 transition-colors"
                 title="Sumber Data & Metodologi SIKD"
               >
-                <Database className="w-4 h-4" />
+                <Database className="w-3.5 h-3.5 text-[#0D9488]" />
+                <span>SIKD</span>
               </button>
             </div>
           </div>
 
-          {/* COLUMN 2: CATEGORY FLYOUT LIST */}
-          <div className={`w-full sm:w-60 bg-white dark:bg-[#101622] border-b sm:border-b-0 sm:border-r border-[#E5E4DF] dark:border-[#243042] flex flex-col py-3.5 shrink-0 ${
-            mobileDrawerStep === 'subitems' ? 'hidden sm:flex' : 'flex'
-          }`}>
-            <div className="px-4 pb-2.5 border-b border-[#E5E4DF]/60 dark:border-[#243042] flex items-center justify-between">
-              <div className="text-[10px] font-mono-data uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8] font-semibold">
-                Kategori Utama
-              </div>
-              <span className="w-2 h-2 rounded-full bg-[#0D9488]" />
-            </div>
-
-            <div className="flex-1 py-1.5 overflow-y-auto space-y-1 px-2">
-              {navItems.map(item => {
-                const isSelected = activeDrawerCategory === item.id;
-                const Icon = item.icon;
-                const hasSub = item.subItems && item.subItems.length > 0;
-
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setActiveDrawerCategory(item.id);
-                      setMobileDrawerStep('subitems');
-                    }}
-                    onMouseEnter={() => setActiveDrawerCategory(item.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all text-left group ${
-                      isSelected 
-                        ? 'bg-[#0D9488]/10 dark:bg-[#0D9488]/20 text-[#0D9488] dark:text-[#2DD4BF] font-bold' 
-                        : 'text-[#374151] dark:text-[#CBD5E1] hover:bg-[#FAF9F6] dark:hover:bg-[#151D2A] hover:text-[#111827] dark:hover:text-[#F9FAFB] font-medium'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      <Icon className={`w-4 h-4 shrink-0 transition-colors ${
-                        isSelected ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-[#6B7280] dark:text-[#94A3B8] group-hover:text-[#111827] dark:group-hover:text-[#F9FAFB]'
-                      }`} />
-                      <span className="truncate">{item.label}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                      {item.badgeCount !== undefined && item.badgeCount > 0 && (
-                        <span className={`text-[10px] font-mono-data px-1.5 py-0.5 rounded-full font-bold ${
-                          isSelected ? 'bg-[#0D9488] text-white' : 'bg-[#E5E4DF] dark:bg-[#243042] text-[#4B5563] dark:text-[#CBD5E1]'
-                        }`}>
-                          {item.badgeCount}
-                        </span>
-                      )}
-                      {hasSub && (
-                        <ChevronRight className={`w-4 h-4 transition-transform ${
-                          isSelected ? 'text-[#0D9488] dark:text-[#2DD4BF] translate-x-0.5' : 'text-[#9CA3AF] dark:text-[#64748B] group-hover:text-[#4B5563] dark:group-hover:text-[#94A3B8]'
-                        }`} />
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Direct Open Button for Currently Highlighted Category */}
-            <div className="p-3 border-t border-[#E5E4DF]/60 dark:border-[#243042] mt-auto">
-              <button
-                onClick={() => {
-                  if (currentCategory) {
-                    navigate(currentCategory.path);
-                    setIsDrawerOpen(false);
-                  }
-                }}
-                className="w-full py-2.5 px-3 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs active:scale-[0.98]"
-              >
-                <span>Buka {currentCategory.label}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-[#0D9488] dark:text-white" />
-              </button>
-            </div>
-          </div>
-
-          {/* COLUMN 3: CASCADING SUBMENU PANEL */}
-          {currentCategory && currentCategory.subItems && currentCategory.subItems.length > 0 && (
-            <div className={`flex-1 bg-white dark:bg-[#151D2A] flex flex-col py-3.5 min-w-0 overflow-y-auto ${
+          {/* PANEL 2: DETAIL DESTINATIONS (Right Panel) */}
+          {currentCategory && (
+            <div className={`flex-1 bg-white dark:bg-[#151D2A] flex flex-col py-4 px-5 min-w-0 ${
               mobileDrawerStep === 'subitems' ? 'flex' : 'hidden sm:flex'
             }`}>
-              {/* Mobile Back Header */}
-              <div className="sm:hidden px-3 pb-2 border-b border-[#E5E4DF] dark:border-[#243042] mb-2 flex items-center justify-between">
+              {/* Mobile Back Button */}
+              <div className="sm:hidden pb-3 border-b border-[#E5E7EB] dark:border-[#243042] mb-3 flex items-center justify-between">
                 <button
                   onClick={() => setMobileDrawerStep('categories')}
-                  className="text-xs text-[#0D9488] dark:text-[#2DD4BF] font-bold flex items-center gap-1 hover:underline py-1"
+                  className="text-xs text-[#0D9488] font-bold flex items-center gap-1 hover:underline"
                 >
-                  <span>← Kembali ke Kategori</span>
+                  <span>← Kembali</span>
                 </button>
-                <span className="text-[10px] font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
+                <span className="text-[11px] font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
                   {currentCategory.label}
                 </span>
               </div>
 
-              {/* Submenu Header */}
-              <div className="px-5 pb-3 border-b border-[#E5E4DF]/60 dark:border-[#243042]">
-                <div className="text-[10px] font-mono-data uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8] font-semibold">
-                  Sub-Seksi & Pilihan Cepat
+              {/* Header with Title, Description, and ONE Primary Action Button */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E5E7EB] dark:border-[#243042]">
+                <div className="space-y-0.5 max-w-sm">
+                  <div className="text-[10px] font-mono-data uppercase tracking-wider text-[#0D9488] font-bold">
+                    Sub-Seksi &amp; Pilihan Cepat
+                  </div>
+                  <h3 className="text-base font-extrabold text-[#111827] dark:text-[#F9FAFB]">
+                    {currentCategory.label}
+                  </h3>
+                  <p className="text-xs text-[#6B7280] dark:text-[#94A3B8] line-clamp-1">
+                    {currentCategory.description}
+                  </p>
                 </div>
-                <div className="text-base font-bold text-[#111827] dark:text-[#F9FAFB] mt-0.5">
-                  {currentCategory.label}
-                </div>
-                <div className="text-xs text-[#6B7280] dark:text-[#94A3B8] mt-0.5 line-clamp-1">
-                  {currentCategory.description}
-                </div>
-              </div>
 
-              {/* Sub-Items List */}
-              <div className="flex-1 py-2 px-3 space-y-1.5 overflow-y-auto">
-                {currentCategory.subItems.map(sub => (
-                  <button
-                    key={sub.id}
-                    onClick={() => {
-                      navigate(sub.path);
-                      setIsDrawerOpen(false);
-                    }}
-                    className="w-full text-left p-3.5 rounded-xl hover:bg-[#FAF9F6] dark:hover:bg-[#1C2638] border border-transparent hover:border-[#E5E4DF] dark:hover:border-[#243042] transition-all group"
-                  >
-                    <div className="text-xs font-semibold text-[#111827] dark:text-[#F9FAFB] group-hover:text-[#0D9488] dark:group-hover:text-[#2DD4BF] flex items-center justify-between">
-                      <span className="font-semibold">{sub.label}</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] dark:text-[#64748B] group-hover:text-[#0D9488] dark:group-hover:text-[#2DD4BF] opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5" />
-                    </div>
-                    {sub.description && (
-                      <p className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] mt-1 leading-relaxed">
-                        {sub.description}
-                      </p>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {/* Direct Action Link */}
-              <div className="p-3.5 border-t border-[#E5E4DF]/60 dark:border-[#243042] bg-[#FAF9F6]/60 dark:bg-[#101622]/60 mt-auto">
                 <button
                   onClick={() => {
                     navigate(currentCategory.path);
                     setIsDrawerOpen(false);
                   }}
-                  className="w-full text-center text-xs font-semibold text-[#0D9488] dark:text-[#2DD4BF] hover:text-[#0F766E] dark:hover:text-[#5EEAD4] transition-colors py-1 flex items-center justify-center gap-1.5"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs font-bold rounded-xl transition-all shadow-xs self-start sm:self-auto shrink-0"
                 >
-                  <span>Eksplorasi Seluruh {currentCategory.label}</span>
-                  <ArrowRight className="w-3 h-3" />
+                  <span>Buka Halaman Utama</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
+              </div>
+
+              {/* Sub-Items List */}
+              <div className="flex-1 py-3 space-y-2 overflow-y-auto">
+                {currentCategory.subItems && currentCategory.subItems.length > 0 ? (
+                  currentCategory.subItems.map(sub => (
+                    <button
+                      key={sub.id}
+                      onClick={() => {
+                        navigate(sub.path);
+                        setIsDrawerOpen(false);
+                      }}
+                      className="w-full text-left p-3 rounded-xl bg-[#F8F9FA] dark:bg-[#101622] hover:bg-white dark:hover:bg-[#1C2638] border border-[#E5E7EB] dark:border-[#243042] hover:border-[#0D9488] dark:hover:border-[#0D9488] transition-all group flex items-start justify-between gap-3"
+                    >
+                      <div className="space-y-0.5 flex-1 min-w-0">
+                        <div className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB] group-hover:text-[#0D9488] dark:group-hover:text-[#2DD4BF] transition-colors truncate">
+                          {sub.label}
+                        </div>
+                        {sub.description && (
+                          <p className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] leading-relaxed line-clamp-2">
+                            {sub.description}
+                          </p>
+                        )}
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-[#9CA3AF] group-hover:text-[#0D9488] dark:group-hover:text-[#2DD4BF] group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-xs text-[#6B7280] dark:text-[#94A3B8]">
+                    Tidak ada sub-seksi. Klik "Buka Halaman Utama" di atas untuk menuju ke halaman ini.
+                  </div>
+                )}
               </div>
             </div>
           )}

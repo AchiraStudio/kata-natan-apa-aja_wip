@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTitik } from '../context/TitikContext';
 import { 
   CURRENT_MONTHLY_DIGEST,
-  formatRupiahShort,
-  formatRupiahFull
+  formatRupiahShort
 } from '../data/titikRegionalData';
 import { SectorType } from '../types';
 import { 
@@ -20,11 +19,6 @@ import {
   Coins, 
   FileCheck2, 
   Building2,
-  RefreshCw,
-  Sparkles,
-  Wifi,
-  WifiOff,
-  X,
   Link as LinkIcon,
   Info
 } from 'lucide-react';
@@ -36,15 +30,7 @@ export const LandingView: React.FC = () => {
     reports,
     discrepancies,
     setSelectedFacility, 
-    setIsSearchOpen,
-    syncStatus,
-    lastSyncedAt,
-    isOfflineSimulated,
-    latestTelemetryEvent,
-    triggerManualSync,
-    toggleOfflineSimulation,
-    simulateIncomingEvent,
-    clearLatestEvent
+    setIsSearchOpen
   } = useTitik();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -252,120 +238,7 @@ export const LandingView: React.FC = () => {
         </div>
       </section>
 
-      {/* ============================================================== */}
-      {/* REALTIME & OFFLINE TELEMETRY CONTROL BAR                       */}
-      {/* ============================================================== */}
-      <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 -mt-6 sm:-mt-8 relative z-20">
-        <div className="landing-telemetry-bar">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Status Pill */}
-            <div className={`landing-telemetry-live-pill ${
-              syncStatus === 'LIVE' ? 'landing-telemetry-live-pill-live' :
-              syncStatus === 'SYNCING' ? 'landing-telemetry-live-pill-syncing' :
-              syncStatus === 'OFFLINE' ? 'landing-telemetry-live-pill-offline' :
-              'landing-telemetry-live-pill-cached'
-            }`}>
-              <span className={`w-2.5 h-2.5 rounded-full ${
-                syncStatus === 'LIVE' ? 'bg-[#0D9488] animate-pulse' :
-                syncStatus === 'SYNCING' ? 'bg-[#D97706] animate-ping' :
-                syncStatus === 'OFFLINE' ? 'bg-[#DC2626]' :
-                'bg-[#6B7280]'
-              }`} />
-              <span>
-                {syncStatus === 'LIVE' && 'REALTIME CONNECTED (Supabase Channel: titik_public)'}
-                {syncStatus === 'SYNCING' && 'SINKRONISASI SIKD KEMENDAGRI...'}
-                {syncStatus === 'OFFLINE' && 'MODE OFFLINE: FALLBACK CACHE LOKAL'}
-                {syncStatus === 'CACHED' && 'DATA CACHE TERAKHIR'}
-              </span>
-            </div>
 
-            {/* Sync Timestamp & Integrity Info */}
-            <div className="text-xs text-[#4B5563] dark:text-[#94A3B8] flex items-center gap-2">
-              <span className="hidden sm:inline text-[#9CA3AF] dark:text-[#64748B]">•</span>
-              <span className="font-mono-data text-[11px]">
-                {isOfflineSimulated 
-                  ? 'Sumber SIKD terputus. Menampilkan cache lokal terverifikasi.' 
-                  : `Data terakhir sinkron: ${lastSyncedAt}`}
-              </span>
-            </div>
-          </div>
-
-          {/* Interactive Simulation Controls */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => triggerManualSync()}
-              disabled={syncStatus === 'SYNCING'}
-              className="landing-telemetry-btn bg-white dark:bg-[#1C2638] text-[#111827] dark:text-[#F9FAFB] border-[#E5E7EB] dark:border-[#243042] hover:bg-[#F9FAFB] dark:hover:bg-[#253248]"
-              title="Perbarui data dari SIKD Kemendagri"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-[#0D9488] ${syncStatus === 'SYNCING' ? 'animate-spin' : ''}`} />
-              <span>{syncStatus === 'SYNCING' ? 'Menyinkronkan...' : 'Sinkronkan SIKD'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => simulateIncomingEvent()}
-              disabled={isOfflineSimulated}
-              className="landing-telemetry-btn bg-white dark:bg-[#1C2638] text-[#111827] dark:text-[#F9FAFB] border-[#E5E7EB] dark:border-[#243042] hover:bg-[#F9FAFB] dark:hover:bg-[#253248] disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Simulasikan suara warga atau pembaruan laporan via Realtime"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#D97706]" />
-              <span>Simulasi Event</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => toggleOfflineSimulation()}
-              className={`landing-telemetry-btn ${
-                isOfflineSimulated 
-                  ? 'bg-[#DC2626]/10 text-[#DC2626] border-[#DC2626]/30 dark:bg-[#DC2626]/20 dark:text-[#F87171]' 
-                  : 'bg-white dark:bg-[#1C2638] text-[#4B5563] dark:text-[#CBD5E1] border-[#E5E7EB] dark:border-[#243042] hover:bg-[#F9FAFB]'
-              }`}
-              title="Uji toleransi offline & validitas cache lokal"
-            >
-              {isOfflineSimulated ? (
-                <>
-                  <WifiOff className="w-3.5 h-3.5" />
-                  <span>Offline (Aktif)</span>
-                </>
-              ) : (
-                <>
-                  <Wifi className="w-3.5 h-3.5 text-[#0D9488]" />
-                  <span>Uji Offline</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Live Event Notification Pill / Toast */}
-        {latestTelemetryEvent && (
-          <div className="mt-2.5">
-            <div className={`landing-telemetry-toast ${
-              latestTelemetryEvent.type === 'VOTE'
-                ? 'bg-[#0D9488]/10 border-[#0D9488]/30 text-[#0D9488] dark:bg-[#0D9488]/20 dark:text-[#2DD4BF]'
-                : latestTelemetryEvent.type === 'REPORT'
-                  ? 'bg-[#2563EB]/10 border-[#2563EB]/30 text-[#2563EB] dark:bg-[#2563EB]/20 dark:text-[#60A5FA]'
-                  : 'bg-[#F59E0B]/10 border-[#F59E0B]/30 text-[#D97706] dark:bg-[#F59E0B]/20 dark:text-[#FBBF24]'
-            }`}>
-              <div className="flex items-center gap-2 overflow-hidden">
-                <span className="w-2 h-2 rounded-full bg-current shrink-0 animate-ping" />
-                <span className="font-bold shrink-0">[{latestTelemetryEvent.timestamp}]</span>
-                <span className="truncate">{latestTelemetryEvent.message}</span>
-              </div>
-              <button 
-                type="button"
-                onClick={clearLatestEvent}
-                className="p-1 hover:opacity-70 transition-opacity shrink-0 cursor-pointer"
-                title="Tutup notifikasi"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* REST OF PAGE CONTENT BELOW FOLD */}
       <div className="space-y-16 sm:space-y-20 pt-16 sm:pt-20">

@@ -88,11 +88,38 @@ Both `/lapor` and the quick-report modal use `ReportWorkflowForm.tsx`:
 - Realtime progress feedback during photo upload and database persistence.
 - Post-submission receipt displaying public reference (`TITIK-2026-XXXXX`), follow-up secret token, copy button, and navigation links.
 
+## 4. Navigation & Interface Architecture (`/lapor`)
+
+The civic reporting center at `/lapor` is organized into three distinct workflows:
+
+1. **Daftar Kasus Warga (`ALL_REPORTS`)**:
+   - Searchable, filterable directory of all published citizen observations.
+   - Distinct badges for suggested vs confirmed agency/APBD project linkages.
+   - Community upvoting with SHA-256 voter token deduplication.
+   - Direct link to individual report audit records (`/lapor/:id`).
+
+2. **+ Buat Laporan Baru (`NEW_REPORT`)**:
+   - The canonical 3-step reporting workflow (`ReportWorkflowForm.tsx`).
+   - Requires real image files with client-side EXIF sanitization before storage upload.
+   - User-initiated GPS geolocation or explicit map pin placement.
+   - Automatic nearby duplicate detection (< 600m in same category).
+   - Follow-up secret token generation with local backup.
+
+3. **Kurasi Komunitas (`MODERATION`)**:
+   - Review portal for incoming quarantined submissions (`publication_status = 'pending'`).
+   - Displays uploaded evidence from `report-evidence-private`.
+   - Displays spatial acquisition method (accurate vs approximate ~110m).
+   - Provides 3 one-click curator actions backed by `moderate_report` RPC:
+     - **Setujui & Publikasikan**: Marks report as `published`, moves media to public visibility, and appends an immutable `APPROVED_PUBLISHED` event with curator justification notes.
+     - **Tolak Laporan**: Marks report as `rejected` and appends `REJECTED` event.
+     - **Tandai Dalam Tinjauan**: Marks report as `under_review` for further field inspection.
+
 ---
 
-## 4. Truthful Fallback Mode
+## 5. Truthful Fallback Mode
 
-When `VITE_SUPABASE_URL` is omitted, the application operates in transparent simulation mode:
-- Reports receive mock references formatted as `TITIK-DEMO-XXXX`.
-- Visual badges clearly state "Mode Simulasi (Supabase Belum Terhubung)" rather than falsifying real database persistence.
+When `VITE_SUPABASE_URL` is omitted or unconfigured:
+- The submission form displays an explicit configuration warning rather than pretending that data was persisted remotely.
+- The public list transparently loads verified baseline records with clear indicators.
+- No false guarantees are made to the citizen regarding governmental receipt without verifiable audit log records.
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { 
   validateCoordinates, 
   generalizeCoordinates, 
@@ -12,6 +12,7 @@ import {
   findNearbySimilarReports
 } from '../services/reportService';
 import { PublicCivicReport } from '../types/database';
+import { supabase } from '../lib/supabase';
 
 describe('Location Service', () => {
   it('validates coordinates accurately within geographic boundaries', () => {
@@ -130,24 +131,43 @@ describe('Report Service & Anonymity Protocol', () => {
     })).rejects.toThrow(/Deskripsi laporan minimal 10 karakter/);
   });
 
-  it('falls back to truthful demo submission when Supabase is not configured', async () => {
-    const result = await submitCitizenReport({
-      title: 'Tanggul Drainase Ambruk Dekat Pemukiman',
-      description: 'Air meluap menggenangi jalan lingkungan setinggi 30 cm setiap hujan lebat.',
-      category: 'Lingkungan & Drainase',
-      severity: 'Kritis',
-      subdistrict: 'Bogor Utara',
-      preciseCoordinates: [-6.5800, 106.8100],
+  it('rejects submission when coordinates are out of bounds', async () => {
+    await expect(submitCitizenReport({
+      title: 'Jalan Rusak Berlubang Parah',
+      description: 'Air meluap menggenangi jalan lingkungan setiap hujan.',
+      category: 'Infrastruktur Jalan',
+      severity: 'Sedang',
+      subdistrict: 'Bogor Tengah',
+      preciseCoordinates: [95.0000, 106.8060], // Invalid latitude > 90
       isApproximate: false,
-      acquisitionMethod: 'gps',
+      acquisitionMethod: 'map_pin',
       evidenceFiles: [],
       isAnonymous: true,
-    });
+    })).rejects.toThrow(/Koordinat lokasi tidak valid/);
+  });
 
-    expect(result.success).toBe(true);
-    expect(result.publicReference).toMatch(/^TITIK-DEMO-\d{4}$/);
-    expect(result.followUpToken).toHaveLength(64);
-    expect(result.message).toContain('Mode Simulasi');
+  it('verifies strict error feedback when database RPC schema is pending migration', async () => {
+    if (supabase) {
+      const rpcSpy = vi.spyOn(supabase, 'rpc').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Could not find the function public.submit_citizen_report in schema cache' } as any,
+      });
+
+      await expect(submitCitizenReport({
+        title: 'Tanggul Drainase Ambruk Dekat Pemukiman',
+        description: 'Air meluap menggenangi jalan lingkungan setinggi 30 cm setiap hujan lebat.',
+        category: 'Lingkungan & Drainase',
+        severity: 'Kritis',
+        subdistrict: 'Bogor Utara',
+        preciseCoordinates: [-6.5800, 106.8100],
+        isApproximate: false,
+        acquisitionMethod: 'gps',
+        evidenceFiles: [],
+        isAnonymous: true,
+      })).rejects.toThrow(/Gagal mengirim laporan ke database/);
+
+      rpcSpy.mockRestore();
+    }
   });
 
   it('filters nearby similar reports within 600m in the same sector', () => {

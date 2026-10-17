@@ -8,14 +8,10 @@ import {
 } from '../data/titikRegionalData';
 import { SectorType, SubdistrictType, FacilityCondition } from '../types';
 import { 
-  Building2, 
   MapPin, 
   Search, 
   Bookmark, 
-  Filter, 
-  ArrowRight,
-  ShieldAlert,
-  Coins
+  ArrowRight
 } from 'lucide-react';
 
 export const FacilitiesView: React.FC = () => {

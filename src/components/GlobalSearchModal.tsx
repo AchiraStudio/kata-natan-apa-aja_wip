@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   X, 
-  MapPin, 
   Building2, 
   Coins, 
   AlertCircle, 

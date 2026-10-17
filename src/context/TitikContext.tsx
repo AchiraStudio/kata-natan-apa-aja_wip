@@ -533,37 +533,31 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const votePriority = (reportId: string) => {
-    let nextVoted = false;
+    const reportToVote = reports.find((report) => report.id === reportId);
+    if (!reportToVote || reportToVote.userHasVoted || votedIds.includes(reportId)) return;
+
     setReports(prev => prev.map(rep => {
       if (rep.id === reportId) {
-        const alreadyVoted = votedIds.includes(reportId);
-        nextVoted = !alreadyVoted;
-        const newVotes = alreadyVoted ? Math.max(1, rep.priorityVotes - 1) : rep.priorityVotes + 1;
         return {
           ...rep,
-          priorityVotes: newVotes,
-          userHasVoted: !alreadyVoted
+          priorityVotes: rep.priorityVotes + 1,
+          userHasVoted: true
         };
       }
       return rep;
     }));
 
-    setVotedIds(prev => {
-      if (prev.includes(reportId)) {
-        return prev.filter(id => id !== reportId);
-      } else {
-        return [...prev, reportId];
-      }
-    });
+    setSelectedReport(prev => prev?.id === reportId
+      ? { ...prev, priorityVotes: prev.priorityVotes + 1, userHasVoted: true }
+      : prev);
+    setVotedIds(prev => prev.includes(reportId) ? prev : [...prev, reportId]);
 
     const timeStr = `${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
     setLiveEventsCount(prev => prev + 1);
     setLatestTelemetryEvent({
       id: `evt-${Date.now()}`,
       timestamp: timeStr,
-      message: nextVoted
-        ? `Suara prioritas diverifikasi di database TITIK untuk ${reportId}.`
-        : `Suara dibatalkan untuk ${reportId}.`,
+      message: `Suara prioritas tercatat untuk ${reportId}.`,
       type: 'VOTE'
     });
   };

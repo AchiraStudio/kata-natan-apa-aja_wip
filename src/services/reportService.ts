@@ -84,24 +84,9 @@ export const submitCitizenReport = async (
   const followUpToken = generateFollowUpSecret();
   const tokenHash = await sha256Hash(followUpToken);
 
-  // 3. Fallback when Supabase is unconfigured (transparent demo mode)
+  // 3. Strict verification: Require live Supabase connection
   if (!isSupabaseConfigured || !supabase) {
-    if (onProgress) onProgress('Menyimpan dalam mode simulasi lokal...', 90);
-    const mockRef = `TITIK-DEMO-${Math.floor(1000 + Math.random() * 9000)}`;
-    const mockId = `demo-${Date.now()}`;
-
-    // Store token locally
-    saveFollowUpToken(mockRef, followUpToken);
-
-    return {
-      success: true,
-      reportId: mockId,
-      publicReference: mockRef,
-      followUpToken,
-      status: 'submitted',
-      publicationStatus: 'pending',
-      message: 'Laporan dicatat dalam Mode Simulasi (Supabase belum terhubung).',
-    };
+    throw new Error('Supabase belum terkonfigurasi. Pelaporan warga membutuhkan koneksi Supabase aktif untuk menjamin auditabilitas publik.');
   }
 
   // 4. Upload evidence photos if any
@@ -124,30 +109,71 @@ export const submitCitizenReport = async (
 
   if (onProgress) onProgress('Memproses catatan audit di database Supabase...', 85);
 
-  // 5. Call atomic database procedure
-  const { data, error } = await supabase.rpc('submit_citizen_report', {
-    p_title: draft.title.trim(),
-    p_description: draft.description.trim(),
-    p_category: draft.category,
-    p_severity: draft.severity,
-    p_subdistrict: draft.subdistrict,
-    p_facility_id: draft.facilityId || null,
-    p_precise_lat: draft.preciseCoordinates[0],
-    p_precise_lng: draft.preciseCoordinates[1],
-    p_accuracy_meters: draft.accuracyMeters || null,
-    p_acquisition_method: draft.acquisitionMethod,
-    p_is_approximate: draft.isApproximate,
-    p_address_text: draft.addressText || null,
-    p_media_files: mediaUploads,
-    p_follow_up_token_hash: tokenHash,
-    p_reporter_user_id: null,
-  });
+  // 5. Submit via Atomic Stored Procedure (Direct PostgREST RPC)
+  // Direct RPC avoids CORS preflight failures from un-deployed edge functions
+  let result: any = null;
 
-  if (error) {
-    throw new Error(`Gagal mengirim laporan ke database: ${error.message}`);
+  // Optional Edge Function override if explicitly enabled in environment
+  if (import.meta.env.VITE_USE_EDGE_FUNCTION === 'true') {
+    try {
+      const { data: edgeData, error: edgeErr } = await supabase.functions.invoke('submit-report', {
+        body: {
+          title: draft.title.trim(),
+          description: draft.description.trim(),
+          category: draft.category,
+          severity: draft.severity,
+          subdistrict: draft.subdistrict,
+          facility_id: draft.facilityId || undefined,
+          precise_latitude: draft.preciseCoordinates[0],
+          precise_longitude: draft.preciseCoordinates[1],
+          accuracy_meters: draft.accuracyMeters || undefined,
+          acquisition_method: draft.acquisitionMethod,
+          is_approximate: draft.isApproximate,
+          address_text: draft.addressText || undefined,
+          media_files: mediaUploads,
+          follow_up_token_hash: tokenHash,
+          reporter_user_id: undefined,
+        },
+      });
+
+      if (!edgeErr && edgeData && (edgeData.public_reference || edgeData.report_id)) {
+        result = edgeData;
+      }
+    } catch {
+      // Fallback to RPC below
+    }
   }
 
-  const result = data as any;
+  // Atomic stored procedure (primary, zero-CORS-issue submission mechanism)
+  if (!result) {
+    const { data, error } = await supabase.rpc('submit_citizen_report', {
+      p_title: draft.title.trim(),
+      p_description: draft.description.trim(),
+      p_category: draft.category,
+      p_severity: draft.severity,
+      p_subdistrict: draft.subdistrict,
+      p_facility_id: draft.facilityId || null,
+      p_precise_lat: draft.preciseCoordinates[0],
+      p_precise_lng: draft.preciseCoordinates[1],
+      p_accuracy_meters: draft.accuracyMeters || null,
+      p_acquisition_method: draft.acquisitionMethod,
+      p_is_approximate: draft.isApproximate,
+      p_address_text: draft.addressText || null,
+      p_media_files: mediaUploads,
+      p_follow_up_token_hash: tokenHash,
+      p_reporter_user_id: null,
+    });
+
+    if (error) {
+      const hint = error.message.includes('schema cache') 
+        ? ' (Jalankan Migration 04 di Supabase SQL Editor: NOTIFY pgrst, reload schema)' 
+        : '';
+      throw new Error(`Gagal mengirim laporan ke database: ${error.message}${hint}`);
+    }
+
+    result = data;
+  }
+
   saveFollowUpToken(result.public_reference, followUpToken);
 
   return {
@@ -300,7 +326,8 @@ export const fetchPublishedReports = async (filters?: {
         confidence_score
       ),
       report_votes (
-        id
+        id,
+        credential_token_hash
       )
     `)
     .eq('publication_status', 'published')
@@ -317,6 +344,62 @@ export const fetchPublishedReports = async (filters?: {
   const { data, error } = await query;
   if (error) {
     console.error('Error fetching published reports:', error);
+    // Graceful fallback if schema cache is reloading or tables are not yet indexed by PostgREST
+    if (error.message.includes('schema cache') || error.code === 'PGRST205' || error.code === 'PGRST200') {
+      console.warn(
+        'PostgREST schema cache needs reload in Supabase. Run Migration 04 in SQL Editor. Falling back to local reference reports.'
+      );
+      return INITIAL_REPORTS.map((r) => ({
+        id: r.id,
+        publicReference: r.id,
+        title: r.title,
+        description: r.description,
+        category: r.sector,
+        severity: r.severity,
+        observedAt: r.reportedAt,
+        status: 'published' as ReportStatus,
+        subdistrict: r.subdistrict,
+        coordinates: r.coordinates,
+        isApproximateLocation: false,
+        locationMethod: 'gps' as LocationMethod,
+        approvedMedia: [
+          {
+            id: `media-${r.id}`,
+            url: r.photoUrl,
+            fileName: 'bukti_lapangan.jpg',
+          },
+        ],
+        events: r.timeline.map((t) => ({
+          id: `evt-${t.stepNumber}`,
+          eventType: 'SUBMITTED' as ReportEventType,
+          description: t.description,
+          actorType: (t.actor === 'Warga Pelapor' ? 'citizen' : 'agency') as 'citizen' | 'agency',
+          date: t.date,
+          statusBadge: t.status,
+        })),
+        relations: [
+          {
+            targetType: 'agency' as RelationTargetType,
+            targetId: r.responsibleAgency,
+            matchStatus: (r.isBudgetLinkConfirmed ? 'confirmed' : 'suggested') as RelationMatchStatus,
+            rationale: 'Instansi pengampu sarana publik.',
+          },
+        ],
+        votesCount: r.priorityVotes,
+        hasUserVoted: Boolean(r.userHasVoted),
+        createdAt: r.reportedAt,
+        facilityId: r.facilityId,
+        facilityName: r.facilityName,
+      })).filter((rep) => {
+        if (filters?.category && filters.category !== 'Semua' && rep.category !== filters.category) return false;
+        if (filters?.subdistrict && filters.subdistrict !== 'Semua' && rep.subdistrict !== filters.subdistrict) return false;
+        if (filters?.search && filters.search.trim()) {
+          const q = filters.search.toLowerCase();
+          return rep.title.toLowerCase().includes(q) || rep.description.toLowerCase().includes(q);
+        }
+        return true;
+      });
+    }
     throw new Error(`Gagal memuat laporan publik: ${error.message}`);
   }
 
@@ -386,7 +469,9 @@ export const fetchPublishedReports = async (filters?: {
       events,
       relations,
       votesCount,
-      hasUserVoted: false, // Updated by check
+      hasUserVoted: (row.report_votes || []).some(
+        (v: any) => v.credential_token_hash === voterTokenHash
+      ),
       createdAt: row.created_at,
       facilityId: row.facility_id,
     };
@@ -508,4 +593,174 @@ export const findNearbySimilarReports = (
     const dist = calculateDistanceMeters(lat, lng, r.coordinates[0], r.coordinates[1]);
     return dist <= maxDistanceMeters;
   });
+};
+
+/**
+ * Fetches pending reports for moderation (moderators/reviewers).
+ */
+export const fetchPendingReports = async (): Promise<PublicCivicReport[]> => {
+  if (!isSupabaseConfigured || !supabase) return [];
+
+  // 1. Try secure RPC function (from Migration 04)
+  try {
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_pending_reports_for_moderation');
+    if (!rpcError && Array.isArray(rpcData)) {
+      return rpcData.map((r: any) => {
+        const loc = Array.isArray(r.report_locations) ? r.report_locations[0] : r.report_locations;
+        const media = Array.isArray(r.report_media) ? r.report_media : [];
+
+        return {
+          id: r.id,
+          publicReference: r.public_reference,
+          title: r.title,
+          description: r.description,
+          category: r.category,
+          severity: r.severity,
+          observedAt: r.observed_at,
+          status: r.status,
+          subdistrict: r.subdistrict,
+          coordinates: [loc?.public_latitude || -6.5971, loc?.public_longitude || 106.8060] as [number, number],
+          isApproximateLocation: Boolean(loc?.is_approximate),
+          locationMethod: loc?.acquisition_method || 'map_pin',
+          addressText: loc?.address_text,
+          approvedMedia: media.map((m: any) => ({
+            id: m.id,
+            url: getPublicStorageUrl('report-evidence-private', m.storage_path),
+            fileName: m.file_name,
+          })),
+          events: [
+            {
+              id: 'initial',
+              eventType: 'SUBMITTED',
+              description: 'Laporan warga menunggu tinjauan bukti fisik.',
+              actorType: 'citizen',
+              date: r.created_at,
+              statusBadge: 'Menunggu Kurasi',
+            },
+          ],
+          relations: [],
+          votesCount: 0,
+          hasUserVoted: false,
+          createdAt: r.created_at,
+          facilityId: r.facility_id,
+        };
+      });
+    }
+  } catch {
+    // Continue to standard select fallback
+  }
+
+  // 2. Standard table select fallback
+  try {
+    const { data, error } = await supabase
+      .from('reports')
+      .select(`
+        id,
+        public_reference,
+        title,
+        description,
+        category,
+        severity,
+        observed_at,
+        status,
+        publication_status,
+        subdistrict,
+        facility_id,
+        created_at,
+        report_locations (
+          precise_latitude,
+          precise_longitude,
+          public_latitude,
+          public_longitude,
+          accuracy_meters,
+          acquisition_method,
+          is_approximate,
+          address_text
+        ),
+        report_media (
+          id,
+          storage_path,
+          file_name,
+          mime_type,
+          file_size_bytes,
+          upload_status,
+          moderation_status,
+          is_public
+        )
+      `)
+      .eq('publication_status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+
+    return data.map((r: any) => {
+      const loc = Array.isArray(r.report_locations) ? r.report_locations[0] : r.report_locations;
+      const media = Array.isArray(r.report_media) ? r.report_media : [];
+
+      return {
+        id: r.id,
+        publicReference: r.public_reference,
+        title: r.title,
+        description: r.description,
+        category: r.category,
+        severity: r.severity,
+        observedAt: r.observed_at,
+        status: r.status,
+        subdistrict: r.subdistrict,
+        coordinates: [loc?.public_latitude || -6.5971, loc?.public_longitude || 106.8060] as [number, number],
+        isApproximateLocation: Boolean(loc?.is_approximate),
+        locationMethod: loc?.acquisition_method || 'map_pin',
+        addressText: loc?.address_text,
+        approvedMedia: media.map((m: any) => ({
+          id: m.id,
+          url: getPublicStorageUrl('report-evidence-private', m.storage_path),
+          fileName: m.file_name,
+        })),
+        events: [
+          {
+            id: 'initial',
+            eventType: 'SUBMITTED',
+            description: 'Laporan warga menunggu tinjauan bukti fisik.',
+            actorType: 'citizen',
+            date: r.created_at,
+            statusBadge: 'Menunggu Kurasi',
+          },
+        ],
+        relations: [],
+        votesCount: 0,
+        hasUserVoted: false,
+        createdAt: r.created_at,
+        facilityId: r.facility_id,
+      };
+    });
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Moderates a report: updates publication status and appends authentic audit event.
+ */
+export const moderateReport = async (
+  reportId: string,
+  newStatus: ReportStatus,
+  publicationStatus: 'pending' | 'published' | 'rejected',
+  notes: string,
+  moderatorId = 'moderator_komunitas'
+): Promise<boolean> => {
+  if (!isSupabaseConfigured || !supabase) return false;
+
+  const { error } = await supabase.rpc('moderate_report', {
+    p_report_id: reportId,
+    p_new_status: newStatus,
+    p_publication_status: publicationStatus,
+    p_notes: notes,
+    p_moderator_id: moderatorId,
+  });
+
+  if (error) {
+    throw new Error(`Gagal memoderasi laporan: ${error.message}`);
+  }
+
+  return true;
 };

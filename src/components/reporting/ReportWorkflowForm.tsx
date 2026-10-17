@@ -7,7 +7,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Camera, 
   MapPin, 
-  UploadCloud, 
   Trash2, 
   CheckCircle2, 
   AlertCircle, 
@@ -29,11 +28,11 @@ import {
   Check
 } from 'lucide-react';
 import { SectorType, SubdistrictType } from '../../types';
-import { SECTORS, SUBDISTRICTS, formatRupiahShort } from '../../data/titikRegionalData';
+import { SUBDISTRICTS } from '../../data/titikRegionalData';
 import { useTitik } from '../../context/TitikContext';
 import { validateImageFile } from '../../services/reportMediaService';
-import { requestCurrentPosition, generalizeCoordinates } from '../../services/locationService';
-import { submitCitizenReport, findNearbySimilarReports } from '../../services/reportService';
+import { requestCurrentPosition } from '../../services/locationService';
+import { submitCitizenReport } from '../../services/reportService';
 import { isSupabaseConfigured } from '../../lib/supabase';
 import { SubmissionResult } from '../../types/database';
 import confetti from 'canvas-confetti';
@@ -206,7 +205,7 @@ export const ReportWorkflowForm: React.FC<Props> = ({
   onCancel,
   compactMode = false,
 }) => {
-  const { facilities, budgetProjects } = useTitik();
+  const { facilities, budgetProjects, reports } = useTitik();
 
   // Current workflow step: 1 = Issue & Photos, 2 = Location, 3 = Review & Submit
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -218,7 +217,7 @@ export const ReportWorkflowForm: React.FC<Props> = ({
   const [severity, setSeverity] = useState<'Rendah' | 'Sedang' | 'Kritis'>('Sedang');
   const [subdistrict, setSubdistrict] = useState<SubdistrictType>('Bogor Tengah');
   const [facilityId, setFacilityId] = useState<string>(initialFacilityId || '');
-  const [observedDate, setObservedDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [observedDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   // Real Photo Uploads
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -412,6 +411,58 @@ export const ReportWorkflowForm: React.FC<Props> = ({
       setIsSubmitting(false);
     }
   };
+
+  // UNCONFIGURED SUPABASE BLOCKING STATE
+  // Per architectural protocol: Never pretend a demo submission is saved remotely without Supabase
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="bg-white dark:bg-[#151D2A] rounded-2xl border border-[#E5E7EB] dark:border-[#243042] p-6 sm:p-8 space-y-5 text-center max-w-xl mx-auto my-4 transition-colors">
+        <div className="w-14 h-14 rounded-2xl bg-[#FEF3C7] dark:bg-[#D97706]/15 text-[#D97706] flex items-center justify-center mx-auto border border-[#FDE68A] dark:border-[#D97706]/30 shadow-xs">
+          <AlertCircle className="w-7 h-7" />
+        </div>
+
+        <div className="space-y-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#D97706] font-mono-data">
+            Koneksi Supabase Belum Terkonfigurasi
+          </span>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight">
+            Pelaporan Publik Memerlukan Backend Aktif
+          </h2>
+          <p className="text-xs sm:text-sm text-[#4B5563] dark:text-[#94A3B8] leading-relaxed max-w-md mx-auto">
+            Untuk memastikan integritas bukti foto lapangan, koordinat geospasial presisi, dan jejak audit yang tidak dapat dimanipulasi, formulir pelaporan warga memerlukan koneksi Supabase PostgreSQL aktif.
+          </p>
+        </div>
+
+        <div className="p-4 bg-[#F8F9FA] dark:bg-[#101622] rounded-xl border border-[#E5E7EB] dark:border-[#243042] text-left text-xs space-y-2 font-mono-data">
+          <div className="text-[11px] font-bold text-[#111827] dark:text-[#F9FAFB] font-sans">
+            Variabel Lingkungan yang Dibutuhkan (.env):
+          </div>
+          <div className="text-[#0D9488] break-all">VITE_SUPABASE_URL=https://[project-id].supabase.co</div>
+          <div className="text-[#0D9488] break-all">VITE_SUPABASE_ANON_KEY=eyJhbGciOi...</div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="px-4 py-2.5 bg-[#F3F4F6] hover:bg-[#E5E7EB] dark:bg-[#1C2638] dark:hover:bg-[#243042] text-[#111827] dark:text-[#F9FAFB] text-xs font-bold rounded-xl transition-all"
+            >
+              Kembali
+            </button>
+          )}
+          <a
+            href="https://github.com/AchiraStudio/kata-natan-apa-aja_wip/blob/main/docs/SUPABASE_SETUP.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5 shadow-sm"
+          >
+            <span>Panduan Setup Supabase</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   // SUCCESS CONFIRMATION STATE
   if (submissionResult) {
@@ -928,6 +979,64 @@ export const ReportWorkflowForm: React.FC<Props> = ({
             </div>
           </div>
 
+          {/* DUPLICATE SUGGESTION MODEL (Section 10 of Civic Spec) */}
+          {(() => {
+            const nearby = reports
+              .filter((r) => r.sector === category)
+              .filter((r) => {
+                const dLat = (r.coordinates[0] - coordinates[0]) * 111000;
+                const dLng = (r.coordinates[1] - coordinates[1]) * 111000 * Math.cos(coordinates[0] * (Math.PI / 180));
+                return Math.sqrt(dLat * dLat + dLng * dLng) <= 600;
+              });
+
+            if (nearby.length === 0) return null;
+
+            return (
+              <div className="p-4 bg-[#EFF6FF] dark:bg-[#1E293B] border border-[#BFDBFE] dark:border-[#3B82F6]/30 rounded-2xl space-y-2.5 transition-colors">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-[#1E40AF] dark:text-[#60A5FA]">
+                    <Info className="w-4 h-4 text-[#2563EB]" />
+                    <span>{nearby.length} Laporan Serupa Terdeteksi di Sekitar Titik Ini (&lt; 600m)</span>
+                  </div>
+                  <span className="text-[10px] font-mono-data font-bold text-[#2563EB] dark:text-[#93C5FD] bg-white dark:bg-[#151D2A] px-2 py-0.5 rounded-full border border-[#BFDBFE] dark:border-[#3B82F6]/30">
+                    Saran Duplikasi
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-[#1E3A8A] dark:text-[#94A3B8] leading-relaxed">
+                  Masalah serupa dalam kategori <strong>{category}</strong> telah dilaporkan di area ini. Anda dapat tetap melanjutkan jika ini merupakan titik atau kasus yang berbeda, atau beri dukungan suara pada laporan warga yang sudah tercatat:
+                </p>
+
+                <div className="space-y-1.5 pt-1">
+                  {nearby.slice(0, 2).map((nr) => (
+                    <div 
+                      key={nr.id} 
+                      className="p-3 bg-white dark:bg-[#151D2A] rounded-xl border border-[#DBEAFE] dark:border-[#243042] flex items-center justify-between text-xs hover:border-[#2563EB] transition-colors"
+                    >
+                      <div className="truncate mr-3 space-y-0.5">
+                        <span className="font-mono-data text-[10px] text-[#6B7280] dark:text-[#94A3B8] block">
+                          {nr.id} • {nr.priorityVotes} Dukungan Warga
+                        </span>
+                        <span className="font-bold text-[#111827] dark:text-[#F9FAFB] truncate block">
+                          {nr.title}
+                        </span>
+                      </div>
+                      <a
+                        href={`/lapor/${nr.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-bold text-[#2563EB] dark:text-[#60A5FA] hover:underline shrink-0 flex items-center gap-1"
+                      >
+                        <span>Lihat Kasus</span>
+                        <span>&rarr;</span>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="pt-3 border-t border-[#E5E7EB] dark:border-[#243042] flex items-center justify-between">
             <button
               type="button"
@@ -1000,7 +1109,7 @@ export const ReportWorkflowForm: React.FC<Props> = ({
               </div>
               <p className="text-[11px] text-[#6B7280] dark:text-[#94A3B8]">
                 {selectedFacility 
-                  ? `Fasilitas: ${selectedFacility.name} • Pengelola: ${selectedFacility.responsibleAgency}`
+                  ? `Fasilitas: ${selectedFacility.name} • Pengelola: ${selectedFacility.responsibleAgency}${linkedProject ? ` • Usulan Paket APBD: ${linkedProject.title}` : ''}`
                   : 'Lokasi lingkungan umum, belum tertaut ke gedung fasilitas terdata.'}
               </p>
             </div>

@@ -224,7 +224,7 @@ export const InteractiveMap: React.FC = () => {
               ${rep.title}
             </div>
             <div class="map-popup-desc">
-              Oleh: @${rep.reporterHandle} • Langkah ${rep.currentStep}/6
+              Oleh: ${rep.reporterHandle && rep.reporterHandle !== 'warga_terverifikasi' ? '@' + rep.reporterHandle : 'Warga Terverifikasi'} • ${isCompleted ? 'Tuntas Terverifikasi' : 'Dalam Peninjauan'}
             </div>
             <div class="map-popup-footer">
               <span class="text-[11px] font-bold text-[#111827] dark:text-[#F9FAFB]">${rep.priorityVotes} Suara Prioritas</span>

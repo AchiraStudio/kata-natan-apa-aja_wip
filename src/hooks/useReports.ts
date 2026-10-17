@@ -99,6 +99,7 @@ export const useReports = (options?: UseReportsOptions) => {
     loading,
     error,
     reload: loadReports,
+    refetch: loadReports,
     castVote,
     vote: castVote,
     isLive: isSupabaseConfigured,

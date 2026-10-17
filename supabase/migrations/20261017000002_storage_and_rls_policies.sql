@@ -472,3 +472,122 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.get_report_by_follow_up_token TO anon, authenticated;
 
+-- -----------------------------------------------------------------------------
+-- 7. STRUCTURED MODERATION PROCEDURE (SECURITY DEFINER)
+-- Allows authorized moderators to review, publish, reject, and record audit trail
+-- -----------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.moderate_report(
+    p_report_id UUID,
+    p_new_status TEXT,
+    p_publication_status TEXT,
+    p_notes TEXT,
+    p_moderator_id TEXT DEFAULT 'moderator'
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_report RECORD;
+    v_prev_status TEXT;
+    v_event_type TEXT;
+    v_event_desc TEXT;
+BEGIN
+    SELECT * INTO v_report FROM public.reports WHERE id = p_report_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Laporan tidak ditemukan.';
+    END IF;
+
+    v_prev_status := v_report.status;
+
+    IF p_publication_status = 'published' THEN
+        v_event_type := 'APPROVED_PUBLISHED';
+        v_event_desc := COALESCE(p_notes, 'Laporan dan bukti foto telah diverifikasi oleh tim kurasi komunitas dan dipublikasikan.');
+        
+        -- Make approved media publicly visible
+        UPDATE public.report_media 
+        SET moderation_status = 'approved', is_public = true 
+        WHERE report_id = p_report_id;
+
+        UPDATE public.reports
+        SET status = p_new_status,
+            publication_status = 'published',
+            reviewed_at = now(),
+            published_at = now(),
+            updated_at = now()
+        WHERE id = p_report_id;
+    ELSIF p_publication_status = 'rejected' THEN
+        v_event_type := 'REJECTED';
+        v_event_desc := COALESCE(p_notes, 'Laporan ditolak setelah peninjauan bukti fisik.');
+
+        UPDATE public.report_media 
+        SET moderation_status = 'rejected', is_public = false 
+        WHERE report_id = p_report_id;
+
+        UPDATE public.reports
+        SET status = p_new_status,
+            publication_status = 'rejected',
+            reviewed_at = now(),
+            updated_at = now()
+        WHERE id = p_report_id;
+    ELSE
+        v_event_type := 'UNDER_REVIEW';
+        v_event_desc := COALESCE(p_notes, 'Laporan sedang dalam peninjauan verifikasi bukti.');
+
+        UPDATE public.reports
+        SET status = p_new_status,
+            publication_status = p_publication_status,
+            reviewed_at = now(),
+            updated_at = now()
+        WHERE id = p_report_id;
+    END IF;
+
+    -- Record Genuine Audit Event
+    INSERT INTO public.report_events (
+        report_id,
+        event_type,
+        previous_status,
+        new_status,
+        description,
+        actor_type,
+        actor_id
+    ) VALUES (
+        p_report_id,
+        v_event_type,
+        v_prev_status,
+        p_new_status,
+        v_event_desc,
+        'moderator',
+        p_moderator_id
+    );
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'report_id', p_report_id,
+        'status', p_new_status,
+        'publication_status', p_publication_status
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.moderate_report TO anon, authenticated, service_role;
+
+-- -----------------------------------------------------------------------------
+-- 8. EXPLICIT TABLE-LEVEL GRANTS FOR POSTGREST OPENAPI SCHEMA CACHE
+-- -----------------------------------------------------------------------------
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.facilities TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.budget_projects TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.reports TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.report_locations TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.report_media TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.report_events TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.report_relations TO anon, authenticated, service_role;
+GRANT SELECT, INSERT ON TABLE public.report_votes TO anon, authenticated, service_role;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
+
+NOTIFY pgrst, 'reload schema';
+

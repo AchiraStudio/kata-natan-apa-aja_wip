@@ -59,54 +59,102 @@ File: `supabase/migrations/20261017000003_seed_reference_data.sql`
 - Seeds verified regional facilities across Bogor and Greater Jakarta with coordinates, responsible agencies, service capacities, and conditions.
 - Seeds APBD budget projects with budget breakdowns (pagu, committed, realized, uncommitted) and source metadata.
 
+### Migration 4: Explicit Schema Permissions & PostgREST Cache Reload
+File: `supabase/migrations/20261017000004_grant_permissions_and_reload_cache.sql`
+- Grants explicit `SELECT` privileges to `anon` and `authenticated` roles on all public civic tables.
+- Grants `EXECUTE` on stored procedures (`submit_citizen_report`, `get_pending_reports_for_moderation`, `moderate_report`).
+- Executes `NOTIFY pgrst, 'reload schema'` to signal the PostgREST API gateway to immediately reload its OpenAPI schema cache (eliminating `Could not find the table 'public.reports' in the schema cache`).
+
 ---
 
-## 4. Applying Migrations
+## 4. Applying Migrations (Project `oetnxbovjwovaddivmwf`)
 
-### Option A: Via Supabase CLI (Recommended)
+### Option A: Via Supabase Dashboard SQL Editor (Quickest)
+
+1. Open your Supabase Dashboard:
+   `https://supabase.com/dashboard/project/oetnxbovjwovaddivmwf/sql/new`
+2. Open each SQL migration file in your editor and copy the full contents into the SQL Editor:
+   - **Step 1**: `supabase/migrations/20261017000001_civic_reporting_schema.sql` → Click **Run**.
+   - **Step 2**: `supabase/migrations/20261017000002_storage_and_rls_policies.sql` → Click **Run**.
+   - **Step 3**: `supabase/migrations/20261017000003_seed_reference_data.sql` → Click **Run**.
+   - **Step 4**: `supabase/migrations/20261017000004_grant_permissions_and_reload_cache.sql` → Click **Run**.
+
+3. **Verify Table & Data Creation**:
+   Run this verification query in the SQL Editor:
+   ```sql
+   SELECT 
+       table_name, 
+       (SELECT count(*) FROM information_schema.columns WHERE table_name = t.table_name) AS column_count
+   FROM information_schema.tables t
+   WHERE table_schema = 'public' 
+     AND table_name IN ('facilities', 'budget_projects', 'reports', 'report_locations', 'report_media', 'report_events', 'report_relations', 'reporter_private_data', 'report_votes');
+   ```
+   You should see all 9 tables created and populated with reference facilities and APBD projects.
+
+### Option B: Via Supabase CLI
 
 ```bash
-# Link to your Supabase cloud project
-supabase link --project-ref your-project-ref
+# Link local CLI to cloud project
+supabase link --project-ref oetnxbovjwovaddivmwf
 
-# Push all migrations
+# Push all migrations automatically
 supabase db push
 ```
-
-### Option B: Via Supabase Dashboard SQL Editor
-
-Open the Supabase Dashboard, navigate to the **SQL Editor**, and execute the three migration files in numerical order:
-1. `20261017000001_civic_reporting_schema.sql`
-2. `20261017000002_storage_and_rls_policies.sql`
-3. `20261017000003_seed_reference_data.sql`
 
 ---
 
 ## 5. Storage Buckets Verification
 
-Verify in the Supabase Dashboard under **Storage**:
-1. `report-evidence-private`: `public = false`. File size limit: 10MB. Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`.
-2. `report-evidence-public`: `public = true`. File size limit: 10MB. Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`.
+In your Supabase Dashboard at `https://supabase.com/dashboard/project/oetnxbovjwovaddivmwf/storage/buckets`:
+
+Migration 2 creates the two required buckets automatically:
+1. `report-evidence-private`:
+   - **Public**: `false` (Private quarantine)
+   - **File size limit**: 10 MB
+   - **Allowed MIME types**: `image/jpeg`, `image/png`, `image/webp`
+   - **Policy**: Allows anonymous/authenticated users to upload incoming evidence to `incoming/*`
+2. `report-evidence-public`:
+   - **Public**: `true` (Public CDN delivery for approved report evidence)
+   - **File size limit**: 10 MB
+   - **Allowed MIME types**: `image/jpeg`, `image/png`, `image/webp`
 
 ---
 
-## 6. Edge Function Deployment
+## 6. Community Moderation & Audit Verification
+
+When citizens submit reports:
+1. Submissions are atomically recorded via `submit_citizen_report` RPC with `publication_status = 'pending'`.
+2. Community curators/auditors can review incoming reports at `/lapor` under the **Kurasi Komunitas** tab.
+3. The review screen displays:
+   - Cleaned photographic evidence from the private bucket.
+   - GPS coordinates and spatial acquisition method (accurate vs approximate).
+   - Sector, impact level, and description.
+4. Curators can:
+   - **Setujui & Publikasikan**: calls `moderate_report` to change status to `published`, make media public, and append an immutable `APPROVED_PUBLISHED` audit log.
+   - **Tolak Laporan**: marks report rejected with curator justification.
+   - **Tandai Dalam Tinjauan**: flags report for further field verification.
+
+---
+
+## 7. Edge Function Deployment (Optional HTTP Endpoint)
 
 The canonical HTTP submission endpoint is defined in `supabase/functions/submit-report/index.ts`. Deploy using:
 
 ```bash
-supabase functions deploy submit-report
+supabase functions deploy submit-report --project-ref oetnxbovjwovaddivmwf
 ```
+
+*(Note: The client application supports both Edge Function calls and direct atomic RPC calls to `submit_citizen_report`, ensuring reliable submission even when Edge Functions are not deployed.)*
 
 ---
 
-## 7. Realtime Configuration
+## 8. Realtime Configuration
 
-In the Supabase Dashboard under **Database -> Publications**:
-Ensure `supabase_realtime` publication includes:
+In the Supabase Dashboard under **Database -> Publications -> supabase_realtime**:
+Ensure the following tables are enabled for replication:
 - `reports`
 - `report_events`
 - `report_votes`
 
-This powers real-time reactive updates on the map and observatorium list when reports are published, audited, or upvoted.
+This enables live real-time updates across open browser tabs as reports are submitted, moderated, or voted on.
 

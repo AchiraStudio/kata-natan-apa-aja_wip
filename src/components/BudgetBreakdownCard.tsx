@@ -69,7 +69,7 @@ export const BudgetBreakdownCard: React.FC<Props> = ({
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-[#9CA3AF] dark:bg-[#64748B]"></span>
-            <span>Belum Terikat ({availablePct}%)</span>
+            <span>Belum Terikat ({availablePct}% · {formatRupiahFull(sisaPaguBelumTerikat)})</span>
           </div>
         </div>
       </div>

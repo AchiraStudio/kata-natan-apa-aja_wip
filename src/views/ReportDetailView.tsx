@@ -16,11 +16,9 @@ import {
   FileText,
   Check,
   AlertCircle,
-  Clock,
   Key,
   Info,
-  ImageIcon,
-  Radio
+  ImageIcon
 } from 'lucide-react';
 
 export const ReportDetailView: React.FC = () => {
