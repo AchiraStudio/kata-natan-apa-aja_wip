@@ -1,24 +1,80 @@
 /**
  * TITIK. — NAVBAR & HEADER COMPONENT STYLES
- * Easy to manage and edit: update header bar, navigation pills, brand mark, and flyouts.
+ * Daylight Editorial Design System: Floating Island Header & Ergonomic Mobile Dock
  */
 
-/* Sticky Header Bar */
-.navbar-header {
-  @apply sticky top-0 z-40 bg-[#FAF9F6]/95 backdrop-blur-md border-b border-[#E5E4DF] transition-all;
+/* ==========================================================================
+   1. DESKTOP FLOATING ISLAND WRAPPER & CONTAINER
+   ========================================================================== */
+
+/* Outer floating positioning wrapper (detached from top) */
+.navbar-floating-wrapper {
+  @apply fixed top-3 sm:top-4 left-0 right-0 z-40 px-3 sm:px-6 lg:px-8 xl:px-12 hidden lg:flex justify-center pointer-events-none transition-all duration-300 ease-out;
 }
 
-.navbar-container {
-  @apply max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12;
+/* Inner floating glassmorphic island */
+.navbar-floating-island {
+  @apply pointer-events-auto w-full max-w-7xl 2xl:max-w-[1536px] bg-[#FAF9F6]/90 backdrop-blur-md rounded-2xl border border-[#E5E4DF] shadow-[0_8px_30px_rgba(0,0,0,0.06)] px-3.5 sm:px-5 py-2.5 flex items-center justify-between gap-3 sm:gap-4 transition-all duration-200 hover:shadow-[0_12px_36px_rgba(0,0,0,0.08)];
 }
 
-.navbar-inner {
-  @apply flex items-center justify-between h-16 sm:h-[70px] gap-3 sm:gap-4;
+/* Smart Auto-Hide States (Desktop & Mobile Top) */
+.navbar-visible {
+  @apply translate-y-0 opacity-100;
 }
+
+.navbar-hidden-top {
+  @apply -translate-y-28 opacity-0 pointer-events-none;
+}
+
+/* ==========================================================================
+   2. MOBILE FLOATING TOP CAPSULE (< lg)
+   ========================================================================== */
+.navbar-mobile-top-wrapper {
+  @apply fixed top-3 left-3 right-3 z-40 transition-all duration-300 ease-out lg:hidden pointer-events-none;
+}
+
+.navbar-mobile-top-island {
+  @apply pointer-events-auto bg-[#FAF9F6]/90 backdrop-blur-md border border-[#E5E4DF] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] px-3.5 py-2 flex items-center justify-between;
+}
+
+/* ==========================================================================
+   3. MOBILE FLOATING BOTTOM DOCK (< lg)
+   ========================================================================== */
+.navbar-mobile-bottom-dock {
+  @apply fixed bottom-3 left-3 right-3 z-40 transition-all duration-300 ease-out lg:hidden pointer-events-none;
+}
+
+.navbar-mobile-dock-inner {
+  @apply pointer-events-auto bg-white/90 backdrop-blur-md border border-[#E5E4DF] rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.12)] p-1.5 flex items-center justify-around pb-[calc(0.375rem+env(safe-area-inset-bottom,0px))];
+}
+
+.navbar-visible-bottom {
+  @apply translate-y-0 opacity-100;
+}
+
+.navbar-hidden-bottom {
+  @apply translate-y-28 opacity-0 pointer-events-none;
+}
+
+.navbar-dock-item {
+  @apply flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all relative select-none min-w-[56px];
+}
+
+.navbar-dock-item-active {
+  @apply text-[#0D9488] font-bold bg-[#0D9488]/10;
+}
+
+.navbar-dock-item-idle {
+  @apply text-[#6B7280] hover:text-[#111827] active:scale-95;
+}
+
+/* ==========================================================================
+   4. NAVIGATION BUTTONS, BRAND, AND PILL BAR
+   ========================================================================== */
 
 /* Circular Hamburger Button */
 .navbar-menu-btn {
-  @apply w-9 h-9 sm:w-10 sm:h-10 rounded-full border transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-2xs;
+  @apply w-9 h-9 sm:w-10 sm:h-10 rounded-full border transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-2xs shrink-0;
 }
 
 .navbar-menu-btn-active {
@@ -44,7 +100,7 @@
 
 /* Desktop Horizontal Pill Bar */
 .navbar-pill-bar {
-  @apply hidden lg:flex items-center bg-white rounded-2xl border border-[#E5E4DF] shadow-[0_2px_12px_rgba(0,0,0,0.04)] px-2 py-1.5 gap-0.5 relative;
+  @apply flex items-center bg-white rounded-2xl border border-[#E5E4DF] shadow-[0_2px_12px_rgba(0,0,0,0.04)] px-2 py-1.5 gap-0.5 relative;
 }
 
 .navbar-pill-item {
@@ -73,4 +129,3 @@
 .navbar-report-cta {
   @apply flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-bold rounded-xl shadow-xs transition-all active:scale-95;
 }
-

@@ -27,8 +27,8 @@ const AppLayout: React.FC = () => {
       {/* Top Daylight Editorial Navbar */}
       <Navbar />
 
-      {/* Main Routed Page Content */}
-      <main className="flex-1">
+      {/* Main Routed Page Content with clearance for floating navbar and mobile dock */}
+      <main className="flex-1 pt-16 sm:pt-20 lg:pt-24 pb-20 lg:pb-0">
         <Routes>
           <Route path="/" element={<LandingView />} />
           <Route path="/peta" element={<ObservatoryView />} />

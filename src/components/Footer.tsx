@@ -91,12 +91,6 @@ export const Footer: React.FC = () => {
           <div>
             © 2026 TITIK. Sumber Data: Simulasi SIKD & Satu Data Daerah Jabodetabek TA 2026.
           </div>
-          <div className="flex items-center gap-2 font-mono-data">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0D9488]"></span>
-              <span>BAS Permendagri 77/2020</span>
-            </span>
-          </div>
         </div>
       </div>
     </footer>

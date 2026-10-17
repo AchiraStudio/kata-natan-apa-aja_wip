@@ -133,6 +133,9 @@ export const Navbar: React.FC = () => {
   const [activeHoverDropdown, setActiveHoverDropdown] = useState<string | null>(null);
   const [mobileDrawerStep, setMobileDrawerStep] = useState<'categories' | 'subitems'>('categories');
 
+  // Smart Auto-Hide State
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
   const dropdownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync active category with current route on location change
@@ -146,6 +149,8 @@ export const Navbar: React.FC = () => {
     setIsDrawerOpen(false);
     setActiveHoverDropdown(null);
     setMobileDrawerStep('categories');
+    setIsVisible(true);
+    lastScrollYRef.current = typeof window !== 'undefined' ? window.scrollY : 0;
   }, [location.pathname]);
 
   // Handle ESC key to close open menus
@@ -159,6 +164,42 @@ export const Navbar: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Smart Auto-Hide Scroll Listener with Hysteresis
+  useEffect(() => {
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          const delta = currentScrollY - lastScrollYRef.current;
+
+          // Always visible near top of page
+          if (currentScrollY <= 40) {
+            setIsVisible(true);
+          } else if (Math.abs(delta) > 8) {
+            if (delta > 0 && currentScrollY > 80) {
+              // Scrolling down: hide unless drawer or dropdown is open
+              if (!isDrawerOpen && !activeHoverDropdown) {
+                setIsVisible(false);
+              }
+            } else if (delta < 0) {
+              // Scrolling up: reveal immediately
+              setIsVisible(true);
+            }
+            lastScrollYRef.current = currentScrollY;
+          }
+
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isDrawerOpen, activeHoverDropdown]);
 
   // Dropdown hover timing helper
   const handleMouseEnterDropdown = (itemId: string) => {
@@ -178,238 +219,337 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="navbar-header">
-        <div className="navbar-container">
-          <div className="navbar-inner">
-            
-            {/* LEFT: CIRCULAR HAMBURGER BUTTON & BRAND LOGO */}
-            <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
-              {/* Circular Hamburger Button from Reference */}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsDrawerOpen(prev => !prev);
-                  setMobileDrawerStep('categories');
-                }}
-                className={`navbar-menu-btn ${
-                  isDrawerOpen ? 'navbar-menu-btn-active' : 'navbar-menu-btn-idle'
-                }`}
-                aria-label={isDrawerOpen ? "Tutup menu samping" : "Buka menu navigasi observatorium"}
-                title="Menu Navigasi Rail & Flyout"
-              >
-                {isDrawerOpen ? (
-                  <X className="w-4 h-4 text-white" />
-                ) : (
-                  <Menu className="w-4 h-4 text-[#0D9488]" />
-                )}
-              </button>
+      {/* ==================================================================== */}
+      {/* 1. DESKTOP UNIFIED FLOATING ISLAND HEADER (≥ 1024px)                 */}
+      {/* ==================================================================== */}
+      <header 
+        className={`navbar-floating-wrapper ${
+          isVisible || isDrawerOpen || activeHoverDropdown ? 'navbar-visible' : 'navbar-hidden-top'
+        }`}
+      >
+        <div className="navbar-floating-island">
+          
+          {/* LEFT: CIRCULAR HAMBURGER BUTTON & BRAND WORDMARK */}
+          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setIsDrawerOpen(prev => !prev);
+                setMobileDrawerStep('categories');
+              }}
+              className={`navbar-menu-btn ${
+                isDrawerOpen ? 'navbar-menu-btn-active' : 'navbar-menu-btn-idle'
+              }`}
+              aria-label={isDrawerOpen ? "Tutup menu samping" : "Buka menu navigasi observatorium"}
+              title="Pusat Menu & Direktori Sektoral"
+            >
+              {isDrawerOpen ? (
+                <X className="w-4 h-4 text-white" />
+              ) : (
+                <Menu className="w-4 h-4 text-[#0D9488]" />
+              )}
+            </button>
 
-              {/* Brand Wordmark */}
-              <Link 
-                to="/"
-                className="flex items-center gap-2 focus:outline-none group select-none"
-              >
-                <div className="navbar-brand-logo group-hover:scale-105">
-                  T<span className="text-[#0D9488]">.</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="navbar-brand-title">
-                    TITIK<span className="text-[#0D9488]">.</span>
-                  </span>
-                  <span className="navbar-brand-badge">
-                    Jabodetabek 2026
-                  </span>
-                </div>
-              </Link>
-            </div>
-
-            {/* CENTER (DESKTOP): TOP FLOATING HORIZONTAL PILL BAR WITH ACTIVE INDICATOR UNDERLINE */}
-            <nav className="navbar-pill-bar">
-              {navItems.map((item) => {
-                const isActive = item.path === '/' 
-                  ? location.pathname === '/' 
-                  : location.pathname.startsWith(item.path);
-                const Icon = item.icon;
-                const hasSub = item.subItems && item.subItems.length > 0;
-                const isDropdownOpen = activeHoverDropdown === item.id;
-
-                return (
-                  <div 
-                    key={item.id}
-                    className="relative"
-                    onMouseEnter={() => handleMouseEnterDropdown(item.id)}
-                    onMouseLeave={handleMouseLeaveDropdown}
-                  >
-                    <Link
-                      to={item.path}
-                      onClick={() => setActiveHoverDropdown(null)}
-                      className={`relative px-3 sm:px-3.5 py-2 text-xs rounded-xl flex items-center gap-1.5 transition-all select-none ${
-                        isActive 
-                          ? 'text-[#0D9488] font-bold bg-[#0D9488]/5' 
-                          : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#FAF9F6] font-medium'
-                      }`}
-                    >
-                      <Icon className={`w-3.5 h-3.5 shrink-0 transition-colors ${
-                        isActive ? 'text-[#0D9488]' : 'text-[#6B7280]'
-                      }`} />
-                      
-                      <span>{item.label}</span>
-
-                      {item.badgeCount !== undefined && item.badgeCount > 0 && (
-                        <span className={`text-[10px] font-mono-data px-1.5 py-0.2 rounded-full font-semibold ${
-                          isActive ? 'bg-[#0D9488] text-white' : 'bg-[#E5E4DF] text-[#4B5563]'
-                        }`}>
-                          {item.badgeCount}
-                        </span>
-                      )}
-
-                      {hasSub && (
-                        <ChevronDown className={`w-3 h-3 text-[#9CA3AF] transition-transform duration-200 ${
-                          isDropdownOpen ? 'rotate-180 text-[#0D9488]' : ''
-                        }`} />
-                      )}
-
-                      {/* Active bottom indicator line (from reference screenshot) */}
-                      {isActive && (
-                        <span className="absolute -bottom-1.5 left-3.5 right-3.5 h-[2.5px] bg-[#0D9488] rounded-full shadow-[0_1px_4px_rgba(13,148,136,0.35)]" />
-                      )}
-                    </Link>
-
-                    {/* Desktop Dropdown Popover */}
-                    {hasSub && isDropdownOpen && (
-                      <div 
-                        className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl border border-[#E5E4DF] shadow-[0_12px_32px_rgba(0,0,0,0.08)] p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
-                        onMouseEnter={() => handleMouseEnterDropdown(item.id)}
-                        onMouseLeave={handleMouseLeaveDropdown}
-                      >
-                        <div className="px-3 py-1.5 border-b border-[#E5E4DF]/60 mb-1 flex items-center justify-between">
-                          <span className="text-[10px] font-mono-data uppercase tracking-wider text-[#6B7280] font-semibold">
-                            {item.label}
-                          </span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#0D9488]" />
-                        </div>
-
-                        <div className="space-y-1">
-                          {item.subItems.map((sub) => (
-                            <Link
-                              key={sub.id}
-                              to={sub.path}
-                              onClick={() => setActiveHoverDropdown(null)}
-                              className="w-full text-left p-2.5 rounded-xl hover:bg-[#FAF9F6] border border-transparent hover:border-[#E5E4DF] transition-all flex items-start justify-between group"
-                            >
-                              <div className="space-y-0.5">
-                                <div className="text-xs font-semibold text-[#111827] group-hover:text-[#0D9488] transition-colors flex items-center gap-1.5">
-                                  <span>{sub.label}</span>
-                                </div>
-                                <div className="text-[11px] text-[#6B7280] line-clamp-1">
-                                  {sub.description}
-                                </div>
-                              </div>
-                              <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#0D9488] shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5" />
-                            </Link>
-                          ))}
-                        </div>
-
-                        <div className="pt-2 mt-1 border-t border-[#E5E4DF]/60 px-1">
-                          <Link
-                            to={item.path}
-                            onClick={() => setActiveHoverDropdown(null)}
-                            className="text-[11px] font-semibold text-[#0D9488] hover:text-[#0F766E] flex items-center justify-between px-2 py-1 rounded-lg hover:bg-[#0D9488]/5 transition-colors"
-                          >
-                            <span>Buka halaman {item.label}</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </nav>
-
-            {/* RIGHT: UTILITY & ACTION BUTTONS */}
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Cmd+K Search Trigger */}
-              <button
-                type="button"
-                onClick={() => setIsSearchOpen(true)}
-                className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-[#6B7280] hover:text-[#111827] bg-white hover:bg-[#FAF9F6] border border-[#E5E4DF] rounded-xl transition-all shadow-2xs hover:border-[#D1D5DB]"
-                title="Cari fasilitas, proyek, atau aduan (⌘K)"
-              >
-                <Search className="w-3.5 h-3.5 text-[#6B7280]" />
-                <span className="hidden sm:inline font-medium">Cari</span>
-                <kbd className="hidden md:inline-flex items-center text-[10px] font-mono-data text-[#6B7280] bg-[#FAF9F6] px-1.5 py-0.5 rounded border border-[#E5E4DF]">
-                  ⌘K
-                </kbd>
-              </button>
-
-              {/* Data Source Trigger */}
-              <button
-                type="button"
-                onClick={() => setIsDataSourceModalOpen(true)}
-                className="px-2.5 py-1.5 text-xs font-medium text-[#4B5563] hover:text-[#111827] hover:bg-white border border-transparent hover:border-[#E5E4DF] rounded-xl transition-all hidden xl:inline-block whitespace-nowrap"
-              >
-                Sumber Data
-              </button>
-
-              {/* Reset Demo Button */}
-              <button
-                type="button"
-                onClick={resetDemoData}
-                title="Kembalikan data simulasi ke kondisi awal"
-                className="p-2 text-[#6B7280] hover:text-[#111827] hover:bg-white border border-transparent hover:border-[#E5E4DF] rounded-xl transition-all hidden sm:flex items-center"
-                aria-label="Kembalikan data simulasi"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-
-              {/* Primary Action Button */}
-              <button
-                type="button"
-                onClick={() => navigate('/lapor')}
-                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-semibold rounded-xl transition-all shadow-tactile active:scale-95 whitespace-nowrap"
-              >
-                <Plus className="w-3.5 h-3.5 text-[#0D9488]" />
-                <span className="hidden sm:inline">Tandai Masalah</span>
-                <span className="sm:hidden">Lapor</span>
-              </button>
-            </div>
-
+            {/* Brand Logo & Typographic Anchor */}
+            <Link 
+              to="/"
+              className="flex items-center gap-2 focus:outline-none group select-none"
+            >
+              <div className="navbar-brand-logo group-hover:scale-105">
+                T<span className="text-[#0D9488]">.</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="navbar-brand-title">
+                  TITIK<span className="text-[#0D9488]">.</span>
+                </span>
+                <span className="navbar-brand-badge">
+                  Jabodetabek 2026
+                </span>
+              </div>
+            </Link>
           </div>
-        </div>
 
-        {/* MOBILE HORIZONTAL PILL SUB-BAR (< lg) */}
-        <div className="lg:hidden flex items-center overflow-x-auto border-t border-[#E5E4DF] bg-[#FAF9F6]/95 px-3 py-1.5 gap-1 scrollbar-none">
-          {navItems.map((item) => {
-            const isActive = item.path === '/' 
-              ? location.pathname === '/' 
-              : location.pathname.startsWith(item.path);
+          {/* CENTER: DESKTOP FLOATING PILL BAR WITH ACTIVE INDICATOR */}
+          <nav className="navbar-pill-bar">
+            {navItems.map((item) => {
+              const isActive = item.path === '/' 
+                ? location.pathname === '/' 
+                : location.pathname.startsWith(item.path);
+              const Icon = item.icon;
+              const hasSub = item.subItems && item.subItems.length > 0;
+              const isDropdownOpen = activeHoverDropdown === item.id;
 
-            return (
-              <Link
-                key={item.id}
-                to={item.path}
-                className={`relative px-3 py-1.5 text-xs whitespace-nowrap rounded-lg transition-all flex items-center gap-1.5 ${
-                  isActive
-                    ? 'bg-[#111827] text-white font-semibold shadow-xs'
-                    : 'text-[#6B7280] hover:text-[#111827] hover:bg-white font-medium'
-                }`}
-              >
-                <span>{item.label}</span>
-                {item.badgeCount !== undefined && item.badgeCount > 0 && (
-                  <span className={`text-[10px] font-mono-data px-1.5 py-0.2 rounded-full ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-[#E5E4DF] text-[#4B5563]'
-                  }`}>
-                    {item.badgeCount}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+              return (
+                <div 
+                  key={item.id}
+                  className="relative"
+                  onMouseEnter={() => handleMouseEnterDropdown(item.id)}
+                  onMouseLeave={handleMouseLeaveDropdown}
+                >
+                  <Link
+                    to={item.path}
+                    onClick={() => setActiveHoverDropdown(null)}
+                    className={`relative px-3 sm:px-3.5 py-2 text-xs rounded-xl flex items-center gap-1.5 transition-all select-none ${
+                      isActive 
+                        ? 'text-[#0D9488] font-bold bg-[#0D9488]/5' 
+                        : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#FAF9F6] font-medium'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                      isActive ? 'text-[#0D9488]' : 'text-[#6B7280]'
+                    }`} />
+                    
+                    <span>{item.label}</span>
+
+                    {item.badgeCount !== undefined && item.badgeCount > 0 && (
+                      <span className={`text-[10px] font-mono-data px-1.5 py-0.2 rounded-full font-semibold ${
+                        isActive ? 'bg-[#0D9488] text-white' : 'bg-[#E5E4DF] text-[#4B5563]'
+                      }`}>
+                        {item.badgeCount}
+                      </span>
+                    )}
+
+                    {hasSub && (
+                      <ChevronDown className={`w-3 h-3 text-[#9CA3AF] transition-transform duration-200 ${
+                        isDropdownOpen ? 'rotate-180 text-[#0D9488]' : ''
+                      }`} />
+                    )}
+
+                    {/* Active Underline Pill Glow */}
+                    {isActive && (
+                      <span className="absolute -bottom-1.5 left-3.5 right-3.5 h-[2.5px] bg-[#0D9488] rounded-full shadow-[0_1px_4px_rgba(13,148,136,0.35)]" />
+                    )}
+                  </Link>
+
+                  {/* Desktop Dropdown Popover */}
+                  {hasSub && isDropdownOpen && (
+                    <div 
+                      className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl border border-[#E5E4DF] shadow-[0_12px_32px_rgba(0,0,0,0.08)] p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+                      onMouseEnter={() => handleMouseEnterDropdown(item.id)}
+                      onMouseLeave={handleMouseLeaveDropdown}
+                    >
+                      <div className="px-3 py-1.5 border-b border-[#E5E4DF]/60 mb-1 flex items-center justify-between">
+                        <span className="text-[10px] font-mono-data uppercase tracking-wider text-[#6B7280] font-semibold">
+                          {item.label}
+                        </span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#0D9488]" />
+                      </div>
+
+                      <div className="space-y-1">
+                        {item.subItems.map((sub) => (
+                          <Link
+                            key={sub.id}
+                            to={sub.path}
+                            onClick={() => setActiveHoverDropdown(null)}
+                            className="w-full text-left p-2.5 rounded-xl hover:bg-[#FAF9F6] border border-transparent hover:border-[#E5E4DF] transition-all flex items-start justify-between group"
+                          >
+                            <div className="space-y-0.5">
+                              <div className="text-xs font-semibold text-[#111827] group-hover:text-[#0D9488] transition-colors flex items-center gap-1.5">
+                                <span>{sub.label}</span>
+                              </div>
+                              <div className="text-[11px] text-[#6B7280] line-clamp-1">
+                                {sub.description}
+                              </div>
+                            </div>
+                            <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#0D9488] shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5" />
+                          </Link>
+                        ))}
+                      </div>
+
+                      <div className="pt-2 mt-1 border-t border-[#E5E4DF]/60 px-1">
+                        <Link
+                          to={item.path}
+                          onClick={() => setActiveHoverDropdown(null)}
+                          className="text-[11px] font-semibold text-[#0D9488] hover:text-[#0F766E] flex items-center justify-between px-2 py-1 rounded-lg hover:bg-[#0D9488]/5 transition-colors"
+                        >
+                          <span>Buka halaman {item.label}</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+
+          {/* RIGHT: UTILITY & ACTION BUTTONS */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Cmd+K Search Trigger */}
+            <button
+              type="button"
+              onClick={() => setIsSearchOpen(true)}
+              className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-[#6B7280] hover:text-[#111827] bg-white hover:bg-[#FAF9F6] border border-[#E5E4DF] rounded-xl transition-all shadow-2xs hover:border-[#D1D5DB]"
+              title="Cari fasilitas, proyek, atau aduan (⌘K)"
+            >
+              <Search className="w-3.5 h-3.5 text-[#6B7280]" />
+              <span className="hidden sm:inline font-medium">Cari</span>
+              <kbd className="hidden md:inline-flex items-center text-[10px] font-mono-data text-[#6B7280] bg-[#FAF9F6] px-1.5 py-0.5 rounded border border-[#E5E4DF]">
+                ⌘K
+              </kbd>
+            </button>
+
+            {/* Data Source Trigger */}
+            <button
+              type="button"
+              onClick={() => setIsDataSourceModalOpen(true)}
+              className="px-2.5 py-1.5 text-xs font-medium text-[#4B5563] hover:text-[#111827] hover:bg-white border border-transparent hover:border-[#E5E4DF] rounded-xl transition-all hidden xl:inline-block whitespace-nowrap"
+            >
+              Sumber Data
+            </button>
+
+            {/* Reset Demo Button */}
+            <button
+              type="button"
+              onClick={resetDemoData}
+              title="Kembalikan data simulasi ke kondisi awal"
+              className="p-2 text-[#6B7280] hover:text-[#111827] hover:bg-white border border-transparent hover:border-[#E5E4DF] rounded-xl transition-all hidden sm:flex items-center"
+              aria-label="Kembalikan data simulasi"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Primary Action Button */}
+            <button
+              type="button"
+              onClick={() => navigate('/lapor')}
+              className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-semibold rounded-xl transition-all shadow-tactile active:scale-95 whitespace-nowrap"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#0D9488]" />
+              <span>Tandai Masalah</span>
+            </button>
+          </div>
+
         </div>
       </header>
 
-      {/* GLOBAL RECYCLABLE MODAL POP: CASCADING NAVIGATION SYSTEM */}
+      {/* ==================================================================== */}
+      {/* 2. MOBILE FLOATING TOP BRAND CAPSULE (< lg)                          */}
+      {/* ==================================================================== */}
+      <header 
+        className={`navbar-mobile-top-wrapper ${
+          isVisible || isDrawerOpen ? 'navbar-visible' : 'navbar-hidden-top'
+        }`}
+      >
+        <div className="navbar-mobile-top-island">
+          {/* Brand Logo & Monogram */}
+          <Link to="/" className="flex items-center gap-2 select-none">
+            <div className="w-7 h-7 rounded-lg bg-[#111827] flex items-center justify-center text-white font-bold text-xs tracking-tighter shadow-xs">
+              T<span className="text-[#0D9488]">.</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-sm tracking-tight text-[#111827] leading-none">
+                TITIK<span className="text-[#0D9488]">.</span>
+              </span>
+              <span className="text-[9px] font-mono-data text-[#6B7280] uppercase tracking-wider leading-none mt-0.5">
+                Jabodetabek 2026
+              </span>
+            </div>
+          </Link>
+
+          {/* Quick Search & Fast Action */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsSearchOpen(true)}
+              className="p-2 text-[#6B7280] hover:text-[#111827] bg-white border border-[#E5E4DF] rounded-xl transition-all shadow-2xs"
+              aria-label="Cari fasilitas atau laporan"
+            >
+              <Search className="w-3.5 h-3.5 text-[#6B7280]" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/lapor')}
+              className="flex items-center gap-1 px-3 py-1.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-semibold rounded-xl transition-all shadow-tactile active:scale-95"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#0D9488]" />
+              <span>Lapor</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ==================================================================== */}
+      {/* 3. MOBILE FLOATING BOTTOM DOCK (< lg)                                */}
+      {/* ==================================================================== */}
+      <nav 
+        className={`navbar-mobile-bottom-dock ${
+          isVisible || isDrawerOpen ? 'navbar-visible-bottom' : 'navbar-hidden-bottom'
+        }`}
+        aria-label="Navigasi Bawah Mobile"
+      >
+        <div className="navbar-mobile-dock-inner">
+          {/* Beranda */}
+          <Link
+            to="/"
+            className={`navbar-dock-item ${
+              location.pathname === '/' ? 'navbar-dock-item-active' : 'navbar-dock-item-idle'
+            }`}
+          >
+            <Home className="w-4 h-4 shrink-0" />
+            <span className="text-[10px] leading-tight mt-0.5">Beranda</span>
+          </Link>
+
+          {/* Peta Spasial */}
+          <Link
+            to="/peta"
+            className={`navbar-dock-item ${
+              location.pathname.startsWith('/peta') ? 'navbar-dock-item-active' : 'navbar-dock-item-idle'
+            }`}
+          >
+            <Compass className="w-4 h-4 shrink-0" />
+            <span className="text-[10px] leading-tight mt-0.5">Peta</span>
+          </Link>
+
+          {/* Anggaran APBD */}
+          <Link
+            to="/anggaran"
+            className={`navbar-dock-item ${
+              location.pathname.startsWith('/anggaran') ? 'navbar-dock-item-active' : 'navbar-dock-item-idle'
+            }`}
+          >
+            <Coins className="w-4 h-4 shrink-0" />
+            <span className="text-[10px] leading-tight mt-0.5">Anggaran</span>
+          </Link>
+
+          {/* Laporan Warga */}
+          <Link
+            to="/lapor"
+            className={`navbar-dock-item relative ${
+              location.pathname.startsWith('/lapor') ? 'navbar-dock-item-active' : 'navbar-dock-item-idle'
+            }`}
+          >
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {reports.length > 0 && (
+              <span className="absolute top-1.5 right-3 w-1.5 h-1.5 rounded-full bg-[#0D9488]" />
+            )}
+            <span className="text-[10px] leading-tight mt-0.5">Lapor</span>
+          </Link>
+
+          {/* Direktori & Menu Modal Drawer */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsDrawerOpen(true);
+              setMobileDrawerStep('categories');
+            }}
+            className={`navbar-dock-item ${
+              isDrawerOpen || location.pathname.startsWith('/fasilitas') || location.pathname.startsWith('/analisis')
+                ? 'navbar-dock-item-active'
+                : 'navbar-dock-item-idle'
+            }`}
+            aria-label="Buka menu lengkap observatorium"
+          >
+            <Menu className="w-4 h-4 shrink-0" />
+            <span className="text-[10px] leading-tight mt-0.5">Menu</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* ==================================================================== */}
+      {/* 4. CASCADING NAVIGATION MODAL (Rail & Flyout Directory)             */}
+      {/* ==================================================================== */}
       <Modal
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}

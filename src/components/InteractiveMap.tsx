@@ -9,6 +9,14 @@ export const InteractiveMap: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const rawCartoKey = import.meta.env.VITE_CARTO_API_KEY;
+  const cartoApiKey = typeof rawCartoKey === 'string'
+    ? rawCartoKey.replace(/['";]/g, '').trim()
+    : undefined;
+  const rawCartoStyle = import.meta.env.VITE_CARTO_STYLE;
+  const cartoStyle = typeof rawCartoStyle === 'string' && rawCartoStyle.trim()
+    ? rawCartoStyle.trim()
+    : 'light_all';
   const mapTilerApiKey = import.meta.env.VITE_MAPTILER_API_KEY?.trim();
 
   const { 
@@ -39,9 +47,17 @@ export const InteractiveMap: React.FC = () => {
           attributionControl: false
         });
 
-        const tileUrl = mapTilerApiKey
-          ? `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${encodeURIComponent(mapTilerApiKey)}`
-          : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+        // CARTO Basemaps API (Positron 'light_all' or 'voyager')
+        // CARTO requires the query parameter to be '?key=' (not '?api_key=')
+        let tileUrl = `https://{s}.basemaps.cartocdn.com/rastertiles/${cartoStyle}/{z}/{x}/{y}{r}.png`;
+        let tileAttribution = '© OpenStreetMap contributors, © CARTO';
+
+        if (cartoApiKey) {
+          tileUrl = `https://{s}.basemaps.cartocdn.com/rastertiles/${cartoStyle}/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoApiKey)}`;
+        } else if (mapTilerApiKey) {
+          tileUrl = `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${encodeURIComponent(mapTilerApiKey)}`;
+          tileAttribution = '© MapTiler, © OpenStreetMap contributors';
+        }
 
         L.tileLayer(tileUrl, {
           maxZoom: 19,
@@ -49,9 +65,6 @@ export const InteractiveMap: React.FC = () => {
         }).addTo(map);
 
         // Attribution
-        const tileAttribution = mapTilerApiKey
-          ? '© MapTiler, © OpenStreetMap contributors'
-          : '© OpenStreetMap, © CARTO';
         L.control.attribution({ position: 'bottomright', prefix: `${tileAttribution} • TITIK. SIKD` }).addTo(map);
 
         // Zoom control
