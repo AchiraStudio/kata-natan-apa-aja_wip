@@ -62,6 +62,11 @@ interface TitikContextType {
   toggleSaveFacility: (id: string) => void;
   toggleSaveReport: (id: string) => void;
 
+  // Theme Management
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
+  toggleTheme: () => void;
+
   // Actions
   addCitizenReport: (report: Omit<CitizenReport, 'id' | 'reportedAt' | 'priorityVotes' | 'userHasVoted' | 'currentStep' | 'timeline'>) => CitizenReport;
   votePriority: (reportId: string) => void;
@@ -72,6 +77,7 @@ const STORAGE_KEY_REPORTS = 'titik_reports_storage_v2';
 const STORAGE_KEY_VOTES = 'titik_voted_report_ids_v2';
 const STORAGE_KEY_SAVED_FACILITIES = 'titik_saved_facilities_v2';
 const STORAGE_KEY_SAVED_REPORTS = 'titik_saved_reports_v2';
+const STORAGE_KEY_THEME = 'titik-theme';
 
 const TitikContext = createContext<TitikContextType | undefined>(undefined);
 
@@ -175,6 +181,57 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // ignore
     }
   }, [savedReportIds]);
+
+  // Dynamic Light / Dark Theme Management
+  const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(STORAGE_KEY_THEME);
+        if (saved === 'dark' || saved === 'light') return saved;
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          return 'dark';
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return 'light';
+  });
+
+  const setTheme = (newTheme: 'light' | 'dark') => {
+    setThemeState(newTheme);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_THEME, newTheme);
+        if (newTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  // Sync .dark class on mount and theme change
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [theme]);
 
   // Global keydown for Cmd+K / Ctrl+K search
   useEffect(() => {
@@ -353,7 +410,10 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         toggleSaveReport,
         addCitizenReport,
         votePriority,
-        resetDemoData
+        resetDemoData,
+        theme,
+        setTheme,
+        toggleTheme
       }}
     >
       {children}

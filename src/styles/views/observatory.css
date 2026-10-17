@@ -5,7 +5,7 @@
 
 /* Observatory Page Shell */
 .observatory-page {
-  @apply min-h-screen bg-[#FAF9F6] pb-20;
+  @apply min-h-screen bg-[#FAF9F6] dark:bg-[#0B0F17] text-[#111827] dark:text-[#F9FAFB] pb-20 transition-colors duration-200;
 }
 
 .observatory-container {
@@ -19,17 +19,17 @@
 
 /* Map Frame Card */
 .observatory-map-panel {
-  @apply lg:col-span-7 bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden shadow-xs relative flex flex-col h-[520px] sm:h-[600px] lg:h-[640px];
+  @apply lg:col-span-7 bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-2xl overflow-hidden shadow-xs relative flex flex-col h-[520px] sm:h-[600px] lg:h-[640px];
 }
 
 /* Inspector Aside Panel */
 .observatory-inspector-panel {
-  @apply lg:col-span-5 bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden flex flex-col h-[520px] sm:h-[600px] lg:h-[640px] shadow-xs;
+  @apply lg:col-span-5 bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-2xl overflow-hidden flex flex-col h-[520px] sm:h-[600px] lg:h-[640px] shadow-xs;
 }
 
 /* Inspector Tabs */
 .observatory-tab-bar {
-  @apply flex items-center border-b border-[#E5E7EB] bg-[#FAF9F6] p-1.5 gap-1 shrink-0;
+  @apply flex items-center border-b border-[#E5E7EB] dark:border-[#243042] bg-[#FAF9F6] dark:bg-[#101622] p-1.5 gap-1 shrink-0;
 }
 
 .observatory-tab-btn {
@@ -37,15 +37,14 @@
 }
 
 .observatory-tab-btn-active {
-  @apply bg-white text-[#111827] shadow-2xs font-bold;
+  @apply bg-white dark:bg-[#1C2638] text-[#111827] dark:text-[#F9FAFB] shadow-2xs font-bold;
 }
 
 .observatory-tab-btn-idle {
-  @apply text-[#6B7280] hover:text-[#111827] hover:bg-white/60;
+  @apply text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-white/60 dark:hover:bg-[#1C2638]/60;
 }
 
 /* Inspector Item Row Card */
 .observatory-item-row {
-  @apply p-4 rounded-xl border border-[#E5E7EB] hover:border-[#111827]/40 bg-white transition-all cursor-pointer;
+  @apply p-4 rounded-xl border border-[#E5E7EB] dark:border-[#243042] hover:border-[#111827]/40 dark:hover:border-[#0D9488]/40 bg-white dark:bg-[#151D2A] transition-all cursor-pointer;
 }
-

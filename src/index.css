@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode (.dark class on html/root) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ========================================================================= */
 /* TITIK. SYSTEM STYLES MANIFEST                                            */
 /* All modular CSS files are organized in src/styles/ for easy management   */

@@ -9,6 +9,7 @@ export const InteractiveMap: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const rawCartoKey = import.meta.env.VITE_CARTO_API_KEY;
   const cartoApiKey = typeof rawCartoKey === 'string'
     ? rawCartoKey.replace(/['";]/g, '').trim()
@@ -30,7 +31,8 @@ export const InteractiveMap: React.FC = () => {
     setSelectedReport,
     setSelectedProject,
     selectedFacility,
-    selectedReport
+    selectedReport,
+    theme
   } = useTitik();
 
   // Initialize Map
@@ -47,22 +49,24 @@ export const InteractiveMap: React.FC = () => {
           attributionControl: false
         });
 
-        // CARTO Basemaps API (Positron 'light_all' or 'voyager')
-        // CARTO requires the query parameter to be '?key=' (not '?api_key=')
-        let tileUrl = `https://{s}.basemaps.cartocdn.com/rastertiles/${cartoStyle}/{z}/{x}/{y}{r}.png`;
+        // Dynamic CARTO style: Dark Matter in dark mode, Positron in light mode
+        const activeStyle = theme === 'dark' ? 'dark_all' : cartoStyle;
+        let tileUrl = `https://{s}.basemaps.cartocdn.com/rastertiles/${activeStyle}/{z}/{x}/{y}{r}.png`;
         let tileAttribution = '© OpenStreetMap contributors, © CARTO';
 
         if (cartoApiKey) {
-          tileUrl = `https://{s}.basemaps.cartocdn.com/rastertiles/${cartoStyle}/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoApiKey)}`;
+          tileUrl = `https://{s}.basemaps.cartocdn.com/rastertiles/${activeStyle}/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoApiKey)}`;
         } else if (mapTilerApiKey) {
           tileUrl = `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${encodeURIComponent(mapTilerApiKey)}`;
           tileAttribution = '© MapTiler, © OpenStreetMap contributors';
         }
 
-        L.tileLayer(tileUrl, {
+        const layer = L.tileLayer(tileUrl, {
           maxZoom: 19,
           subdomains: 'abcd',
         }).addTo(map);
+
+        tileLayerRef.current = layer;
 
         // Attribution
         L.control.attribution({ position: 'bottomright', prefix: `${tileAttribution} • TITIK. SIKD` }).addTo(map);
@@ -86,6 +90,31 @@ export const InteractiveMap: React.FC = () => {
       }
     };
   }, [mapMode]);
+
+  // Update Tile Layer dynamically when Theme changes
+  useEffect(() => {
+    if (mapMode !== 'LEAFLET' || !mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+    const activeStyle = theme === 'dark' ? 'dark_all' : cartoStyle;
+
+    let tileUrl = `https://{s}.basemaps.cartocdn.com/rastertiles/${activeStyle}/{z}/{x}/{y}{r}.png`;
+    if (cartoApiKey) {
+      tileUrl = `https://{s}.basemaps.cartocdn.com/rastertiles/${activeStyle}/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoApiKey)}`;
+    } else if (mapTilerApiKey) {
+      tileUrl = `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${encodeURIComponent(mapTilerApiKey)}`;
+    }
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+
+    const newLayer = L.tileLayer(tileUrl, {
+      maxZoom: 19,
+      subdomains: 'abcd',
+    }).addTo(map);
+
+    tileLayerRef.current = newLayer;
+  }, [theme, cartoStyle, cartoApiKey, mapTilerApiKey, mapMode]);
 
   // Update Markers when filters or data change
   useEffect(() => {
@@ -139,8 +168,8 @@ export const InteractiveMap: React.FC = () => {
               ${fac.address}
             </div>
             <div class="map-popup-footer">
-              <span class="text-[10px] text-[#6B7280]">Kondisi: <strong>${fac.condition}</strong></span>
-              <span class="text-[11px] font-bold text-[#111827]">${fac.activeReportsCount} Laporan</span>
+              <span class="text-[10px] text-[#6B7280] dark:text-[#94A3B8]">Kondisi: <strong>${fac.condition}</strong></span>
+              <span class="text-[11px] font-bold text-[#111827] dark:text-[#F9FAFB]">${fac.activeReportsCount} Laporan</span>
             </div>
           </div>
         `);
@@ -198,8 +227,8 @@ export const InteractiveMap: React.FC = () => {
               Oleh: @${rep.reporterHandle} • Langkah ${rep.currentStep}/6
             </div>
             <div class="map-popup-footer">
-              <span class="text-[11px] font-bold text-[#111827]">${rep.priorityVotes} Suara Prioritas</span>
-              <span class="text-[10px] text-[#2563EB]">Lihat Audit &rarr;</span>
+              <span class="text-[11px] font-bold text-[#111827] dark:text-[#F9FAFB]">${rep.priorityVotes} Suara Prioritas</span>
+              <span class="text-[10px] text-[#2563EB] dark:text-[#60A5FA]">Lihat Audit &rarr;</span>
             </div>
           </div>
         `);
@@ -287,19 +316,19 @@ export const InteractiveMap: React.FC = () => {
   }, [mapMode, selectedFacility, selectedReport]);
 
   return (
-    <div className="relative w-full h-full min-h-[440px] rounded-xl overflow-hidden border border-[#E5E7EB] bg-[#F3F4F6] shadow-tactile">
+    <div className="relative w-full h-full min-h-[440px] rounded-xl overflow-hidden border border-[#E5E7EB] dark:border-[#243042] bg-[#F3F4F6] dark:bg-[#0B0F17] shadow-tactile transition-colors">
       
       {/* Switch Map Engine Mode Pill */}
-      <div className="absolute top-3 left-3 z-10 bg-white/95 backdrop-blur-xs px-2 py-1 rounded-lg border border-[#E5E7EB] shadow-xs flex items-center gap-1.5 text-[11px] font-semibold text-[#111827]">
+      <div className="absolute top-3 left-3 z-10 bg-white/95 dark:bg-[#151D2A]/95 backdrop-blur-xs px-2 py-1 rounded-lg border border-[#E5E7EB] dark:border-[#243042] shadow-xs flex items-center gap-1.5 text-[11px] font-semibold text-[#111827] dark:text-[#F9FAFB]">
         <button
           onClick={() => setMapMode('LEAFLET')}
-          className={`px-2 py-0.5 rounded transition-colors ${mapMode === 'LEAFLET' ? 'bg-[#111827] text-white' : 'text-[#6B7280] hover:text-[#111827]'}`}
+          className={`px-2 py-0.5 rounded transition-colors ${mapMode === 'LEAFLET' ? 'bg-[#111827] dark:bg-[#0D9488] text-white' : 'text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-white'}`}
         >
           Peta Satelit/Tile
         </button>
         <button
           onClick={() => setMapMode('SVG')}
-          className={`px-2 py-0.5 rounded transition-colors ${mapMode === 'SVG' ? 'bg-[#111827] text-white' : 'text-[#6B7280] hover:text-[#111827]'}`}
+          className={`px-2 py-0.5 rounded transition-colors ${mapMode === 'SVG' ? 'bg-[#111827] dark:bg-[#0D9488] text-white' : 'text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-white'}`}
         >
           Vektor Resilient
         </button>
@@ -312,25 +341,25 @@ export const InteractiveMap: React.FC = () => {
       )}
 
       {/* Floating Map Legend (Daylight Minimalist) */}
-      <div className="absolute bottom-4 left-4 z-10 bg-white/95 backdrop-blur-sm px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] shadow-sm text-xs space-y-1.5 pointer-events-auto">
-        <div className="font-bold text-[#111827] text-[11px] uppercase tracking-wider mb-1 flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#111827]"></span>
+      <div className="absolute bottom-4 left-4 z-10 bg-white/95 dark:bg-[#151D2A]/95 backdrop-blur-sm px-3.5 py-2.5 rounded-lg border border-[#E5E7EB] dark:border-[#243042] shadow-sm text-xs space-y-1.5 pointer-events-auto">
+        <div className="font-bold text-[#111827] dark:text-[#F9FAFB] text-[11px] uppercase tracking-wider mb-1 flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#111827] dark:bg-[#0D9488]"></span>
           Legenda Titik
         </div>
-        <div className="flex items-center gap-2 text-[#4B5563]">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB] ring-2 ring-white"></span>
+        <div className="flex items-center gap-2 text-[#4B5563] dark:text-[#94A3B8]">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB] ring-2 ring-white dark:ring-[#151D2A]"></span>
           <span>Fasilitas Publik</span>
         </div>
-        <div className="flex items-center gap-2 text-[#4B5563]">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#D97706] ring-2 ring-white"></span>
+        <div className="flex items-center gap-2 text-[#4B5563] dark:text-[#94A3B8]">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#D97706] ring-2 ring-white dark:ring-[#151D2A]"></span>
           <span>Proyek APBD Aktif</span>
         </div>
-        <div className="flex items-center gap-2 text-[#4B5563]">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626] ring-2 ring-white"></span>
+        <div className="flex items-center gap-2 text-[#4B5563] dark:text-[#94A3B8]">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626] ring-2 ring-white dark:ring-[#151D2A]"></span>
           <span>Titik Masalah Warga</span>
         </div>
-        <div className="flex items-center gap-2 text-[#4B5563]">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#0D9488] ring-2 ring-white"></span>
+        <div className="flex items-center gap-2 text-[#4B5563] dark:text-[#94A3B8]">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#0D9488] ring-2 ring-white dark:ring-[#151D2A]"></span>
           <span>Tuntas Terverifikasi</span>
         </div>
       </div>

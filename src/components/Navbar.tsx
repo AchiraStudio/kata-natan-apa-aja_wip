@@ -17,7 +17,9 @@ import {
   Plus, 
   RotateCcw,
   ArrowRight,
-  Database
+  Database,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 interface SubNavItem {
@@ -44,7 +46,9 @@ export const Navbar: React.FC = () => {
     setIsDataSourceModalOpen,
     resetDemoData,
     reports,
-    facilities 
+    facilities,
+    theme,
+    toggleTheme
   } = useTitik();
 
   const navigate = useNavigate();
@@ -291,45 +295,45 @@ export const Navbar: React.FC = () => {
                     onClick={() => setActiveHoverDropdown(null)}
                     className={`relative px-3 sm:px-3.5 py-2 text-xs rounded-xl flex items-center gap-1.5 transition-all select-none ${
                       isActive 
-                        ? 'text-[#0D9488] font-bold bg-[#0D9488]/5' 
-                        : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#FAF9F6] font-medium'
+                        ? 'text-[#0D9488] dark:text-[#2DD4BF] font-bold bg-[#0D9488]/5 dark:bg-[#0D9488]/15' 
+                        : 'text-[#4B5563] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-[#FAF9F6] dark:hover:bg-[#1C2638] font-medium'
                     }`}
                   >
                     <Icon className={`w-3.5 h-3.5 shrink-0 transition-colors ${
-                      isActive ? 'text-[#0D9488]' : 'text-[#6B7280]'
+                      isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-[#6B7280] dark:text-[#94A3B8]'
                     }`} />
                     
                     <span>{item.label}</span>
 
                     {item.badgeCount !== undefined && item.badgeCount > 0 && (
                       <span className={`text-[10px] font-mono-data px-1.5 py-0.2 rounded-full font-semibold ${
-                        isActive ? 'bg-[#0D9488] text-white' : 'bg-[#E5E4DF] text-[#4B5563]'
+                        isActive ? 'bg-[#0D9488] text-white' : 'bg-[#E5E4DF] dark:bg-[#243042] text-[#4B5563] dark:text-[#CBD5E1]'
                       }`}>
                         {item.badgeCount}
                       </span>
                     )}
 
                     {hasSub && (
-                      <ChevronDown className={`w-3 h-3 text-[#9CA3AF] transition-transform duration-200 ${
-                        isDropdownOpen ? 'rotate-180 text-[#0D9488]' : ''
+                      <ChevronDown className={`w-3 h-3 text-[#9CA3AF] dark:text-[#64748B] transition-transform duration-200 ${
+                        isDropdownOpen ? 'rotate-180 text-[#0D9488] dark:text-[#2DD4BF]' : ''
                       }`} />
                     )}
 
                     {/* Active Underline Pill Glow */}
                     {isActive && (
-                      <span className="absolute -bottom-1.5 left-3.5 right-3.5 h-[2.5px] bg-[#0D9488] rounded-full shadow-[0_1px_4px_rgba(13,148,136,0.35)]" />
+                      <span className="absolute -bottom-1.5 left-3.5 right-3.5 h-[2.5px] bg-[#0D9488] dark:bg-[#2DD4BF] rounded-full shadow-[0_1px_4px_rgba(13,148,136,0.35)]" />
                     )}
                   </Link>
 
                   {/* Desktop Dropdown Popover */}
                   {hasSub && isDropdownOpen && (
                     <div 
-                      className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl border border-[#E5E4DF] shadow-[0_12px_32px_rgba(0,0,0,0.08)] p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+                      className="absolute top-full left-0 mt-2 w-72 bg-white dark:bg-[#151D2A] rounded-2xl border border-[#E5E4DF] dark:border-[#243042] shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.4)] p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
                       onMouseEnter={() => handleMouseEnterDropdown(item.id)}
                       onMouseLeave={handleMouseLeaveDropdown}
                     >
-                      <div className="px-3 py-1.5 border-b border-[#E5E4DF]/60 mb-1 flex items-center justify-between">
-                        <span className="text-[10px] font-mono-data uppercase tracking-wider text-[#6B7280] font-semibold">
+                      <div className="px-3 py-1.5 border-b border-[#E5E4DF]/60 dark:border-[#243042] mb-1 flex items-center justify-between">
+                        <span className="text-[10px] font-mono-data uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8] font-semibold">
                           {item.label}
                         </span>
                         <span className="w-1.5 h-1.5 rounded-full bg-[#0D9488]" />
@@ -341,26 +345,26 @@ export const Navbar: React.FC = () => {
                             key={sub.id}
                             to={sub.path}
                             onClick={() => setActiveHoverDropdown(null)}
-                            className="w-full text-left p-2.5 rounded-xl hover:bg-[#FAF9F6] border border-transparent hover:border-[#E5E4DF] transition-all flex items-start justify-between group"
+                            className="w-full text-left p-2.5 rounded-xl hover:bg-[#FAF9F6] dark:hover:bg-[#1C2638] border border-transparent hover:border-[#E5E4DF] dark:hover:border-[#243042] transition-all flex items-start justify-between group"
                           >
                             <div className="space-y-0.5">
-                              <div className="text-xs font-semibold text-[#111827] group-hover:text-[#0D9488] transition-colors flex items-center gap-1.5">
+                              <div className="text-xs font-semibold text-[#111827] dark:text-[#F9FAFB] group-hover:text-[#0D9488] dark:group-hover:text-[#2DD4BF] transition-colors flex items-center gap-1.5">
                                 <span>{sub.label}</span>
                               </div>
-                              <div className="text-[11px] text-[#6B7280] line-clamp-1">
+                              <div className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] line-clamp-1">
                                 {sub.description}
                               </div>
                             </div>
-                            <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#0D9488] shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5" />
+                            <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] dark:text-[#64748B] group-hover:text-[#0D9488] dark:group-hover:text-[#2DD4BF] shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5" />
                           </Link>
                         ))}
                       </div>
 
-                      <div className="pt-2 mt-1 border-t border-[#E5E4DF]/60 px-1">
+                      <div className="pt-2 mt-1 border-t border-[#E5E4DF]/60 dark:border-[#243042] px-1">
                         <Link
                           to={item.path}
                           onClick={() => setActiveHoverDropdown(null)}
-                          className="text-[11px] font-semibold text-[#0D9488] hover:text-[#0F766E] flex items-center justify-between px-2 py-1 rounded-lg hover:bg-[#0D9488]/5 transition-colors"
+                          className="text-[11px] font-semibold text-[#0D9488] dark:text-[#2DD4BF] hover:text-[#0F766E] dark:hover:text-[#5EEAD4] flex items-center justify-between px-2 py-1 rounded-lg hover:bg-[#0D9488]/5 dark:hover:bg-[#0D9488]/15 transition-colors"
                         >
                           <span>Buka halaman {item.label}</span>
                           <ArrowRight className="w-3 h-3" />
@@ -375,16 +379,31 @@ export const Navbar: React.FC = () => {
 
           {/* RIGHT: UTILITY & ACTION BUTTONS */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? "Beralih ke tema terang (Daylight)" : "Beralih ke tema gelap (Midnight)"}
+              className="p-2 text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] bg-white dark:bg-[#151D2A] hover:bg-[#FAF9F6] dark:hover:bg-[#1C2638] border border-[#E5E4DF] dark:border-[#243042] rounded-xl transition-all shadow-2xs flex items-center justify-center active:scale-95"
+              aria-label="Ganti mode tema"
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
+              ) : (
+                <Moon className="w-3.5 h-3.5 text-[#6B7280]" />
+              )}
+            </button>
+
             {/* Cmd+K Search Trigger */}
             <button
               type="button"
               onClick={() => setIsSearchOpen(true)}
-              className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-[#6B7280] hover:text-[#111827] bg-white hover:bg-[#FAF9F6] border border-[#E5E4DF] rounded-xl transition-all shadow-2xs hover:border-[#D1D5DB]"
+              className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] bg-white dark:bg-[#151D2A] hover:bg-[#FAF9F6] dark:hover:bg-[#1C2638] border border-[#E5E4DF] dark:border-[#243042] rounded-xl transition-all shadow-2xs hover:border-[#D1D5DB] dark:hover:border-[#334155]"
               title="Cari fasilitas, proyek, atau aduan (⌘K)"
             >
-              <Search className="w-3.5 h-3.5 text-[#6B7280]" />
+              <Search className="w-3.5 h-3.5 text-[#6B7280] dark:text-[#94A3B8]" />
               <span className="hidden sm:inline font-medium">Cari</span>
-              <kbd className="hidden md:inline-flex items-center text-[10px] font-mono-data text-[#6B7280] bg-[#FAF9F6] px-1.5 py-0.5 rounded border border-[#E5E4DF]">
+              <kbd className="hidden md:inline-flex items-center text-[10px] font-mono-data text-[#6B7280] dark:text-[#94A3B8] bg-[#FAF9F6] dark:bg-[#101622] px-1.5 py-0.5 rounded border border-[#E5E4DF] dark:border-[#243042]">
                 ⌘K
               </kbd>
             </button>
@@ -393,7 +412,7 @@ export const Navbar: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsDataSourceModalOpen(true)}
-              className="px-2.5 py-1.5 text-xs font-medium text-[#4B5563] hover:text-[#111827] hover:bg-white border border-transparent hover:border-[#E5E4DF] rounded-xl transition-all hidden xl:inline-block whitespace-nowrap"
+              className="px-2.5 py-1.5 text-xs font-medium text-[#4B5563] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-white dark:hover:bg-[#151D2A] border border-transparent hover:border-[#E5E4DF] dark:hover:border-[#243042] rounded-xl transition-all hidden xl:inline-block whitespace-nowrap"
             >
               Sumber Data
             </button>
@@ -403,7 +422,7 @@ export const Navbar: React.FC = () => {
               type="button"
               onClick={resetDemoData}
               title="Kembalikan data simulasi ke kondisi awal"
-              className="p-2 text-[#6B7280] hover:text-[#111827] hover:bg-white border border-transparent hover:border-[#E5E4DF] rounded-xl transition-all hidden sm:flex items-center"
+              className="p-2 text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-white dark:hover:bg-[#151D2A] border border-transparent hover:border-[#E5E4DF] dark:hover:border-[#243042] rounded-xl transition-all hidden sm:flex items-center"
               aria-label="Kembalikan data simulasi"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -413,9 +432,9 @@ export const Navbar: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/lapor')}
-              className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-semibold rounded-xl transition-all shadow-tactile active:scale-95 whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs font-semibold rounded-xl transition-all shadow-tactile active:scale-95 whitespace-nowrap"
             >
-              <Plus className="w-3.5 h-3.5 text-[#0D9488]" />
+              <Plus className="w-3.5 h-3.5 text-[#0D9488] dark:text-white" />
               <span>Tandai Masalah</span>
             </button>
           </div>
@@ -434,14 +453,14 @@ export const Navbar: React.FC = () => {
         <div className="navbar-mobile-top-island">
           {/* Brand Logo & Monogram */}
           <Link to="/" className="flex items-center gap-2 select-none">
-            <div className="w-7 h-7 rounded-lg bg-[#111827] flex items-center justify-center text-white font-bold text-xs tracking-tighter shadow-xs">
+            <div className="w-7 h-7 rounded-lg bg-[#111827] dark:bg-[#1C2638] flex items-center justify-center text-white font-bold text-xs tracking-tighter shadow-xs">
               T<span className="text-[#0D9488]">.</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-extrabold text-sm tracking-tight text-[#111827] leading-none">
+              <span className="font-extrabold text-sm tracking-tight text-[#111827] dark:text-[#F9FAFB] leading-none">
                 TITIK<span className="text-[#0D9488]">.</span>
               </span>
-              <span className="text-[9px] font-mono-data text-[#6B7280] uppercase tracking-wider leading-none mt-0.5">
+              <span className="text-[9px] font-mono-data text-[#6B7280] dark:text-[#94A3B8] uppercase tracking-wider leading-none mt-0.5">
                 Jabodetabek 2026
               </span>
             </div>
@@ -449,21 +468,36 @@ export const Navbar: React.FC = () => {
 
           {/* Quick Search & Fast Action */}
           <div className="flex items-center gap-1.5">
+            {/* Theme Toggle Mobile */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] bg-white dark:bg-[#151D2A] border border-[#E5E4DF] dark:border-[#243042] rounded-xl transition-all shadow-2xs active:scale-95"
+              aria-label={theme === 'dark' ? "Beralih ke mode terang" : "Beralih ke mode gelap"}
+              title={theme === 'dark' ? "Mode Terang" : "Mode Gelap"}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
+              ) : (
+                <Moon className="w-3.5 h-3.5 text-[#6B7280]" />
+              )}
+            </button>
+
             <button
               type="button"
               onClick={() => setIsSearchOpen(true)}
-              className="p-2 text-[#6B7280] hover:text-[#111827] bg-white border border-[#E5E4DF] rounded-xl transition-all shadow-2xs"
+              className="p-2 text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] bg-white dark:bg-[#151D2A] border border-[#E5E4DF] dark:border-[#243042] rounded-xl transition-all shadow-2xs"
               aria-label="Cari fasilitas atau laporan"
             >
-              <Search className="w-3.5 h-3.5 text-[#6B7280]" />
+              <Search className="w-3.5 h-3.5 text-[#6B7280] dark:text-[#94A3B8]" />
             </button>
 
             <button
               type="button"
               onClick={() => navigate('/lapor')}
-              className="flex items-center gap-1 px-3 py-1.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-semibold rounded-xl transition-all shadow-tactile active:scale-95"
+              className="flex items-center gap-1 px-3 py-1.5 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs font-semibold rounded-xl transition-all shadow-tactile active:scale-95"
             >
-              <Plus className="w-3.5 h-3.5 text-[#0D9488]" />
+              <Plus className="w-3.5 h-3.5 text-[#0D9488] dark:text-white" />
               <span>Lapor</span>
             </button>
           </div>
@@ -566,7 +600,7 @@ export const Navbar: React.FC = () => {
       >
         <div className="flex flex-col sm:flex-row h-[520px] max-h-[70vh]">
           {/* COLUMN 1: VERTICAL ICON RAIL */}
-          <div className="w-full sm:w-16 bg-[#FAF9F6] border-b sm:border-b-0 sm:border-r border-[#E5E4DF] flex sm:flex-col items-center py-2.5 sm:py-4 px-2 sm:px-0 justify-between shrink-0 overflow-x-auto sm:overflow-x-visible">
+          <div className="w-full sm:w-16 bg-[#FAF9F6] dark:bg-[#0B0F17] border-b sm:border-b-0 sm:border-r border-[#E5E4DF] dark:border-[#243042] flex sm:flex-col items-center py-2.5 sm:py-4 px-2 sm:px-0 justify-between shrink-0 overflow-x-auto sm:overflow-x-visible">
             <div className="flex sm:flex-col items-center gap-2 sm:gap-2.5 w-full">
               {navItems.map(item => {
                 const isSelected = activeDrawerCategory === item.id;
@@ -581,14 +615,14 @@ export const Navbar: React.FC = () => {
                     onMouseEnter={() => setActiveDrawerCategory(item.id)}
                     className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-all relative shrink-0 ${
                       isSelected 
-                        ? 'bg-[#0D9488]/15 text-[#0D9488] shadow-2xs font-semibold' 
-                        : 'text-[#6B7280] hover:text-[#111827] hover:bg-white'
+                        ? 'bg-[#0D9488]/15 text-[#0D9488] dark:text-[#2DD4BF] shadow-2xs font-semibold' 
+                        : 'text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-white dark:hover:bg-[#151D2A]'
                     }`}
                     title={item.label}
                   >
                     <Icon className="w-5 h-5" />
                     {isSelected && (
-                      <span className="hidden sm:block absolute left-0 top-2.5 bottom-2.5 w-1 bg-[#0D9488] rounded-r-full" />
+                      <span className="hidden sm:block absolute left-0 top-2.5 bottom-2.5 w-1 bg-[#0D9488] dark:bg-[#2DD4BF] rounded-r-full" />
                     )}
                   </button>
                 );
@@ -598,11 +632,24 @@ export const Navbar: React.FC = () => {
             {/* Rail Bottom Utility */}
             <div className="hidden sm:flex flex-col items-center gap-2">
               <button
+                type="button"
+                onClick={toggleTheme}
+                className="w-10 h-10 rounded-xl text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-white dark:hover:bg-[#151D2A] flex items-center justify-center transition-colors"
+                title={theme === 'dark' ? "Mode Terang" : "Mode Gelap"}
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4 text-amber-400" />
+                ) : (
+                  <Moon className="w-4 h-4 text-[#6B7280]" />
+                )}
+              </button>
+
+              <button
                 onClick={() => {
                   setIsDrawerOpen(false);
                   setIsDataSourceModalOpen(true);
                 }}
-                className="w-10 h-10 rounded-xl text-[#6B7280] hover:text-[#111827] hover:bg-white flex items-center justify-center transition-colors"
+                className="w-10 h-10 rounded-xl text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-white dark:hover:bg-[#151D2A] flex items-center justify-center transition-colors"
                 title="Sumber Data & Metodologi SIKD"
               >
                 <Database className="w-4 h-4" />
@@ -611,11 +658,11 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* COLUMN 2: CATEGORY FLYOUT LIST */}
-          <div className={`w-full sm:w-60 bg-white border-b sm:border-b-0 sm:border-r border-[#E5E4DF] flex flex-col py-3.5 shrink-0 ${
+          <div className={`w-full sm:w-60 bg-white dark:bg-[#101622] border-b sm:border-b-0 sm:border-r border-[#E5E4DF] dark:border-[#243042] flex flex-col py-3.5 shrink-0 ${
             mobileDrawerStep === 'subitems' ? 'hidden sm:flex' : 'flex'
           }`}>
-            <div className="px-4 pb-2.5 border-b border-[#E5E4DF]/60 flex items-center justify-between">
-              <div className="text-[10px] font-mono-data uppercase tracking-wider text-[#6B7280] font-semibold">
+            <div className="px-4 pb-2.5 border-b border-[#E5E4DF]/60 dark:border-[#243042] flex items-center justify-between">
+              <div className="text-[10px] font-mono-data uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8] font-semibold">
                 Kategori Utama
               </div>
               <span className="w-2 h-2 rounded-full bg-[#0D9488]" />
@@ -637,13 +684,13 @@ export const Navbar: React.FC = () => {
                     onMouseEnter={() => setActiveDrawerCategory(item.id)}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all text-left group ${
                       isSelected 
-                        ? 'bg-[#0D9488]/10 text-[#0D9488] font-bold' 
-                        : 'text-[#374151] hover:bg-[#FAF9F6] hover:text-[#111827] font-medium'
+                        ? 'bg-[#0D9488]/10 dark:bg-[#0D9488]/20 text-[#0D9488] dark:text-[#2DD4BF] font-bold' 
+                        : 'text-[#374151] dark:text-[#CBD5E1] hover:bg-[#FAF9F6] dark:hover:bg-[#151D2A] hover:text-[#111827] dark:hover:text-[#F9FAFB] font-medium'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
                       <Icon className={`w-4 h-4 shrink-0 transition-colors ${
-                        isSelected ? 'text-[#0D9488]' : 'text-[#6B7280] group-hover:text-[#111827]'
+                        isSelected ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-[#6B7280] dark:text-[#94A3B8] group-hover:text-[#111827] dark:group-hover:text-[#F9FAFB]'
                       }`} />
                       <span className="truncate">{item.label}</span>
                     </div>
@@ -651,14 +698,14 @@ export const Navbar: React.FC = () => {
                     <div className="flex items-center gap-1 shrink-0 ml-2">
                       {item.badgeCount !== undefined && item.badgeCount > 0 && (
                         <span className={`text-[10px] font-mono-data px-1.5 py-0.5 rounded-full font-bold ${
-                          isSelected ? 'bg-[#0D9488] text-white' : 'bg-[#E5E4DF] text-[#4B5563]'
+                          isSelected ? 'bg-[#0D9488] text-white' : 'bg-[#E5E4DF] dark:bg-[#243042] text-[#4B5563] dark:text-[#CBD5E1]'
                         }`}>
                           {item.badgeCount}
                         </span>
                       )}
                       {hasSub && (
                         <ChevronRight className={`w-4 h-4 transition-transform ${
-                          isSelected ? 'text-[#0D9488] translate-x-0.5' : 'text-[#9CA3AF] group-hover:text-[#4B5563]'
+                          isSelected ? 'text-[#0D9488] dark:text-[#2DD4BF] translate-x-0.5' : 'text-[#9CA3AF] dark:text-[#64748B] group-hover:text-[#4B5563] dark:group-hover:text-[#94A3B8]'
                         }`} />
                       )}
                     </div>
@@ -668,7 +715,7 @@ export const Navbar: React.FC = () => {
             </div>
 
             {/* Direct Open Button for Currently Highlighted Category */}
-            <div className="p-3 border-t border-[#E5E4DF]/60 mt-auto">
+            <div className="p-3 border-t border-[#E5E4DF]/60 dark:border-[#243042] mt-auto">
               <button
                 onClick={() => {
                   if (currentCategory) {
@@ -676,41 +723,41 @@ export const Navbar: React.FC = () => {
                     setIsDrawerOpen(false);
                   }
                 }}
-                className="w-full py-2.5 px-3 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs active:scale-[0.98]"
+                className="w-full py-2.5 px-3 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs active:scale-[0.98]"
               >
                 <span>Buka {currentCategory.label}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-[#0D9488]" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#0D9488] dark:text-white" />
               </button>
             </div>
           </div>
 
           {/* COLUMN 3: CASCADING SUBMENU PANEL */}
           {currentCategory && currentCategory.subItems && currentCategory.subItems.length > 0 && (
-            <div className={`flex-1 bg-white flex flex-col py-3.5 min-w-0 overflow-y-auto ${
+            <div className={`flex-1 bg-white dark:bg-[#151D2A] flex flex-col py-3.5 min-w-0 overflow-y-auto ${
               mobileDrawerStep === 'subitems' ? 'flex' : 'hidden sm:flex'
             }`}>
               {/* Mobile Back Header */}
-              <div className="sm:hidden px-3 pb-2 border-b border-[#E5E4DF] mb-2 flex items-center justify-between">
+              <div className="sm:hidden px-3 pb-2 border-b border-[#E5E4DF] dark:border-[#243042] mb-2 flex items-center justify-between">
                 <button
                   onClick={() => setMobileDrawerStep('categories')}
-                  className="text-xs text-[#0D9488] font-bold flex items-center gap-1 hover:underline py-1"
+                  className="text-xs text-[#0D9488] dark:text-[#2DD4BF] font-bold flex items-center gap-1 hover:underline py-1"
                 >
                   <span>← Kembali ke Kategori</span>
                 </button>
-                <span className="text-[10px] font-mono-data text-[#6B7280]">
+                <span className="text-[10px] font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
                   {currentCategory.label}
                 </span>
               </div>
 
               {/* Submenu Header */}
-              <div className="px-5 pb-3 border-b border-[#E5E4DF]/60">
-                <div className="text-[10px] font-mono-data uppercase tracking-wider text-[#6B7280] font-semibold">
+              <div className="px-5 pb-3 border-b border-[#E5E4DF]/60 dark:border-[#243042]">
+                <div className="text-[10px] font-mono-data uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8] font-semibold">
                   Sub-Seksi & Pilihan Cepat
                 </div>
-                <div className="text-base font-bold text-[#111827] mt-0.5">
+                <div className="text-base font-bold text-[#111827] dark:text-[#F9FAFB] mt-0.5">
                   {currentCategory.label}
                 </div>
-                <div className="text-xs text-[#6B7280] mt-0.5 line-clamp-1">
+                <div className="text-xs text-[#6B7280] dark:text-[#94A3B8] mt-0.5 line-clamp-1">
                   {currentCategory.description}
                 </div>
               </div>
@@ -724,14 +771,14 @@ export const Navbar: React.FC = () => {
                       navigate(sub.path);
                       setIsDrawerOpen(false);
                     }}
-                    className="w-full text-left p-3.5 rounded-xl hover:bg-[#FAF9F6] border border-transparent hover:border-[#E5E4DF] transition-all group"
+                    className="w-full text-left p-3.5 rounded-xl hover:bg-[#FAF9F6] dark:hover:bg-[#1C2638] border border-transparent hover:border-[#E5E4DF] dark:hover:border-[#243042] transition-all group"
                   >
-                    <div className="text-xs font-semibold text-[#111827] group-hover:text-[#0D9488] flex items-center justify-between">
+                    <div className="text-xs font-semibold text-[#111827] dark:text-[#F9FAFB] group-hover:text-[#0D9488] dark:group-hover:text-[#2DD4BF] flex items-center justify-between">
                       <span className="font-semibold">{sub.label}</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#0D9488] opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5" />
+                      <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] dark:text-[#64748B] group-hover:text-[#0D9488] dark:group-hover:text-[#2DD4BF] opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5" />
                     </div>
                     {sub.description && (
-                      <p className="text-[11px] text-[#6B7280] mt-1 leading-relaxed">
+                      <p className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] mt-1 leading-relaxed">
                         {sub.description}
                       </p>
                     )}
@@ -740,13 +787,13 @@ export const Navbar: React.FC = () => {
               </div>
 
               {/* Direct Action Link */}
-              <div className="p-3.5 border-t border-[#E5E4DF]/60 bg-[#FAF9F6]/60 mt-auto">
+              <div className="p-3.5 border-t border-[#E5E4DF]/60 dark:border-[#243042] bg-[#FAF9F6]/60 dark:bg-[#101622]/60 mt-auto">
                 <button
                   onClick={() => {
                     navigate(currentCategory.path);
                     setIsDrawerOpen(false);
                   }}
-                  className="w-full text-center text-xs font-semibold text-[#0D9488] hover:text-[#0F766E] transition-colors py-1 flex items-center justify-center gap-1.5"
+                  className="w-full text-center text-xs font-semibold text-[#0D9488] dark:text-[#2DD4BF] hover:text-[#0F766E] dark:hover:text-[#5EEAD4] transition-colors py-1 flex items-center justify-center gap-1.5"
                 >
                   <span>Eksplorasi Seluruh {currentCategory.label}</span>
                   <ArrowRight className="w-3 h-3" />

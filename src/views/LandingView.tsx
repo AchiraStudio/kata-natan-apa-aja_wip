@@ -116,16 +116,16 @@ export const LandingView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => navigate('/peta')}
-                    className="px-6 sm:px-7 py-3.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 shadow-tactile active:scale-95"
+                    className="px-6 sm:px-7 py-3.5 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 shadow-tactile active:scale-95"
                   >
-                    <Compass className="w-4 h-4 text-[#0D9488]" />
+                    <Compass className="w-4 h-4 text-[#0D9488] dark:text-white" />
                     <span>Jelajahi Peta Spasial</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => navigate('/lapor')}
-                    className="px-5 sm:px-6 py-3.5 bg-white hover:bg-[#F9FAFB] text-[#111827] border border-[#E5E7EB] text-xs sm:text-sm font-semibold rounded-xl transition-colors shadow-xs flex items-center gap-2 active:scale-95"
+                    className="px-5 sm:px-6 py-3.5 bg-white dark:bg-[#151D2A] hover:bg-[#F9FAFB] dark:hover:bg-[#1C2638] text-[#111827] dark:text-[#F9FAFB] border border-[#E5E7EB] dark:border-[#243042] text-xs sm:text-sm font-semibold rounded-xl transition-colors shadow-xs flex items-center gap-2 active:scale-95"
                   >
                     <Plus className="w-4 h-4 text-[#DC2626]" />
                     <span>Laporkan Masalah</span>
@@ -139,18 +139,18 @@ export const LandingView: React.FC = () => {
                 
                 {/* Search Box */}
                 <form onSubmit={handleSearchSubmit}>
-                  <div className="relative flex items-center bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:border-[#111827]/40 focus-within:border-[#111827] focus-within:shadow-md p-2 transition-all group">
-                    <Search className="w-5 h-5 text-[#9CA3AF] ml-3 shrink-0 group-focus-within:text-[#111827] transition-colors" />
+                  <div className="relative flex items-center bg-white dark:bg-[#151D2A] rounded-2xl border border-[#E5E7EB] dark:border-[#243042] shadow-[0_4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:border-[#111827]/40 dark:hover:border-[#0D9488]/40 focus-within:border-[#111827] dark:focus-within:border-[#0D9488] focus-within:shadow-md p-2 transition-all group">
+                    <Search className="w-5 h-5 text-[#9CA3AF] dark:text-[#64748B] ml-3 shrink-0 group-focus-within:text-[#111827] dark:group-focus-within:text-[#0D9488] transition-colors" />
                     <input 
                       type="text" 
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Cari fasilitas, dinas, atau kata kunci aduan..."
-                      className="w-full px-3 py-3 text-sm text-[#111827] placeholder-[#9CA3AF] bg-transparent border-none outline-none font-medium"
+                      className="w-full px-3 py-3 text-sm text-[#111827] dark:text-[#F9FAFB] placeholder-[#9CA3AF] dark:placeholder-[#64748B] bg-transparent border-none outline-none font-medium"
                     />
                     <button 
                       type="submit" 
-                      className="px-5 sm:px-6 py-3 bg-[#111827] hover:bg-[#1F2937] text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shrink-0 active:scale-95"
+                      className="px-5 sm:px-6 py-3 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shrink-0 active:scale-95"
                     >
                       Cari
                     </button>
@@ -158,8 +158,8 @@ export const LandingView: React.FC = () => {
                 </form>
 
                 {/* Quick Chips */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-[#6B7280]">
-                  <span className="font-mono-data text-[11px] uppercase tracking-wider text-[#9CA3AF]">Coba:</span>
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-[#6B7280] dark:text-[#94A3B8]">
+                  <span className="font-mono-data text-[11px] uppercase tracking-wider text-[#9CA3AF] dark:text-[#64748B]">Coba:</span>
                   {[
                     { label: 'SDN Menteng 01', query: 'SDN Menteng' },
                     { label: 'Puskesmas Sempur', query: 'Puskesmas' },
@@ -170,7 +170,7 @@ export const LandingView: React.FC = () => {
                       key={chip.label}
                       type="button"
                       onClick={() => navigate(`/fasilitas?q=${encodeURIComponent(chip.query)}`)}
-                      className="px-2.5 py-1 bg-white hover:bg-[#111827] hover:text-white text-[#4B5563] border border-[#E5E7EB] rounded-lg text-xs font-medium transition-all shadow-2xs"
+                      className="px-2.5 py-1 bg-white dark:bg-[#151D2A] hover:bg-[#111827] dark:hover:bg-[#0D9488] hover:text-white dark:hover:text-white text-[#4B5563] dark:text-[#CBD5E1] border border-[#E5E7EB] dark:border-[#243042] rounded-lg text-xs font-medium transition-all shadow-2xs"
                     >
                       {chip.label}
                     </button>
@@ -178,29 +178,29 @@ export const LandingView: React.FC = () => {
                 </div>
 
                 {/* Hero Telemetry Card */}
-                <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-[#E5E7EB] p-4.5 shadow-xs space-y-3">
-                  <div className="flex items-center justify-between text-xs pb-2 border-b border-[#E5E7EB]">
-                    <div className="flex items-center gap-2 font-mono-data text-[#111827] font-semibold">
-                      <ShieldCheck className="w-4 h-4 text-[#0D9488]" />
+                <div className="bg-white/80 dark:bg-[#151D2A]/80 backdrop-blur-md rounded-2xl border border-[#E5E7EB] dark:border-[#243042] p-4.5 shadow-xs space-y-3">
+                  <div className="flex items-center justify-between text-xs pb-2 border-b border-[#E5E7EB] dark:border-[#243042]">
+                    <div className="flex items-center gap-2 font-mono-data text-[#111827] dark:text-[#F9FAFB] font-semibold">
+                      <ShieldCheck className="w-4 h-4 text-[#0D9488] dark:text-[#2DD4BF]" />
                       <span>Transparansi SIKD & Kemendagri</span>
                     </div>
-                    <span className="text-[10px] font-mono-data px-2 py-0.5 rounded bg-[#0D9488]/10 text-[#0D9488] font-bold">
+                    <span className="text-[10px] font-mono-data px-2 py-0.5 rounded bg-[#0D9488]/10 dark:bg-[#0D9488]/20 text-[#0D9488] dark:text-[#2DD4BF] font-bold">
                       TERVERIFIKASI
                     </span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono-data">
-                    <div className="p-2 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB]/60">
-                      <div className="text-[10px] text-[#6B7280]">SERAPAN</div>
-                      <div className="text-sm font-extrabold text-[#111827] mt-0.5">78,4%</div>
+                    <div className="p-2 rounded-xl bg-[#F9FAFB] dark:bg-[#101622] border border-[#E5E7EB]/60 dark:border-[#243042]">
+                      <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8]">SERAPAN</div>
+                      <div className="text-sm font-extrabold text-[#111827] dark:text-[#F9FAFB] mt-0.5">78,4%</div>
                     </div>
-                    <div className="p-2 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB]/60">
-                      <div className="text-[10px] text-[#6B7280]">TERIKAT SPK</div>
-                      <div className="text-sm font-extrabold text-[#0D9488] mt-0.5">86,1%</div>
+                    <div className="p-2 rounded-xl bg-[#F9FAFB] dark:bg-[#101622] border border-[#E5E7EB]/60 dark:border-[#243042]">
+                      <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8]">TERIKAT SPK</div>
+                      <div className="text-sm font-extrabold text-[#0D9488] dark:text-[#2DD4BF] mt-0.5">86,1%</div>
                     </div>
-                    <div className="p-2 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB]/60">
-                      <div className="text-[10px] text-[#6B7280]">ANOMALI</div>
-                      <div className="text-sm font-extrabold text-[#DC2626] mt-0.5">3 Titik</div>
+                    <div className="p-2 rounded-xl bg-[#F9FAFB] dark:bg-[#101622] border border-[#E5E7EB]/60 dark:border-[#243042]">
+                      <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8]">ANOMALI</div>
+                      <div className="text-sm font-extrabold text-[#DC2626] dark:text-[#F87171] mt-0.5">3 Titik</div>
                     </div>
                   </div>
                 </div>
@@ -223,13 +223,13 @@ export const LandingView: React.FC = () => {
         {/* ============================================================== */}
         <section id="direktori-fasilitas" className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6 scroll-mt-24">
           
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-[#E5E7EB] pb-5">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-[#E5E7EB] dark:border-[#243042] pb-5">
             <div>
-              <div className="inline-flex items-center gap-1.5 text-xs font-mono-data uppercase tracking-wider text-[#6B7280] font-semibold">
+              <div className="inline-flex items-center gap-1.5 text-xs font-mono-data uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8] font-semibold">
                 <Building2 className="w-3.5 h-3.5 text-[#0D9488]" />
                 <span>Profil Fasilitas & Alokasi Pemeliharaan</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight mt-1">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight mt-1">
                 Fasilitas Publik dalam Pemantauan Warga
               </h2>
             </div>
@@ -245,8 +245,8 @@ export const LandingView: React.FC = () => {
                     onClick={() => setSelectedSectorFilter(sec)}
                     className={`px-3 py-1.5 text-xs rounded-xl font-medium transition-all ${
                       isSelected 
-                        ? 'bg-[#111827] text-white font-semibold shadow-xs' 
-                        : 'bg-white hover:bg-[#F3F4F6] text-[#4B5563] border border-[#E5E7EB]'
+                        ? 'bg-[#111827] dark:bg-[#0D9488] text-white font-semibold shadow-xs' 
+                        : 'bg-white dark:bg-[#151D2A] hover:bg-[#F3F4F6] dark:hover:bg-[#1C2638] text-[#4B5563] dark:text-[#94A3B8] border border-[#E5E7EB] dark:border-[#243042]'
                     }`}
                   >
                     {sec}
@@ -257,7 +257,7 @@ export const LandingView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/fasilitas')}
-                className="text-xs font-semibold text-[#0D9488] hover:text-[#0F766E] flex items-center gap-1 ml-2 transition-colors py-1.5"
+                className="text-xs font-semibold text-[#0D9488] dark:text-[#2DD4BF] hover:text-[#0F766E] dark:hover:text-[#5EEAD4] flex items-center gap-1 ml-2 transition-colors py-1.5"
               >
                 <span>Semua ({facilities.length})</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -281,7 +281,7 @@ export const LandingView: React.FC = () => {
                 >
                   <div className="space-y-3">
                     {/* Facility Image with Daylight Badges */}
-                    <div className="relative h-40 rounded-xl overflow-hidden border border-[#E5E7EB] bg-[#F3F4F6]">
+                    <div className="relative h-40 rounded-xl overflow-hidden border border-[#E5E7EB] dark:border-[#243042] bg-[#F3F4F6] dark:bg-[#101622]">
                       <img 
                         src={facility.photoUrl} 
                         alt={facility.name} 
@@ -290,11 +290,11 @@ export const LandingView: React.FC = () => {
                       
                       {/* Top Badges */}
                       <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
-                        <span className="text-[10px] font-semibold bg-white/95 backdrop-blur-xs text-[#111827] px-2.5 py-1 rounded-lg border border-[#E5E7EB] shadow-2xs">
+                        <span className="text-[10px] font-semibold bg-white/95 dark:bg-[#151D2A]/95 backdrop-blur-xs text-[#111827] dark:text-[#F9FAFB] px-2.5 py-1 rounded-lg border border-[#E5E7EB] dark:border-[#243042] shadow-2xs">
                           {facility.sector}
                         </span>
 
-                        <span className="text-[10px] font-mono-data font-bold bg-[#111827] text-white px-2.5 py-1 rounded-lg shadow-xs">
+                        <span className="text-[10px] font-mono-data font-bold bg-[#111827] dark:bg-[#0B0F17] text-white dark:text-[#F9FAFB] px-2.5 py-1 rounded-lg border dark:border-[#243042] shadow-xs">
                           {formatRupiahShort(facility.budgetSummary.paguAnggaran)}
                         </span>
                       </div>
@@ -309,21 +309,21 @@ export const LandingView: React.FC = () => {
 
                     {/* Facility Identity */}
                     <div>
-                      <h3 className="font-bold text-sm text-[#111827] group-hover:text-[#0D9488] transition-colors line-clamp-1 leading-snug">
+                      <h3 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] group-hover:text-[#0D9488] dark:group-hover:text-[#2DD4BF] transition-colors line-clamp-1 leading-snug">
                         {facility.name}
                       </h3>
-                      <div className="text-xs text-[#6B7280] mt-1 line-clamp-1">
+                      <div className="text-xs text-[#6B7280] dark:text-[#94A3B8] mt-1 line-clamp-1">
                         {facility.responsibleAgency}
                       </div>
                     </div>
 
                     {/* Budget Execution Progress Bar */}
                     <div className="pt-1 space-y-1">
-                      <div className="flex items-center justify-between text-[11px] font-mono-data text-[#4B5563]">
+                      <div className="flex items-center justify-between text-[11px] font-mono-data text-[#4B5563] dark:text-[#94A3B8]">
                         <span>Terikat Kontrak</span>
-                        <span className="font-semibold text-[#111827]">{contractPct}%</span>
+                        <span className="font-semibold text-[#111827] dark:text-[#F9FAFB]">{contractPct}%</span>
                       </div>
-                      <div className="w-full h-1.5 bg-[#F3F4F6] rounded-full overflow-hidden border border-[#E5E7EB]/60">
+                      <div className="w-full h-1.5 bg-[#F3F4F6] dark:bg-[#1C2638] rounded-full overflow-hidden border border-[#E5E7EB]/60 dark:border-[#243042]">
                         <div 
                           className="h-full bg-[#0D9488] rounded-full transition-all duration-500" 
                           style={{ width: `${contractPct}%` }}
@@ -333,8 +333,8 @@ export const LandingView: React.FC = () => {
                   </div>
 
                   {/* Card Bottom Meta */}
-                  <div className="mt-4 pt-3 border-t border-[#E5E7EB] flex items-center justify-between text-xs">
-                    <span className="text-[#4B5563] flex items-center gap-1.5">
+                  <div className="mt-4 pt-3 border-t border-[#E5E7EB] dark:border-[#243042] flex items-center justify-between text-xs">
+                    <span className="text-[#4B5563] dark:text-[#94A3B8] flex items-center gap-1.5">
                       <span className={`w-2 h-2 rounded-full ${
                         facility.condition === 'Baik' 
                           ? 'bg-[#0D9488]' 
@@ -345,8 +345,8 @@ export const LandingView: React.FC = () => {
                       <span className="font-medium text-[11px]">{facility.condition}</span>
                     </span>
 
-                    <span className="font-mono-data text-[11px] font-semibold text-[#111827] flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5 text-[#6B7280]" />
+                    <span className="font-mono-data text-[11px] font-semibold text-[#111827] dark:text-[#F9FAFB] flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 text-[#6B7280] dark:text-[#94A3B8]" />
                       <span>{facility.activeReportsCount} aduan</span>
                     </span>
                   </div>
@@ -363,30 +363,30 @@ export const LandingView: React.FC = () => {
           <div className="landing-card space-y-8">
             
             {/* Editorial Masthead */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E7EB] pb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E7EB] dark:border-[#243042] pb-5">
               <div className="space-y-1.5">
                 <div className="inline-flex items-center gap-2">
                   <span className="px-2.5 py-0.5 rounded-full bg-[#0D9488]/10 text-[#0D9488] text-[10px] font-mono-data font-bold uppercase tracking-wider">
                     Catatan Observatorium • {CURRENT_MONTHLY_DIGEST.monthYear}
                   </span>
-                  <span className="text-xs text-[#9CA3AF]">•</span>
-                  <span className="text-xs font-mono-data text-[#6B7280]">
+                  <span className="text-xs text-[#9CA3AF] dark:text-[#64748B]">•</span>
+                  <span className="text-xs font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
                     Audit Lapangan & SIKD
                   </span>
                 </div>
 
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#111827] tracking-tight leading-snug">
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight leading-snug">
                   {CURRENT_MONTHLY_DIGEST.headline}
                 </h2>
               </div>
 
-              <div className="text-xs text-[#6B7280] font-mono-data self-start sm:self-auto whitespace-nowrap bg-[#F9FAFB] px-3 py-1.5 rounded-lg border border-[#E5E7EB]">
+              <div className="text-xs text-[#6B7280] dark:text-[#94A3B8] font-mono-data self-start sm:self-auto whitespace-nowrap bg-[#F9FAFB] dark:bg-[#101622] px-3 py-1.5 rounded-lg border border-[#E5E7EB] dark:border-[#243042]">
                 Periode Jan - Okt 2026
               </div>
             </div>
 
             {/* Editorial Quote / Lead */}
-            <p className="text-sm sm:text-base text-[#4B5563] leading-relaxed max-w-4xl border-l-2 border-[#0D9488] pl-4">
+            <p className="text-sm sm:text-base text-[#4B5563] dark:text-[#94A3B8] leading-relaxed max-w-4xl border-l-2 border-[#0D9488] pl-4">
               {CURRENT_MONTHLY_DIGEST.editorialSummary}
             </p>
 
@@ -396,16 +396,16 @@ export const LandingView: React.FC = () => {
               {/* Tile 1: Selesai */}
               <div className="landing-telemetry-tile">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#4B5563] font-semibold flex items-center gap-1.5">
+                  <span className="text-[#4B5563] dark:text-[#94A3B8] font-semibold flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-[#0D9488]" />
                     <span>Verifikasi Lapangan</span>
                   </span>
                   <span className="text-[10px] font-mono-data text-[#0D9488] font-bold">100% SELESAI</span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#111827] font-mono-data pt-1">
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] font-mono-data pt-1">
                   {CURRENT_MONTHLY_DIGEST.newCompletedProjects} Paket
                 </div>
-                <p className="text-xs text-[#6B7280] leading-relaxed">
+                <p className="text-xs text-[#6B7280] dark:text-[#94A3B8] leading-relaxed">
                   Termasuk perbaikan IGD Puskesmas Sempur dan jalur pedestrian Kebun Raya yang rampung diverifikasi warga.
                 </p>
               </div>
@@ -413,16 +413,16 @@ export const LandingView: React.FC = () => {
               {/* Tile 2: Sisa Pagu */}
               <div className="landing-telemetry-tile">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#4B5563] font-semibold flex items-center gap-1.5">
+                  <span className="text-[#4B5563] dark:text-[#94A3B8] font-semibold flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-[#D97706]" />
                     <span>Potensi Alokasi</span>
                   </span>
                   <span className="text-[10px] font-mono-data text-[#D97706] font-bold">BELUM DILELANG</span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#111827] font-mono-data pt-1">
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] font-mono-data pt-1">
                   Rp 2,87 Miliar
                 </div>
-                <p className="text-xs text-[#6B7280] leading-relaxed">
+                <p className="text-xs text-[#6B7280] dark:text-[#94A3B8] leading-relaxed">
                   Alokasi APBD yang belum dilelang dan dapat diusulkan warga melalui musrenbang untuk perbaikan darurat.
                 </p>
               </div>
@@ -430,16 +430,16 @@ export const LandingView: React.FC = () => {
               {/* Tile 3: Selisih Temuan */}
               <div className="landing-telemetry-tile">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#4B5563] font-semibold flex items-center gap-1.5">
+                  <span className="text-[#4B5563] dark:text-[#94A3B8] font-semibold flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-[#DC2626]" />
                     <span>Audit Prioritas</span>
                   </span>
-                  <span className="text-[10px] font-mono-data text-[#DC2626] font-bold">DEVINASI FISIK</span>
+                  <span className="text-[10px] font-mono-data text-[#DC2626] dark:text-[#F87171] font-bold">DEVINASI FISIK</span>
                 </div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#DC2626] font-mono-data pt-1">
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#DC2626] dark:text-[#F87171] font-mono-data pt-1">
                   {CURRENT_MONTHLY_DIGEST.activeDiscrepanciesCount} Lokasi
                 </div>
-                <p className="text-xs text-[#6B7280] leading-relaxed">
+                <p className="text-xs text-[#6B7280] dark:text-[#94A3B8] leading-relaxed">
                   Pencairan kas daerah di atas 50%, namun keluhan fisik warga masih aktif di SDN Menteng & Drainase Pajajaran.
                 </p>
               </div>
@@ -447,14 +447,14 @@ export const LandingView: React.FC = () => {
             </div>
 
             {/* Bottom Insight Footer */}
-            <div className="pt-4 border-t border-[#E5E7EB] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-              <span className="text-[#6B7280]">
+            <div className="pt-4 border-t border-[#E5E7EB] dark:border-[#243042] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <span className="text-[#6B7280] dark:text-[#94A3B8]">
                 Sumber Data: Sinkronisasi SIKD Kemendagri & Portal Satu Data Kota Bogor 2026.
               </span>
               <button
                 type="button"
                 onClick={() => navigate('/analisis')}
-                className="text-xs font-semibold text-[#0D9488] hover:text-[#0F766E] flex items-center gap-1 transition-colors"
+                className="text-xs font-semibold text-[#0D9488] hover:text-[#0F766E] dark:hover:text-[#2DD4BF] flex items-center gap-1 transition-colors"
               >
                 <span>Buka Radar Selisih Serapan Lengkap</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -469,15 +469,15 @@ export const LandingView: React.FC = () => {
         {/* ============================================================== */}
         <section className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6">
           
-          <div className="border-b border-[#E5E7EB] pb-5">
-            <div className="inline-flex items-center gap-1.5 text-xs font-mono-data uppercase tracking-wider text-[#6B7280] font-semibold">
+          <div className="border-b border-[#E5E7EB] dark:border-[#243042] pb-5">
+            <div className="inline-flex items-center gap-1.5 text-xs font-mono-data uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8] font-semibold">
               <FileCheck2 className="w-3.5 h-3.5 text-[#0D9488]" />
               <span>Akuntabilitas & Alur Penanganan</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight mt-1">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight mt-1">
               Tahapan Penyelesaian Kasus Warga Jabodetabek
             </h2>
-            <p className="text-xs sm:text-sm text-[#4B5563] mt-1 max-w-2xl">
+            <p className="text-xs sm:text-sm text-[#4B5563] dark:text-[#94A3B8] mt-1 max-w-2xl">
               Alur 4 tahap transparan dari pengunggahan bukti lapangan berkoordinat hingga verifikasi tuntas perbaikan fisik.
             </p>
           </div>
@@ -490,37 +490,37 @@ export const LandingView: React.FC = () => {
                 className="landing-step-node"
               >
                 {/* Node Step Header */}
-                <div className="flex items-center justify-between text-xs text-[#6B7280] font-mono-data pb-2 border-b border-[#E5E7EB]">
+                <div className="flex items-center justify-between text-xs text-[#6B7280] dark:text-[#94A3B8] font-mono-data pb-2 border-b border-[#E5E7EB] dark:border-[#243042]">
                   <span className="font-bold text-[#0D9488]">TAHAP 0{item.step}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-[#F3F4F6] text-[#111827] font-semibold text-[10px]">
+                  <span className="px-2 py-0.5 rounded-full bg-[#F3F4F6] dark:bg-[#1E293B] text-[#111827] dark:text-[#F9FAFB] font-semibold text-[10px]">
                     {item.pct} dari total
                   </span>
                 </div>
                 
                 {/* Number Callout */}
-                <div className="text-3xl sm:text-4xl font-extrabold text-[#111827] font-mono-data pt-3">
+                <div className="text-3xl sm:text-4xl font-extrabold text-[#111827] dark:text-[#F9FAFB] font-mono-data pt-3">
                   {item.count}
                 </div>
 
                 {/* Title */}
-                <div className="font-bold text-sm text-[#111827] mt-1 flex items-center gap-1.5">
-                  {idx === 0 && <Clock className="w-4 h-4 text-[#6B7280]" />}
+                <div className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] mt-1 flex items-center gap-1.5">
+                  {idx === 0 && <Clock className="w-4 h-4 text-[#6B7280] dark:text-[#94A3B8]" />}
                   {idx === 1 && <Search className="w-4 h-4 text-[#D97706]" />}
-                  {idx === 2 && <Building2 className="w-4 h-4 text-[#2563EB]" />}
+                  {idx === 2 && <Building2 className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />}
                   {idx === 3 && <CheckCircle2 className="w-4 h-4 text-[#0D9488]" />}
                   <span>{item.label}</span>
                 </div>
 
                 {/* Description */}
-                <p className="text-xs text-[#4B5563] leading-relaxed mt-2">
+                <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed mt-2">
                   {item.description}
                 </p>
 
                 {/* Visual Progress Bar */}
-                <div className="mt-4 pt-3 border-t border-[#E5E7EB]/60">
-                  <div className="w-full h-1 bg-[#F3F4F6] rounded-full overflow-hidden">
+                <div className="mt-4 pt-3 border-t border-[#E5E7EB]/60 dark:border-[#243042]/60">
+                  <div className="w-full h-1 bg-[#F3F4F6] dark:bg-[#1E293B] rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-[#111827] rounded-full" 
+                      className="h-full bg-[#111827] dark:bg-[#0D9488] rounded-full" 
                       style={{ width: item.pct }}
                     />
                   </div>
@@ -538,31 +538,31 @@ export const LandingView: React.FC = () => {
             
             {/* Header */}
             <div className="max-w-3xl space-y-2">
-              <div className="inline-flex items-center gap-1.5 text-xs font-mono-data uppercase tracking-wider text-[#6B7280] font-semibold">
+              <div className="inline-flex items-center gap-1.5 text-xs font-mono-data uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8] font-semibold">
                 <Coins className="w-3.5 h-3.5 text-[#0D9488]" />
                 <span>Metodologi Standar SIKD & Akuntansi Publik</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight">
                 Empat Kategori Anggaran pada Setiap Fasilitas Publik
               </h2>
-              <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#4B5563] dark:text-[#94A3B8] leading-relaxed">
                 Selisih antara pagu anggaran dan realisasi kas tidak otomatis menjadi dana bebas. TITIK memisahkan data anggaran ke dalam empat status resmi sesuai Bagan Akun Standar (BAS) Permendagri No. 77/2020:
               </p>
             </div>
 
             {/* Proportional Fiscal Stack Gauge */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#F9FAFB] border border-[#E5E7EB] space-y-3">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#F9FAFB] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
-                <span className="font-semibold text-[#111827]">
+                <span className="font-semibold text-[#111827] dark:text-[#F9FAFB]">
                   Distribusi Total Pagu Observatorium (Rp 20,55 Miliar)
                 </span>
-                <span className="text-[#6B7280] font-mono-data text-[11px]">
+                <span className="text-[#6B7280] dark:text-[#94A3B8] font-mono-data text-[11px]">
                   Berdasarkan SPK Kontrak & Kas Daerah 2026
                 </span>
               </div>
 
               {/* Stacked Bar */}
-              <div className="w-full h-4 sm:h-5 bg-[#E5E7EB] rounded-xl overflow-hidden flex shadow-inner">
+              <div className="w-full h-4 sm:h-5 bg-[#E5E7EB] dark:bg-[#1E293B] rounded-xl overflow-hidden flex shadow-inner">
                 <div 
                   className="bg-[#0D9488] h-full" 
                   style={{ width: '78.4%' }} 
@@ -574,7 +574,7 @@ export const LandingView: React.FC = () => {
                   title="Dana Terikat Kontrak: 7.7%"
                 />
                 <div 
-                  className="bg-[#6B7280] h-full" 
+                  className="bg-[#6B7280] dark:bg-[#475569] h-full" 
                   style={{ width: '13.9%' }} 
                   title="Sisa Pagu Belum Terikat: 13.9%"
                 />
@@ -584,15 +584,15 @@ export const LandingView: React.FC = () => {
               <div className="flex flex-wrap items-center gap-4 text-xs pt-1">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-sm bg-[#0D9488]" />
-                  <span className="text-[#4B5563]">Realisasi Kas (78.4% • Rp 16,12 M)</span>
+                  <span className="text-[#4B5563] dark:text-[#94A3B8]">Realisasi Kas (78.4% • Rp 16,12 M)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-sm bg-[#D97706]" />
-                  <span className="text-[#4B5563]">Komitmen SPK (7.7% • Rp 1,56 M)</span>
+                  <span className="text-[#4B5563] dark:text-[#94A3B8]">Komitmen SPK (7.7% • Rp 1,56 M)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#6B7280]" />
-                  <span className="text-[#4B5563]">Sisa Belum Terikat (13.9% • Rp 2,87 M)</span>
+                  <span className="w-2.5 h-2.5 rounded-sm bg-[#6B7280] dark:bg-[#475569]" />
+                  <span className="text-[#4B5563] dark:text-[#94A3B8]">Sisa Belum Terikat (13.9% • Rp 2,87 M)</span>
                 </div>
               </div>
             </div>
@@ -601,61 +601,61 @@ export const LandingView: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               
               {/* Tier 1 */}
-              <div className="p-5 bg-white border border-[#E5E7EB] rounded-xl space-y-2.5 hover:border-[#111827] transition-colors shadow-xs">
-                <div className="flex items-center justify-between text-xs font-mono-data text-[#6B7280]">
-                  <span className="font-bold text-[#111827]">01 • ALOKASI</span>
-                  <span className="w-2 h-2 rounded-full bg-[#111827]" />
+              <div className="p-5 bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-xl space-y-2.5 hover:border-[#111827] dark:hover:border-[#0D9488] transition-colors shadow-xs">
+                <div className="flex items-center justify-between text-xs font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
+                  <span className="font-bold text-[#111827] dark:text-[#F9FAFB]">01 • ALOKASI</span>
+                  <span className="w-2 h-2 rounded-full bg-[#111827] dark:bg-[#F9FAFB]" />
                 </div>
-                <h4 className="font-bold text-sm text-[#111827]">1. Pagu Anggaran</h4>
-                <p className="text-xs text-[#4B5563] leading-relaxed">
+                <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">1. Pagu Anggaran</h4>
+                <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed">
                   Batas tertinggi anggaran yang disetujui DPRD dan Pemerintah Daerah dalam dokumen APBD tahun berjalan.
                 </p>
-                <div className="pt-2 border-t border-[#E5E7EB] text-[10px] font-mono-data text-[#6B7280]">
+                <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-[10px] font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
                   DPA-SKPD Resmi Pemda
                 </div>
               </div>
 
               {/* Tier 2 */}
-              <div className="p-5 bg-white border border-[#E5E7EB] rounded-xl space-y-2.5 hover:border-[#D97706] transition-colors shadow-xs">
+              <div className="p-5 bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-xl space-y-2.5 hover:border-[#D97706] transition-colors shadow-xs">
                 <div className="flex items-center justify-between text-xs font-mono-data text-[#D97706]">
                   <span className="font-bold">02 • KOMITMEN</span>
                   <span className="w-2 h-2 rounded-full bg-[#D97706]" />
                 </div>
-                <h4 className="font-bold text-sm text-[#111827]">2. Dana Terikat Kontrak</h4>
-                <p className="text-xs text-[#4B5563] leading-relaxed">
+                <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">2. Dana Terikat Kontrak</h4>
+                <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed">
                   Nilai anggaran yang sudah tercantum dalam Surat Perjanjian Kerja (SPK) dengan kontraktor pelaksana proyek.
                 </p>
-                <div className="pt-2 border-t border-[#E5E7EB] text-[10px] font-mono-data text-[#D97706]">
+                <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-[10px] font-mono-data text-[#D97706]">
                   SPK Mengikat Secara Hukum
                 </div>
               </div>
 
               {/* Tier 3 */}
-              <div className="p-5 bg-white border border-[#E5E7EB] rounded-xl space-y-2.5 hover:border-[#0D9488] transition-colors shadow-xs">
+              <div className="p-5 bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-xl space-y-2.5 hover:border-[#0D9488] transition-colors shadow-xs">
                 <div className="flex items-center justify-between text-xs font-mono-data text-[#0D9488]">
                   <span className="font-bold">03 • PENCAIRAN</span>
                   <span className="w-2 h-2 rounded-full bg-[#0D9488]" />
                 </div>
-                <h4 className="font-bold text-sm text-[#111827]">3. Realisasi Penyerapan</h4>
-                <p className="text-xs text-[#4B5563] leading-relaxed">
+                <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">3. Realisasi Penyerapan</h4>
+                <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed">
                   Dana yang telah dibayarkan Kas Daerah kepada kontraktor berdasarkan berita acara pemeriksaan kemajuan fisik.
                 </p>
-                <div className="pt-2 border-t border-[#E5E7EB] text-[10px] font-mono-data text-[#0D9488]">
+                <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-[10px] font-mono-data text-[#0D9488]">
                   SP2D Sah Kas Daerah
                 </div>
               </div>
 
               {/* Tier 4 */}
-              <div className="p-5 bg-white border border-[#E5E7EB] rounded-xl space-y-2.5 hover:border-[#6B7280] transition-colors shadow-xs">
-                <div className="flex items-center justify-between text-xs font-mono-data text-[#6B7280]">
+              <div className="p-5 bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-xl space-y-2.5 hover:border-[#6B7280] dark:hover:border-[#94A3B8] transition-colors shadow-xs">
+                <div className="flex items-center justify-between text-xs font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
                   <span className="font-bold">04 • SELISIH PAGU</span>
-                  <span className="w-2 h-2 rounded-full bg-[#6B7280]" />
+                  <span className="w-2 h-2 rounded-full bg-[#6B7280] dark:bg-[#94A3B8]" />
                 </div>
-                <h4 className="font-bold text-sm text-[#111827]">4. Sisa Belum Terikat</h4>
-                <p className="text-xs text-[#4B5563] leading-relaxed">
+                <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">4. Sisa Belum Terikat</h4>
+                <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed">
                   Sisa pagu yang belum dikontrakkan. Penggunaan dana ini memerlukan prosedur lelang atau perubahan penjabaran APBD.
                 </p>
-                <div className="pt-2 border-t border-[#E5E7EB] text-[10px] font-mono-data text-[#6B7280]">
+                <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-[10px] font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
                   Bukan Dana Bebas
                 </div>
               </div>

@@ -56,7 +56,7 @@ export const FacilityDetailView: React.FC = () => {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4B5563] hover:text-[#111827] transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4B5563] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Kembali</span>
@@ -67,8 +67,8 @@ export const FacilityDetailView: React.FC = () => {
             onClick={() => toggleSaveFacility(facility.id)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-colors ${
               isSaved 
-                ? 'bg-[#111827] border-[#111827] text-white' 
-                : 'bg-white border-[#E5E7EB] text-[#4B5563] hover:text-[#111827]'
+                ? 'bg-[#111827] dark:bg-[#0D9488] border-[#111827] dark:border-[#0D9488] text-white' 
+                : 'bg-white dark:bg-[#151D2A] border-[#E5E7EB] dark:border-[#243042] text-[#4B5563] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB]'
             }`}
           >
             <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
@@ -77,17 +77,17 @@ export const FacilityDetailView: React.FC = () => {
 
           <button
             onClick={() => navigate(`/lapor?facilityId=${facility.id}`)}
-            className="px-3.5 py-1.5 bg-[#111827] hover:bg-[#1F2937] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
+            className="px-3.5 py-1.5 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
           >
-            <Plus className="w-4 h-4 text-[#0D9488]" />
+            <Plus className="w-4 h-4 text-[#0D9488] dark:text-white" />
             <span>Laporkan Masalah</span>
           </button>
         </div>
       </div>
 
       {/* Hero Visual Cover */}
-      <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
-        <div className="relative h-64 sm:h-80 w-full bg-[#F3F4F6]">
+      <div className="bg-white dark:bg-[#151D2A] rounded-xl border border-[#E5E7EB] dark:border-[#243042] overflow-hidden transition-colors">
+        <div className="relative h-64 sm:h-80 w-full bg-[#F3F4F6] dark:bg-[#101622]">
           <img 
             src={facility.photoUrl} 
             alt={facility.name} 
@@ -120,31 +120,31 @@ export const FacilityDetailView: React.FC = () => {
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E5E7EB] bg-[#F8F9FA] border-t border-[#E5E7EB]">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E5E7EB] dark:divide-[#243042] bg-[#F8F9FA] dark:bg-[#101622] border-t border-[#E5E7EB] dark:border-[#243042]">
           <div className="p-4 sm:p-5">
-            <div className="text-[10px] text-[#6B7280] font-bold uppercase">Kondisi Fisik</div>
-            <div className="text-sm sm:text-base font-extrabold text-[#111827] mt-0.5">
+            <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8] font-bold uppercase">Kondisi Fisik</div>
+            <div className="text-sm sm:text-base font-extrabold text-[#111827] dark:text-[#F9FAFB] mt-0.5">
               {facility.condition}
             </div>
           </div>
 
           <div className="p-4 sm:p-5">
-            <div className="text-[10px] text-[#6B7280] font-bold uppercase">Kapasitas Pelayanan</div>
-            <div className="text-sm sm:text-base font-extrabold text-[#111827] mt-0.5">
+            <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8] font-bold uppercase">Kapasitas Pelayanan</div>
+            <div className="text-sm sm:text-base font-extrabold text-[#111827] dark:text-[#F9FAFB] mt-0.5">
               {facility.serviceCapacity}
             </div>
           </div>
 
           <div className="p-4 sm:p-5">
-            <div className="text-[10px] text-[#6B7280] font-bold uppercase">Instansi Pengelola</div>
-            <div className="text-xs sm:text-sm font-bold text-[#111827] mt-0.5 truncate">
+            <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8] font-bold uppercase">Instansi Pengelola</div>
+            <div className="text-xs sm:text-sm font-bold text-[#111827] dark:text-[#F9FAFB] mt-0.5 truncate">
               {facility.responsibleAgency}
             </div>
           </div>
 
           <div className="p-4 sm:p-5">
-            <div className="text-[10px] text-[#6B7280] font-bold uppercase">Aduan Komunitas</div>
-            <div className="text-sm sm:text-base font-extrabold text-[#DC2626] font-mono-data mt-0.5">
+            <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8] font-bold uppercase">Aduan Komunitas</div>
+            <div className="text-sm sm:text-base font-extrabold text-[#DC2626] dark:text-[#F87171] font-mono-data mt-0.5">
               {facility.activeReportsCount} Aktif / {facility.resolvedReportsCount} Selesai
             </div>
           </div>
@@ -162,36 +162,36 @@ export const FacilityDetailView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         
         {/* Left: Related APBD Projects */}
-        <div className="bg-white rounded-xl border border-[#E5E7EB] p-5 sm:p-6 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
-            <h3 className="font-extrabold text-base text-[#111827] flex items-center gap-2">
+        <div className="bg-white dark:bg-[#151D2A] rounded-xl border border-[#E5E7EB] dark:border-[#243042] p-5 sm:p-6 space-y-4 transition-colors">
+          <div className="flex items-center justify-between border-b border-[#E5E7EB] dark:border-[#243042] pb-3">
+            <h3 className="font-extrabold text-base text-[#111827] dark:text-[#F9FAFB] flex items-center gap-2">
               <Coins className="w-4 h-4 text-[#D97706]" />
               <span>Paket Pekerjaan APBD ({linkedProjects.length})</span>
             </h3>
-            <span className="text-xs text-[#6B7280]">SIKD Jabodetabek</span>
+            <span className="text-xs text-[#6B7280] dark:text-[#94A3B8]">SIKD Jabodetabek</span>
           </div>
 
           {linkedProjects.length === 0 ? (
-            <div className="p-4 bg-[#F8F9FA] rounded-xl text-xs text-[#6B7280] text-center">
+            <div className="p-4 bg-[#F8F9FA] dark:bg-[#101622] rounded-xl text-xs text-[#6B7280] dark:text-[#94A3B8] text-center">
               Tidak ada kontrak konstruksi aktif pada tahun anggaran ini. Pemeliharaan menggunakan dana rutin dinas.
             </div>
           ) : (
             <div className="space-y-3">
               {linkedProjects.map(prj => (
-                <div key={prj.id} className="p-4 bg-[#F8F9FA] rounded-xl border border-[#E5E7EB] space-y-2">
+                <div key={prj.id} className="p-4 bg-[#F8F9FA] dark:bg-[#101622] rounded-xl border border-[#E5E7EB] dark:border-[#243042] space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono-data font-bold text-[#111827]">{prj.code}</span>
-                    <span className="text-[11px] font-mono-data font-semibold text-[#0D9488] bg-white border border-[#E5E7EB] px-2 py-0.5 rounded">
+                    <span className="font-mono-data font-bold text-[#111827] dark:text-[#F9FAFB]">{prj.code}</span>
+                    <span className="text-[11px] font-mono-data font-semibold text-[#0D9488] bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] px-2 py-0.5 rounded">
                       Progres {prj.progressPercent}%
                     </span>
                   </div>
 
-                  <h4 className="font-bold text-sm text-[#111827]">{prj.title}</h4>
-                  <p className="text-xs text-[#4B5563] leading-relaxed">{prj.description}</p>
+                  <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">{prj.title}</h4>
+                  <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed">{prj.description}</p>
 
-                  <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between text-[11px] text-[#6B7280]">
-                    <span>Pelaksana: <strong className="text-[#111827]">{prj.contractorName}</strong></span>
-                    <span className="font-mono-data font-bold text-[#111827]">
+                  <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] flex items-center justify-between text-[11px] text-[#6B7280] dark:text-[#94A3B8]">
+                    <span>Pelaksana: <strong className="text-[#111827] dark:text-[#F9FAFB]">{prj.contractorName}</strong></span>
+                    <span className="font-mono-data font-bold text-[#111827] dark:text-[#F9FAFB]">
                       {formatRupiahShort(prj.budget.paguAnggaran)}
                     </span>
                   </div>
@@ -202,22 +202,22 @@ export const FacilityDetailView: React.FC = () => {
         </div>
 
         {/* Right: Linked Citizen Reports */}
-        <div className="bg-white rounded-xl border border-[#E5E7EB] p-5 sm:p-6 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
-            <h3 className="font-extrabold text-base text-[#111827] flex items-center gap-2">
+        <div className="bg-white dark:bg-[#151D2A] rounded-xl border border-[#E5E7EB] dark:border-[#243042] p-5 sm:p-6 space-y-4 transition-colors">
+          <div className="flex items-center justify-between border-b border-[#E5E7EB] dark:border-[#243042] pb-3">
+            <h3 className="font-extrabold text-base text-[#111827] dark:text-[#F9FAFB] flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-[#DC2626]" />
               <span>Laporan Warga di Fasilitas Ini ({linkedReports.length})</span>
             </h3>
-            <span className="text-xs text-[#6B7280]">Geotag Warga</span>
+            <span className="text-xs text-[#6B7280] dark:text-[#94A3B8]">Geotag Warga</span>
           </div>
 
           {linkedReports.length === 0 ? (
-            <div className="p-6 bg-[#F8F9FA] rounded-xl text-xs text-[#6B7280] text-center space-y-2">
+            <div className="p-6 bg-[#F8F9FA] dark:bg-[#101622] rounded-xl text-xs text-[#6B7280] dark:text-[#94A3B8] text-center space-y-2">
               <CheckCircle2 className="w-6 h-6 text-[#0D9488] mx-auto" />
               <div>Belum ada laporan masalah aktif untuk fasilitas ini.</div>
               <button
                 onClick={() => navigate(`/lapor?facilityId=${facility.id}`)}
-                className="px-3 py-1.5 bg-[#111827] text-white rounded text-xs font-semibold mt-1"
+                className="px-3 py-1.5 bg-[#111827] dark:bg-[#0D9488] text-white rounded text-xs font-semibold mt-1"
               >
                 + Laporkan Masalah Baru
               </button>
@@ -231,29 +231,29 @@ export const FacilityDetailView: React.FC = () => {
                     setSelectedReport(rep);
                     navigate(`/lapor/${rep.id}`);
                   }}
-                  className="p-3.5 bg-[#F8F9FA] hover:bg-white hover:border-[#111827] border border-[#E5E7EB] rounded-xl transition-all cursor-pointer space-y-1.5 group"
+                  className="p-3.5 bg-[#F8F9FA] dark:bg-[#101622] hover:bg-white dark:hover:bg-[#1C2638] hover:border-[#111827] dark:hover:border-[#0D9488] border border-[#E5E7EB] dark:border-[#243042] rounded-xl transition-all cursor-pointer space-y-1.5 group"
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono-data font-bold text-[#111827] bg-white border border-[#E5E7EB] px-1.5 py-0.5 rounded inline-flex items-center gap-1">
+                    <span className="font-mono-data font-bold text-[#111827] dark:text-[#F9FAFB] bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] px-1.5 py-0.5 rounded inline-flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span>
                       <span>{rep.id}</span>
                     </span>
-                    <span className="text-[10px] font-mono-data text-[#4B5563] font-semibold">
+                    <span className="text-[10px] font-mono-data text-[#4B5563] dark:text-[#94A3B8] font-semibold">
                       Tahap {rep.currentStep}/6
                     </span>
                   </div>
 
-                  <h4 className="font-bold text-xs sm:text-sm text-[#111827] group-hover:text-[#2563EB] transition-colors line-clamp-1">
+                  <h4 className="font-bold text-xs sm:text-sm text-[#111827] dark:text-[#F9FAFB] group-hover:text-[#2563EB] dark:group-hover:text-[#38BDF8] transition-colors line-clamp-1">
                     {rep.title}
                   </h4>
 
-                  <p className="text-xs text-[#4B5563] line-clamp-2">
+                  <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] line-clamp-2">
                     {rep.description}
                   </p>
 
-                  <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between text-[11px] text-[#6B7280]">
+                  <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] flex items-center justify-between text-[11px] text-[#6B7280] dark:text-[#94A3B8]">
                     <span>@{rep.reporterHandle} • {rep.reportedAt}</span>
-                    <span className="font-bold text-[#111827] flex items-center gap-1 font-mono-data">
+                    <span className="font-bold text-[#111827] dark:text-[#F9FAFB] flex items-center gap-1 font-mono-data">
                       <ThumbsUp className="w-3 h-3 text-[#D97706]" />
                       {rep.priorityVotes}
                     </span>

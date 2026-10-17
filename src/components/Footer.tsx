@@ -18,12 +18,12 @@ export const Footer: React.FC = () => {
               <span className="footer-brand-title text-lg">TITIK.</span>
             </Link>
             
-            <p className="text-xs sm:text-sm text-[#4B5563] max-w-sm leading-relaxed">
-              <strong>Transparansi Infrastruktur, Anggaran & Tindak Komunitas.</strong><br />
+            <p className="text-xs sm:text-sm text-[#4B5563] dark:text-[#94A3B8] max-w-sm leading-relaxed">
+              <strong className="text-[#111827] dark:text-[#F9FAFB]">Transparansi Infrastruktur, Anggaran & Tindak Komunitas.</strong><br />
               Observatorium layanan publik wilayah Jabodetabek yang menghubungkan koordinat fasilitas, alokasi APBD, dan laporan warga.
             </p>
 
-            <div className="text-[11px] text-[#6B7280] font-medium pt-1">
+            <div className="text-[11px] text-[#6B7280] dark:text-[#64748B] font-medium pt-1">
               "See the issue. Trace the budget. Track the impact."
             </div>
           </div>
@@ -32,7 +32,7 @@ export const Footer: React.FC = () => {
             <div className="footer-col-title">
               Navigasi
             </div>
-            <ul className="space-y-1.5 text-[#4B5563]">
+            <ul className="space-y-1.5 text-[#4B5563] dark:text-[#94A3B8]">
               <li>
                 <Link to="/" className="footer-link">
                   Beranda
@@ -70,15 +70,15 @@ export const Footer: React.FC = () => {
             <div className="footer-col-title">
               Konteks Kompetisi
             </div>
-            <p className="text-[#6B7280] text-[11px] leading-relaxed">
-              Karya untuk <strong>Multimedia In Action (MIA) 2026: Web In Action (WIA)</strong>.
+            <p className="text-[#6B7280] dark:text-[#94A3B8] text-[11px] leading-relaxed">
+              Karya untuk <strong className="text-[#111827] dark:text-[#F9FAFB]">Multimedia In Action (MIA) 2026: Web In Action (WIA)</strong>.
               <br />
               Tema: <em>"Designing Digital Futures: Powering Public Transparency"</em>.
             </p>
             <div className="pt-2">
               <button
                 onClick={resetDemoData}
-                className="text-[11px] font-semibold text-[#6B7280] hover:text-[#DC2626] flex items-center gap-1 transition-colors"
+                className="text-[11px] font-semibold text-[#6B7280] dark:text-[#94A3B8] hover:text-[#DC2626] dark:hover:text-[#F87171] flex items-center gap-1 transition-colors"
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>Reset Data Simulasi</span>

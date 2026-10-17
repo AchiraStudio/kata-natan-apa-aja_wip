@@ -15,46 +15,46 @@
 
 /* Modal Blurred Backdrop */
 .modal-backdrop {
-  @apply fixed inset-0 bg-[#111827]/40 backdrop-blur-xs transition-opacity duration-200;
+  @apply fixed inset-0 bg-[#0B0F17]/75 backdrop-blur-xs transition-opacity duration-200;
 }
 
 /* Modal Window Container Card */
 .modal-window {
-  @apply relative z-10 w-full bg-white rounded-2xl border border-[#E5E4DF] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.18)] flex flex-col text-left max-h-[90vh] overflow-hidden select-none;
+  @apply relative z-10 w-full bg-white dark:bg-[#151D2A] rounded-2xl border border-[#E5E4DF] dark:border-[#243042] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] flex flex-col text-left max-h-[90vh] overflow-hidden select-none;
 }
 
 /* Modal Header Bar */
 .modal-header {
-  @apply p-4 sm:p-5 border-b border-[#E5E4DF] bg-[#FAF9F6]/90 flex items-center justify-between gap-3 shrink-0;
+  @apply p-4 sm:p-5 border-b border-[#E5E4DF] dark:border-[#243042] bg-[#FAF9F6]/90 dark:bg-[#0B0F17]/90 flex items-center justify-between gap-3 shrink-0;
 }
 
 /* Modal Icon Container */
 .modal-icon-badge {
-  @apply w-9 h-9 rounded-xl bg-white border border-[#E5E4DF] text-[#111827] flex items-center justify-center shrink-0 shadow-2xs;
+  @apply w-9 h-9 rounded-xl bg-white dark:bg-[#151D2A] border border-[#E5E4DF] dark:border-[#243042] text-[#111827] dark:text-[#F9FAFB] flex items-center justify-center shrink-0 shadow-2xs;
 }
 
 /* Modal Title Headline */
 .modal-title-text {
-  @apply font-extrabold text-base sm:text-lg text-[#111827] tracking-tight truncate;
+  @apply font-extrabold text-base sm:text-lg text-[#111827] dark:text-[#F9FAFB] tracking-tight truncate;
 }
 
 /* Modal Subtitle */
 .modal-subtitle-text {
-  @apply text-xs text-[#6B7280] truncate mt-0.5;
+  @apply text-xs text-[#6B7280] dark:text-[#94A3B8] truncate mt-0.5;
 }
 
 /* Modal Close Button */
 .modal-close-button {
-  @apply w-8 h-8 rounded-lg bg-white hover:bg-[#F3F4F6] text-[#6B7280] hover:text-[#111827] border border-[#E5E4DF] flex items-center justify-center transition-colors shadow-2xs active:scale-95 shrink-0;
+  @apply w-8 h-8 rounded-lg bg-white dark:bg-[#151D2A] hover:bg-[#F3F4F6] dark:hover:bg-[#1C2638] text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] border border-[#E5E4DF] dark:border-[#243042] flex items-center justify-center transition-colors shadow-2xs active:scale-95 shrink-0;
 }
 
 /* Modal Scrollable Body */
 .modal-body {
-  @apply flex-1 overflow-y-auto p-4 sm:p-6;
+  @apply flex-1 overflow-y-auto p-4 sm:p-6 text-[#111827] dark:text-[#F9FAFB];
 }
 
 /* Modal Footer Bar */
 .modal-footer {
-  @apply p-4 sm:p-5 border-t border-[#E5E4DF] bg-[#FAF9F6]/80 flex flex-wrap items-center justify-between gap-3 shrink-0;
+  @apply p-4 sm:p-5 border-t border-[#E5E4DF] dark:border-[#243042] bg-[#FAF9F6]/80 dark:bg-[#0B0F17]/80 flex flex-wrap items-center justify-between gap-3 shrink-0;
 }
 

@@ -91,29 +91,29 @@ export const ObservatoryView: React.FC = () => {
       <div className="observatory-container space-y-5">
       
       {/* Top Filter & Layer Control Bar */}
-      <div className="bg-white p-4 rounded-xl border border-[#E5E7EB] space-y-3">
+      <div className="bg-white dark:bg-[#151D2A] p-4 rounded-xl border border-[#E5E7EB] dark:border-[#243042] space-y-3 transition-colors">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           
           {/* Search box */}
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#9CA3AF] dark:text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Cari nama fasilitas, alamat, atau laporan..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg text-[#111827] focus:outline-none focus:border-[#111827]"
+              className="w-full pl-9 pr-4 py-2 text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg text-[#111827] dark:text-[#F9FAFB] placeholder:text-[#9CA3AF] dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#111827] dark:focus:border-[#0D9488]"
             />
           </div>
 
           {/* Dropdown Filters */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5 text-xs text-[#4B5563]">
-              <span className="font-semibold text-[#111827]">Kecamatan:</span>
+            <div className="flex items-center gap-1.5 text-xs text-[#4B5563] dark:text-[#94A3B8]">
+              <span className="font-semibold text-[#111827] dark:text-[#F9FAFB]">Kecamatan:</span>
               <select
                 value={selectedSubdistrict}
                 onChange={e => setSelectedSubdistrict(e.target.value as any)}
-                className="text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg px-2.5 py-1.5 font-medium text-[#111827] focus:outline-none focus:border-[#111827]"
+                className="text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg px-2.5 py-1.5 font-medium text-[#111827] dark:text-[#F9FAFB] focus:outline-none focus:border-[#111827] dark:focus:border-[#0D9488]"
               >
                 <option value="Semua">Semua Kecamatan (6)</option>
                 {SUBDISTRICTS.map(s => (
@@ -122,12 +122,12 @@ export const ObservatoryView: React.FC = () => {
               </select>
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs text-[#4B5563]">
-              <span className="font-semibold text-[#111827]">Sektor:</span>
+            <div className="flex items-center gap-1.5 text-xs text-[#4B5563] dark:text-[#94A3B8]">
+              <span className="font-semibold text-[#111827] dark:text-[#F9FAFB]">Sektor:</span>
               <select
                 value={selectedSector}
                 onChange={e => setSelectedSector(e.target.value as any)}
-                className="text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg px-2.5 py-1.5 font-medium text-[#111827] focus:outline-none focus:border-[#111827]"
+                className="text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg px-2.5 py-1.5 font-medium text-[#111827] dark:text-[#F9FAFB] focus:outline-none focus:border-[#111827] dark:focus:border-[#0D9488]"
               >
                 <option value="Semua">Semua Sektor (9)</option>
                 {SECTORS.map(sec => (
@@ -139,16 +139,16 @@ export const ObservatoryView: React.FC = () => {
         </div>
 
         {/* Pin Layer Toggle Row */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#E5E7EB] text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#E5E7EB] dark:border-[#243042] text-xs">
           <div className="flex items-center gap-1.5">
-            <span className="text-[#6B7280] font-medium mr-1">Titik Peta:</span>
+            <span className="text-[#6B7280] dark:text-[#94A3B8] font-medium mr-1">Titik Peta:</span>
             
             <button
               onClick={() => setPinFilter('ALL')}
               className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                 pinFilter === 'ALL'
-                  ? 'bg-[#111827] text-white font-semibold'
-                  : 'bg-[#F8F9FA] text-[#4B5563] hover:text-[#111827] border border-[#E5E7EB]'
+                  ? 'bg-[#111827] dark:bg-[#0D9488] text-white font-semibold'
+                  : 'bg-[#F8F9FA] dark:bg-[#1C2638] text-[#4B5563] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] border border-[#E5E7EB] dark:border-[#243042]'
               }`}
             >
               Semua ({filteredFacilities.length + filteredReports.length})
@@ -161,8 +161,8 @@ export const ObservatoryView: React.FC = () => {
               }}
               className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
                 pinFilter === 'FACILITY'
-                  ? 'bg-[#111827] text-white font-semibold'
-                  : 'bg-[#F8F9FA] text-[#4B5563] hover:text-[#111827] border border-[#E5E7EB]'
+                  ? 'bg-[#111827] dark:bg-[#0D9488] text-white font-semibold'
+                  : 'bg-[#F8F9FA] dark:bg-[#1C2638] text-[#4B5563] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] border border-[#E5E7EB] dark:border-[#243042]'
               }`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]"></span>
@@ -176,8 +176,8 @@ export const ObservatoryView: React.FC = () => {
               }}
               className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
                 pinFilter === 'REPORT'
-                  ? 'bg-[#111827] text-white font-semibold'
-                  : 'bg-[#F8F9FA] text-[#4B5563] hover:text-[#111827] border border-[#E5E7EB]'
+                  ? 'bg-[#111827] dark:bg-[#0D9488] text-white font-semibold'
+                  : 'bg-[#F8F9FA] dark:bg-[#1C2638] text-[#4B5563] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] border border-[#E5E7EB] dark:border-[#243042]'
               }`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span>
@@ -185,7 +185,7 @@ export const ObservatoryView: React.FC = () => {
             </button>
           </div>
 
-          <div className="text-[11px] text-[#6B7280]">
+          <div className="text-[11px] text-[#6B7280] dark:text-[#94A3B8]">
             Klik titik pada peta atau baris di panel kanan untuk membuka rincian audit
           </div>
         </div>
@@ -193,17 +193,17 @@ export const ObservatoryView: React.FC = () => {
 
       {/* Discrepancy Notice Strip */}
       {activeDiscrepancy && (
-        <div className="bg-white border border-[#E5E7EB] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-xs">
               <span className="w-2 h-2 rounded-full bg-[#DC2626]"></span>
-              <span className="font-bold text-[#111827]">Catatan Pemeriksaan Wilayah:</span>
-              <span className="text-[#6B7280] font-mono-data">
+              <span className="font-bold text-[#111827] dark:text-[#F9FAFB]">Catatan Pemeriksaan Wilayah:</span>
+              <span className="text-[#6B7280] dark:text-[#94A3B8] font-mono-data">
                 Serapan {activeDiscrepancy.realizationPercent}% • {activeDiscrepancy.unresolvedReportsCount} laporan belum selesai
               </span>
             </div>
-            <p className="text-xs text-[#4B5563]">
-              <strong className="text-[#111827]">{activeDiscrepancy.facilityName}:</strong> {activeDiscrepancy.flagReason}
+            <p className="text-xs text-[#4B5563] dark:text-[#94A3B8]">
+              <strong className="text-[#111827] dark:text-[#F9FAFB]">{activeDiscrepancy.facilityName}:</strong> {activeDiscrepancy.flagReason}
             </p>
           </div>
           <button
@@ -211,7 +211,7 @@ export const ObservatoryView: React.FC = () => {
               const fac = facilities.find(f => f.name.toLowerCase().includes(activeDiscrepancy.facilityName.toLowerCase()));
               if (fac) setSelectedFacility(fac);
             }}
-            className="px-3.5 py-2 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-semibold rounded-lg shrink-0 self-start sm:self-auto transition-colors"
+            className="px-3.5 py-2 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs font-semibold rounded-lg shrink-0 self-start sm:self-auto transition-colors"
           >
             Buka Rincian Fasilitas
           </button>
@@ -226,48 +226,48 @@ export const ObservatoryView: React.FC = () => {
           <div className="h-[460px] lg:h-[620px] w-full">
             <InteractiveMap />
           </div>
-          <div className="flex items-center justify-between text-[11px] text-[#6B7280] px-1 font-mono-data">
+          <div className="flex items-center justify-between text-[11px] text-[#6B7280] dark:text-[#94A3B8] px-1 font-mono-data">
             <span>Wilayah: Jabodetabek</span>
             <span>Sumber: Simulasi SIKD 2026</span>
           </div>
         </div>
 
         {/* Right Column: Unified Inspector Sidebar */}
-        <aside className="lg:col-span-5 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col lg:h-[620px]">
+        <aside className="lg:col-span-5 bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-xl overflow-hidden flex flex-col lg:h-[620px] transition-colors">
           
           {/* Top Compact Financial Strip */}
-          <div className="p-4 bg-[#F8F9FA] border-b border-[#E5E7EB] space-y-2.5">
+          <div className="p-4 bg-[#F8F9FA] dark:bg-[#101622] border-b border-[#E5E7EB] dark:border-[#243042] space-y-2.5">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-[#111827]">
+              <span className="font-bold text-[#111827] dark:text-[#F9FAFB]">
                 Anggaran {selectedSubdistrict === 'Semua' ? 'Jabodetabek' : selectedSubdistrict}
               </span>
-              <span className="text-[11px] text-[#6B7280]">
+              <span className="text-[11px] text-[#6B7280] dark:text-[#94A3B8]">
                 {selectedSector === 'Semua' ? 'Semua Sektor' : selectedSector}
               </span>
             </div>
 
-            <div className="grid grid-cols-3 divide-x divide-[#E5E7EB] bg-white rounded-lg border border-[#E5E7EB] p-2.5 text-left">
+            <div className="grid grid-cols-3 divide-x divide-[#E5E7EB] dark:divide-[#243042] bg-white dark:bg-[#151D2A] rounded-lg border border-[#E5E7EB] dark:border-[#243042] p-2.5 text-left">
               <div className="pr-2">
-                <div className="text-[10px] text-[#6B7280]">Pagu</div>
-                <div className="text-xs font-bold text-[#111827] font-mono-data mt-0.5">
+                <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8]">Pagu</div>
+                <div className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB] font-mono-data mt-0.5">
                   {formatRupiahShort(aggregateBudget.paguAnggaran)}
                 </div>
               </div>
               <div className="px-2">
-                <div className="text-[10px] text-[#6B7280] flex items-center gap-1">
+                <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8] flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#0D9488]"></span>
                   <span>Realisasi</span>
                 </div>
-                <div className="text-xs font-bold text-[#111827] font-mono-data mt-0.5">
+                <div className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB] font-mono-data mt-0.5">
                   {formatRupiahShort(aggregateBudget.realisasiPenyerapan)}
                 </div>
               </div>
               <div className="pl-2">
-                <div className="text-[10px] text-[#6B7280] flex items-center gap-1">
+                <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8] flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]"></span>
                   <span>Belum Terikat</span>
                 </div>
-                <div className="text-xs font-bold text-[#111827] font-mono-data mt-0.5">
+                <div className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB] font-mono-data mt-0.5">
                   {formatRupiahShort(aggregateBudget.sisaPaguBelumTerikat)}
                 </div>
               </div>
@@ -275,13 +275,13 @@ export const ObservatoryView: React.FC = () => {
           </div>
 
           {/* Segmented Sidebar Navigation Tabs */}
-          <div className="grid grid-cols-3 border-b border-[#E5E7EB] bg-white text-xs font-medium">
+          <div className="grid grid-cols-3 border-b border-[#E5E7EB] dark:border-[#243042] bg-white dark:bg-[#151D2A] text-xs font-medium">
             <button
               onClick={() => setSidebarTab('FACILITIES')}
               className={`py-3 text-center border-b-2 transition-colors ${
                 sidebarTab === 'FACILITIES'
-                  ? 'border-[#111827] text-[#111827] font-bold bg-[#F8F9FA]/50'
-                  : 'border-transparent text-[#6B7280] hover:text-[#111827]'
+                  ? 'border-[#111827] dark:border-[#0D9488] text-[#111827] dark:text-[#F9FAFB] font-bold bg-[#F8F9FA]/50 dark:bg-[#1C2638]/50'
+                  : 'border-transparent text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB]'
               }`}
             >
               Fasilitas ({filteredFacilities.length})
@@ -290,8 +290,8 @@ export const ObservatoryView: React.FC = () => {
               onClick={() => setSidebarTab('REPORTS')}
               className={`py-3 text-center border-b-2 transition-colors ${
                 sidebarTab === 'REPORTS'
-                  ? 'border-[#111827] text-[#111827] font-bold bg-[#F8F9FA]/50'
-                  : 'border-transparent text-[#6B7280] hover:text-[#111827]'
+                  ? 'border-[#111827] dark:border-[#0D9488] text-[#111827] dark:text-[#F9FAFB] font-bold bg-[#F8F9FA]/50 dark:bg-[#1C2638]/50'
+                  : 'border-transparent text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB]'
               }`}
             >
               Laporan ({filteredReports.length})
@@ -300,8 +300,8 @@ export const ObservatoryView: React.FC = () => {
               onClick={() => setSidebarTab('BUDGET')}
               className={`py-3 text-center border-b-2 transition-colors ${
                 sidebarTab === 'BUDGET'
-                  ? 'border-[#111827] text-[#111827] font-bold bg-[#F8F9FA]/50'
-                  : 'border-transparent text-[#6B7280] hover:text-[#111827]'
+                  ? 'border-[#111827] dark:border-[#0D9488] text-[#111827] dark:text-[#F9FAFB] font-bold bg-[#F8F9FA]/50 dark:bg-[#1C2638]/50'
+                  : 'border-transparent text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB]'
               }`}
             >
               4 Status APBD
@@ -309,13 +309,13 @@ export const ObservatoryView: React.FC = () => {
           </div>
 
           {/* Scrollable Sidebar List Content */}
-          <div className="flex-1 overflow-y-auto divide-y divide-[#E5E7EB]">
+          <div className="flex-1 overflow-y-auto divide-y divide-[#E5E7EB] dark:divide-[#243042]">
             
             {/* TAB 1: FACILITIES */}
             {sidebarTab === 'FACILITIES' && (
               <>
                 {filteredFacilities.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-[#6B7280]">
+                  <div className="p-8 text-center text-xs text-[#6B7280] dark:text-[#94A3B8]">
                     Tidak ada fasilitas yang cocok dengan filter pencarian. Ubah filter kecamatan atau sektor di atas.
                   </div>
                 ) : (
@@ -330,34 +330,34 @@ export const ObservatoryView: React.FC = () => {
                           setSelectedProject(null);
                         }}
                         className={`p-4 transition-colors cursor-pointer flex items-start justify-between gap-3 ${
-                          isSelected ? 'bg-[#F8F9FA]' : 'bg-white hover:bg-[#F8F9FA]/60'
+                          isSelected ? 'bg-[#F8F9FA] dark:bg-[#1C2638]' : 'bg-white dark:bg-[#151D2A] hover:bg-[#F8F9FA]/60 dark:hover:bg-[#1C2638]/60'
                         }`}
                       >
                         <div className="space-y-1 min-w-0">
-                          <div className="flex items-center gap-1.5 text-[11px] text-[#6B7280]">
+                          <div className="flex items-center gap-1.5 text-[11px] text-[#6B7280] dark:text-[#94A3B8]">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]"></span>
-                            <span className="font-medium text-[#4B5563]">{facility.sector}</span>
+                            <span className="font-medium text-[#4B5563] dark:text-[#94A3B8]">{facility.sector}</span>
                             <span>•</span>
                             <span>{facility.subdistrict}</span>
                           </div>
-                          <h4 className="font-bold text-sm text-[#111827] truncate">
+                          <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] truncate">
                             {facility.name}
                           </h4>
-                          <p className="text-xs text-[#6B7280] truncate">
+                          <p className="text-xs text-[#6B7280] dark:text-[#94A3B8] truncate">
                             {facility.address}
                           </p>
-                          <div className="pt-1 flex items-center gap-3 text-[11px] text-[#4B5563]">
-                            <span>Kondisi: <strong className="text-[#111827]">{facility.condition}</strong></span>
+                          <div className="pt-1 flex items-center gap-3 text-[11px] text-[#4B5563] dark:text-[#94A3B8]">
+                            <span>Kondisi: <strong className="text-[#111827] dark:text-[#F9FAFB]">{facility.condition}</strong></span>
                             <span>•</span>
                             <span className="font-mono-data">{facility.activeReportsCount} laporan</span>
                           </div>
                         </div>
 
                         <div className="text-right shrink-0 flex flex-col items-end justify-between self-stretch">
-                          <div className="text-xs font-mono-data font-bold text-[#111827]">
+                          <div className="text-xs font-mono-data font-bold text-[#111827] dark:text-[#F9FAFB]">
                             {formatRupiahShort(facility.budgetSummary.paguAnggaran)}
                           </div>
-                          <ChevronRight className="w-4 h-4 text-[#9CA3AF]" />
+                          <ChevronRight className="w-4 h-4 text-[#9CA3AF] dark:text-[#64748B]" />
                         </div>
                       </div>
                     );
@@ -370,7 +370,7 @@ export const ObservatoryView: React.FC = () => {
             {sidebarTab === 'REPORTS' && (
               <>
                 {filteredReports.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-[#6B7280]">
+                  <div className="p-8 text-center text-xs text-[#6B7280] dark:text-[#94A3B8]">
                     Belum ada laporan warga pada filter wilayah ini.
                   </div>
                 ) : (
@@ -385,29 +385,29 @@ export const ObservatoryView: React.FC = () => {
                           setSelectedProject(null);
                         }}
                         className={`p-4 transition-colors cursor-pointer flex items-start justify-between gap-3 ${
-                          isSelected ? 'bg-[#F8F9FA]' : 'bg-white hover:bg-[#F8F9FA]/60'
+                          isSelected ? 'bg-[#F8F9FA] dark:bg-[#1C2638]' : 'bg-white dark:bg-[#151D2A] hover:bg-[#F8F9FA]/60 dark:hover:bg-[#1C2638]/60'
                         }`}
                       >
                         <div className="space-y-1 min-w-0">
-                          <div className="flex items-center gap-2 text-[11px] text-[#6B7280] font-mono-data">
+                          <div className="flex items-center gap-2 text-[11px] text-[#6B7280] dark:text-[#94A3B8] font-mono-data">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span>
-                            <span className="font-bold text-[#111827]">{report.id}</span>
+                            <span className="font-bold text-[#111827] dark:text-[#F9FAFB]">{report.id}</span>
                             <span>•</span>
                             <span>Tahap {report.currentStep}/6</span>
                           </div>
-                          <h4 className="font-bold text-sm text-[#111827] line-clamp-1">
+                          <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] line-clamp-1">
                             {report.title}
                           </h4>
-                          <p className="text-xs text-[#4B5563] line-clamp-1">
+                          <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] line-clamp-1">
                             {report.description}
                           </p>
-                          <div className="text-[11px] text-[#6B7280] pt-0.5">
+                          <div className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] pt-0.5">
                             {report.subdistrict} • @{report.reporterHandle}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 text-xs font-mono-data font-semibold text-[#111827] shrink-0 bg-[#F8F9FA] px-2.5 py-1 rounded border border-[#E5E7EB]">
-                          <ThumbsUp className="w-3 h-3 text-[#6B7280]" />
+                        <div className="flex items-center gap-1 text-xs font-mono-data font-semibold text-[#111827] dark:text-[#F9FAFB] shrink-0 bg-[#F8F9FA] dark:bg-[#101622] px-2.5 py-1 rounded border border-[#E5E7EB] dark:border-[#243042]">
+                          <ThumbsUp className="w-3 h-3 text-[#6B7280] dark:text-[#94A3B8]" />
                           <span>{report.priorityVotes}</span>
                         </div>
                       </div>

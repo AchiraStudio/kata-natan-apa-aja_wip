@@ -70,3 +70,52 @@
   --radius-full: 9999px;
 }
 
+
+.dark {
+  /* Canvas & Backgrounds (Midnight Obsidian) */
+  --canvas-bg: #0B0F17;
+  --canvas-subtle: #111827;
+  --card-bg: #151D2A;
+  --card-subtle-bg: #1A2333;
+
+  /* Text & Inks (Crisp Light Inks) */
+  --ink-primary: #F9FAFB;
+  --ink-secondary: #94A3B8;
+  --ink-muted: #64748B;
+  --ink-light: #475569;
+  --ink-white: #0B0F17;
+
+  /* Primary Brand */
+  --teal-primary: #14B8A6;
+  --teal-hover: #0D9488;
+  --teal-active: #0F766E;
+  --teal-subtle: rgba(20, 184, 166, 0.15);
+  --teal-border: rgba(20, 184, 166, 0.3);
+
+  /* Status */
+  --red-alert: #EF4444;
+  --red-hover: #DC2626;
+  --red-subtle: rgba(239, 68, 68, 0.15);
+  --red-border: rgba(239, 68, 68, 0.3);
+
+  --amber-warning: #F59E0B;
+  --amber-hover: #D97706;
+  --amber-subtle: rgba(245, 158, 11, 0.15);
+  --amber-border: rgba(245, 158, 11, 0.3);
+
+  --blue-info: #3B82F6;
+  --blue-hover: #2563EB;
+  --blue-subtle: rgba(59, 130, 246, 0.15);
+  --blue-border: rgba(59, 130, 246, 0.3);
+
+  --green-success: #22C55E;
+  --green-hover: #16A34A;
+  --green-subtle: rgba(34, 197, 94, 0.15);
+  --green-border: rgba(34, 197, 94, 0.3);
+
+  /* Borders & Dividers */
+  --border-hairline: #243042;
+  --border-subtle: #1E293B;
+  --border-medium: #334155;
+  --border-strong: #F9FAFB;
+}

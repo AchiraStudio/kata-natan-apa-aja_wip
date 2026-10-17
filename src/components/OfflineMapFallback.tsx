@@ -16,28 +16,31 @@ export const OfflineMapFallback: React.FC<Props> = () => {
     setSelectedFacility, 
     setSelectedReport,
     selectedFacility,
-    selectedReport
+    selectedReport,
+    theme
   } = useTitik();
+
+  const isDark = theme === 'dark';
 
   // Kota Bogor 6 Subdistricts approximate polygonal SVG layout
   const subdistrictsSVG = [
-    { name: 'Tanah Sareal', d: 'M 140 40 L 260 40 L 290 120 L 190 140 L 120 100 Z', center: [195, 85], color: '#E0E7FF' },
-    { name: 'Bogor Utara', d: 'M 260 40 L 380 50 L 390 140 L 290 120 Z', center: [330, 95], color: '#FEF3C7' },
-    { name: 'Bogor Barat', d: 'M 60 110 L 190 140 L 180 260 L 50 210 Z', center: [120, 180], color: '#DCFCE7' },
-    { name: 'Bogor Tengah', d: 'M 190 140 L 290 120 L 300 230 L 180 230 Z', center: [240, 180], color: '#FEE2E2' },
-    { name: 'Bogor Timur', d: 'M 290 120 L 390 140 L 410 270 L 300 230 Z', center: [350, 190], color: '#E0F2FE' },
-    { name: 'Bogor Selatan', d: 'M 180 230 L 300 230 L 320 370 L 160 350 Z', center: [240, 290], color: '#F3E8FF' }
+    { name: 'Tanah Sareal', d: 'M 140 40 L 260 40 L 290 120 L 190 140 L 120 100 Z', center: [195, 85], color: isDark ? '#1E293B' : '#E0E7FF' },
+    { name: 'Bogor Utara', d: 'M 260 40 L 380 50 L 390 140 L 290 120 Z', center: [330, 95], color: isDark ? '#243042' : '#FEF3C7' },
+    { name: 'Bogor Barat', d: 'M 60 110 L 190 140 L 180 260 L 50 210 Z', center: [120, 180], color: isDark ? '#1C2E3D' : '#DCFCE7' },
+    { name: 'Bogor Tengah', d: 'M 190 140 L 290 120 L 300 230 L 180 230 Z', center: [240, 180], color: isDark ? '#2D2438' : '#FEE2E2' },
+    { name: 'Bogor Timur', d: 'M 290 120 L 390 140 L 410 270 L 300 230 Z', center: [350, 190], color: isDark ? '#172E3F' : '#E0F2FE' },
+    { name: 'Bogor Selatan', d: 'M 180 230 L 300 230 L 320 370 L 160 350 Z', center: [240, 290], color: isDark ? '#2A1F3D' : '#F3E8FF' }
   ];
 
   return (
-    <div className="relative w-full h-full min-h-[440px] bg-white rounded-xl border border-[#E5E7EB] p-4 flex flex-col justify-between overflow-hidden shadow-tactile">
+    <div className="relative w-full h-full min-h-[440px] bg-white dark:bg-[#151D2A] rounded-xl border border-[#E5E7EB] dark:border-[#243042] p-4 flex flex-col justify-between overflow-hidden shadow-tactile transition-colors">
       {/* Top Banner Notice */}
-      <div className="flex items-center justify-between text-xs pb-2 border-b border-[#E5E7EB]">
+      <div className="flex items-center justify-between text-xs pb-2 border-b border-[#E5E7EB] dark:border-[#243042]">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#0D9488]"></span>
-          <span className="font-bold text-[#111827]">Peta Vektor Spasial Jabodetabek (Mode Resilient)</span>
+          <span className="font-bold text-[#111827] dark:text-[#F9FAFB]">Peta Vektor Spasial Jabodetabek (Mode Resilient)</span>
         </div>
-        <span className="text-[11px] text-[#6B7280]">
+        <span className="text-[11px] text-[#6B7280] dark:text-[#94A3B8]">
           Klik wilayah kecamatan untuk menyaring titik
         </span>
       </div>
@@ -51,6 +54,16 @@ export const OfflineMapFallback: React.FC<Props> = () => {
           {/* Subdistricts Polygons */}
           {subdistrictsSVG.map(sub => {
             const isSelected = selectedSubdistrict === sub.name;
+            const fillColor = isSelected 
+              ? (isDark ? '#0D9488' : '#111827') 
+              : sub.color;
+            const strokeColor = isSelected 
+              ? (isDark ? '#5EEAD4' : '#000000') 
+              : (isDark ? '#334155' : '#D1D5DB');
+            const textColor = isSelected 
+              ? '#FFFFFF' 
+              : (isDark ? '#CBD5E1' : '#374151');
+
             return (
               <g 
                 key={sub.name}
@@ -59,8 +72,8 @@ export const OfflineMapFallback: React.FC<Props> = () => {
               >
                 <path
                   d={sub.d}
-                  fill={isSelected ? '#111827' : sub.color}
-                  stroke={isSelected ? '#000000' : '#D1D5DB'}
+                  fill={fillColor}
+                  stroke={strokeColor}
                   strokeWidth={isSelected ? '2.5' : '1.5'}
                   className="transition-colors group-hover:opacity-85"
                 />
@@ -68,7 +81,7 @@ export const OfflineMapFallback: React.FC<Props> = () => {
                   x={sub.center[0]}
                   y={sub.center[1]}
                   textAnchor="middle"
-                  fill={isSelected ? '#FFFFFF' : '#374151'}
+                  fill={textColor}
                   fontSize="11"
                   fontWeight="700"
                   fontFamily="inherit"
@@ -99,7 +112,7 @@ export const OfflineMapFallback: React.FC<Props> = () => {
                   cy={cy}
                   r={isSelected ? 9 : 6}
                   fill="#2563EB"
-                  stroke="#FFFFFF"
+                  stroke={isDark ? '#0B0F17' : '#FFFFFF'}
                   strokeWidth="2"
                   className="transition-transform hover:scale-125"
                 />
@@ -125,7 +138,7 @@ export const OfflineMapFallback: React.FC<Props> = () => {
                   cy={cy}
                   r={isSelected ? 9 : 6}
                   fill={rep.currentStep === 6 ? '#0D9488' : '#DC2626'}
-                  stroke="#FFFFFF"
+                  stroke={isDark ? '#0B0F17' : '#FFFFFF'}
                   strokeWidth="2"
                   className="transition-transform hover:scale-125"
                 />
@@ -136,12 +149,14 @@ export const OfflineMapFallback: React.FC<Props> = () => {
       </div>
 
       {/* Bottom Subdistricts Quick Filter Pills */}
-      <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#E5E7EB] text-xs">
-        <span className="text-[11px] text-[#6B7280] font-semibold mr-1">Filter Cepat:</span>
+      <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-xs">
+        <span className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] font-semibold mr-1">Filter Cepat:</span>
         <button
           onClick={() => setSelectedSubdistrict('Semua')}
           className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
-            selectedSubdistrict === 'Semua' ? 'bg-[#111827] text-white font-bold' : 'bg-[#F8F9FA] text-[#4B5563]'
+            selectedSubdistrict === 'Semua' 
+              ? 'bg-[#111827] dark:bg-[#0D9488] text-white font-bold' 
+              : 'bg-[#F8F9FA] dark:bg-[#1C2638] text-[#4B5563] dark:text-[#94A3B8] hover:bg-[#E5E7EB] dark:hover:bg-[#243042]'
           }`}
         >
           Semua Wilayah
@@ -151,7 +166,9 @@ export const OfflineMapFallback: React.FC<Props> = () => {
             key={sub.name}
             onClick={() => setSelectedSubdistrict(sub.name as SubdistrictType)}
             className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
-              selectedSubdistrict === sub.name ? 'bg-[#111827] text-white font-bold' : 'bg-[#F8F9FA] text-[#4B5563] hover:bg-[#E5E7EB]'
+              selectedSubdistrict === sub.name 
+                ? 'bg-[#111827] dark:bg-[#0D9488] text-white font-bold' 
+                : 'bg-[#F8F9FA] dark:bg-[#1C2638] text-[#4B5563] dark:text-[#94A3B8] hover:bg-[#E5E7EB] dark:hover:bg-[#243042]'
             }`}
           >
             {sub.name}

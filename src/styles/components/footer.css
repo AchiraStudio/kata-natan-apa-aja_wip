@@ -4,7 +4,7 @@
  */
 
 .footer-wrapper {
-  @apply bg-[#FAF9F6] border-t border-[#E5E4DF] text-xs text-[#6B7280];
+  @apply bg-[#FAF9F6] border-t border-[#E5E4DF] text-xs text-[#6B7280] dark:bg-[#0B0F17] dark:border-[#243042] dark:text-[#94A3B8];
 }
 
 .footer-container {
@@ -12,18 +12,19 @@
 }
 
 .footer-brand-title {
-  @apply font-black text-sm text-[#111827] tracking-tight;
+  @apply font-black text-sm text-[#111827] tracking-tight dark:text-[#F9FAFB];
 }
 
 .footer-col-title {
-  @apply font-mono-data text-[10px] uppercase font-bold text-[#111827] tracking-wider mb-3;
+  @apply font-mono-data text-[10px] uppercase font-bold text-[#111827] tracking-wider mb-3 dark:text-[#F9FAFB];
 }
 
 .footer-link {
-  @apply hover:text-[#111827] transition-colors py-1 block;
+  @apply hover:text-[#111827] transition-colors py-1 block dark:text-[#94A3B8] dark:hover:text-[#F9FAFB];
 }
 
 .footer-bottom-bar {
-  @apply pt-8 mt-8 border-t border-[#E5E4DF] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px];
+  @apply pt-8 mt-8 border-t border-[#E5E4DF] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] dark:border-[#243042] dark:text-[#94A3B8];
 }
+
 

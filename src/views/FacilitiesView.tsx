@@ -70,15 +70,15 @@ export const FacilitiesView: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       
       {/* Editorial Masthead */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-xl border border-[#E5E7EB]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#151D2A] p-6 sm:p-8 rounded-xl border border-[#E5E7EB] dark:border-[#243042] transition-colors">
         <div className="space-y-1.5">
-          <div className="text-xs font-semibold uppercase tracking-wider text-[#6B7280]">
+          <div className="text-xs font-semibold uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8]">
             Inventaris Sarana Layanan Publik • Jabodetabek
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight">
             Direktori Fasilitas Publik & Alokasi Pemeliharaan
           </h1>
-          <p className="text-sm text-[#4B5563] max-w-2xl">
+          <p className="text-sm text-[#4B5563] dark:text-[#94A3B8] max-w-2xl">
             Memuat {facilities.length} fasilitas publik terdata di wilayah Jabodetabek beserta kondisi bangunan, instansi pengelola, dan pagu anggaran tahun berjalan.
           </p>
         </div>
@@ -87,8 +87,8 @@ export const FacilitiesView: React.FC = () => {
           onClick={() => setShowSavedOnly(prev => !prev)}
           className={`px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-colors self-start md:self-auto whitespace-nowrap ${
             showSavedOnly 
-              ? 'bg-[#111827] text-white border-[#111827]' 
-              : 'bg-[#F8F9FA] text-[#111827] border-[#E5E7EB] hover:bg-[#E5E7EB]'
+              ? 'bg-[#111827] dark:bg-[#0D9488] text-white border-[#111827] dark:border-[#0D9488]' 
+              : 'bg-[#F8F9FA] dark:bg-[#1C2638] text-[#111827] dark:text-[#F9FAFB] border-[#E5E7EB] dark:border-[#243042] hover:bg-[#E5E7EB] dark:hover:bg-[#243042]'
           }`}
         >
           <Bookmark className={`w-3.5 h-3.5 ${showSavedOnly ? 'fill-current' : ''}`} />
@@ -97,16 +97,16 @@ export const FacilitiesView: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-tactile flex flex-col lg:flex-row items-center justify-between gap-3">
+      <div className="bg-white dark:bg-[#151D2A] p-4 rounded-xl border border-[#E5E7EB] dark:border-[#243042] shadow-tactile flex flex-col lg:flex-row items-center justify-between gap-3 transition-colors">
         {/* Search */}
         <div className="relative w-full lg:max-w-sm">
-          <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#9CA3AF] dark:text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Cari nama fasilitas, alamat, dinas..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg text-[#111827] focus:outline-none focus:border-[#111827]"
+            className="w-full pl-9 pr-4 py-2 text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg text-[#111827] dark:text-[#F9FAFB] placeholder:text-[#9CA3AF] dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#111827] dark:focus:border-[#0D9488]"
           />
         </div>
 
@@ -116,7 +116,7 @@ export const FacilitiesView: React.FC = () => {
           <select
             value={sectorFilter}
             onChange={e => setSectorFilter(e.target.value as any)}
-            className="text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg px-2.5 py-2 font-medium text-[#111827] focus:outline-none"
+            className="text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg px-2.5 py-2 font-medium text-[#111827] dark:text-[#F9FAFB] focus:outline-none"
           >
             <option value="Semua">Semua Sektor (9)</option>
             {SECTOR_DEFINITIONS.map(sec => (
@@ -128,7 +128,7 @@ export const FacilitiesView: React.FC = () => {
           <select
             value={subdistrictFilter}
             onChange={e => setSubdistrictFilter(e.target.value as any)}
-            className="text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg px-2.5 py-2 font-medium text-[#111827] focus:outline-none"
+            className="text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg px-2.5 py-2 font-medium text-[#111827] dark:text-[#F9FAFB] focus:outline-none"
           >
             <option value="Semua">Semua Wilayah ({SUBDISTRICTS.length})</option>
             {SUBDISTRICTS.map(sub => (
@@ -140,7 +140,7 @@ export const FacilitiesView: React.FC = () => {
           <select
             value={conditionFilter}
             onChange={e => setConditionFilter(e.target.value as any)}
-            className="text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg px-2.5 py-2 font-medium text-[#111827] focus:outline-none"
+            className="text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg px-2.5 py-2 font-medium text-[#111827] dark:text-[#F9FAFB] focus:outline-none"
           >
             <option value="Semua">Semua Kondisi Fisik</option>
             <option value="Baik">Kondisi: Baik</option>
@@ -159,13 +159,13 @@ export const FacilitiesView: React.FC = () => {
           return (
             <div
               key={facility.id}
-              className="bg-white rounded-2xl border border-[#E5E7EB] hover:border-[#111827] p-5 shadow-tactile shadow-tactile-hover transition-all flex flex-col justify-between group space-y-4"
+              className="bg-white dark:bg-[#151D2A] rounded-2xl border border-[#E5E7EB] dark:border-[#243042] hover:border-[#111827] dark:hover:border-[#0D9488] p-5 shadow-tactile transition-all flex flex-col justify-between group space-y-4"
             >
               <div className="space-y-3">
                 {/* Photo & Badge */}
                 <div 
                   onClick={() => handleOpenDetail(facility)}
-                  className="relative h-44 rounded-xl overflow-hidden border border-[#E5E7EB] bg-[#F3F4F6] cursor-pointer"
+                  className="relative h-44 rounded-xl overflow-hidden border border-[#E5E7EB] dark:border-[#243042] bg-[#F3F4F6] dark:bg-[#101622] cursor-pointer"
                 >
                   <img 
                     src={facility.photoUrl} 
@@ -173,15 +173,15 @@ export const FacilitiesView: React.FC = () => {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute top-2 left-2">
-                    <span className="text-[10px] font-bold bg-[#111827]/80 backdrop-blur-xs text-white px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-bold bg-[#111827]/80 dark:bg-[#0B0F17]/90 backdrop-blur-xs text-white px-2 py-0.5 rounded">
                       {facility.sector}
                     </span>
                   </div>
                   <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                    <span className="text-[10px] font-bold bg-white/90 backdrop-blur-xs text-[#111827] px-2 py-0.5 rounded border border-[#E5E7EB]">
+                    <span className="text-[10px] font-bold bg-white/90 dark:bg-[#151D2A]/90 backdrop-blur-xs text-[#111827] dark:text-[#F9FAFB] px-2 py-0.5 rounded border border-[#E5E7EB] dark:border-[#243042]">
                       {facility.subdistrict}
                     </span>
-                    <span className="text-[10px] font-bold bg-[#111827] text-white px-2 py-0.5 rounded font-mono-data">
+                    <span className="text-[10px] font-bold bg-[#111827] dark:bg-[#0D9488] text-white px-2 py-0.5 rounded font-mono-data">
                       Pagu: {formatRupiahShort(facility.budgetSummary.paguAnggaran)}
                     </span>
                   </div>
@@ -192,38 +192,38 @@ export const FacilitiesView: React.FC = () => {
                   onClick={() => handleOpenDetail(facility)}
                   className="cursor-pointer space-y-1"
                 >
-                  <h3 className="font-extrabold text-base text-[#111827] group-hover:text-[#2563EB] transition-colors leading-snug line-clamp-1">
+                  <h3 className="font-extrabold text-base text-[#111827] dark:text-[#F9FAFB] group-hover:text-[#2563EB] dark:group-hover:text-[#38BDF8] transition-colors leading-snug line-clamp-1">
                     {facility.name}
                   </h3>
-                  <div className="text-xs text-[#6B7280] flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" />
+                  <div className="text-xs text-[#6B7280] dark:text-[#94A3B8] flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-[#9CA3AF] dark:text-[#64748B] shrink-0" />
                     <span className="line-clamp-1">{facility.address}</span>
                   </div>
                 </div>
 
                 {/* Metadata Pill Box */}
-                <div className="p-2.5 rounded-lg bg-[#F8F9FA] border border-[#E5E7EB] text-xs space-y-1 text-[#4B5563]">
+                <div className="p-2.5 rounded-lg bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] text-xs space-y-1 text-[#4B5563] dark:text-[#94A3B8]">
                   <div className="flex justify-between text-[11px]">
-                    <span className="text-[#6B7280]">Kondisi Fisik:</span>
-                    <span className="font-bold text-[#111827]">{facility.condition}</span>
+                    <span className="text-[#6B7280] dark:text-[#94A3B8]">Kondisi Fisik:</span>
+                    <span className="font-bold text-[#111827] dark:text-[#F9FAFB]">{facility.condition}</span>
                   </div>
                   <div className="flex justify-between text-[11px]">
-                    <span className="text-[#6B7280]">Kapasitas Layanan:</span>
-                    <span className="font-medium text-[#111827]">{facility.serviceCapacity}</span>
+                    <span className="text-[#6B7280] dark:text-[#94A3B8]">Kapasitas Layanan:</span>
+                    <span className="font-medium text-[#111827] dark:text-[#F9FAFB]">{facility.serviceCapacity}</span>
                   </div>
                   <div className="flex justify-between text-[11px]">
-                    <span className="text-[#6B7280]">Pengelola:</span>
-                    <span className="font-medium text-[#111827] truncate max-w-[170px]">{facility.responsibleAgency}</span>
+                    <span className="text-[#6B7280] dark:text-[#94A3B8]">Pengelola:</span>
+                    <span className="font-medium text-[#111827] dark:text-[#F9FAFB] truncate max-w-[170px]">{facility.responsibleAgency}</span>
                   </div>
                 </div>
               </div>
 
               {/* Action Footer */}
-              <div className="pt-3 border-t border-[#F3F4F6] flex items-center justify-between">
+              <div className="pt-3 border-t border-[#F3F4F6] dark:border-[#243042] flex items-center justify-between">
                 <button
                   onClick={() => toggleSaveFacility(facility.id)}
                   className={`p-2 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors ${
-                    isSaved ? 'text-[#0D9488] bg-[#F0FDF4]' : 'text-[#6B7280] hover:text-[#111827]'
+                    isSaved ? 'text-[#0D9488] bg-[#F0FDF4] dark:bg-[#0D9488]/15' : 'text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB]'
                   }`}
                   title={isSaved ? 'Hapus dari daftar pantau' : 'Simpan fasilitas'}
                 >
@@ -233,7 +233,7 @@ export const FacilitiesView: React.FC = () => {
 
                 <button
                   onClick={() => handleOpenDetail(facility)}
-                  className="px-3 py-1.5 bg-[#111827] hover:bg-[#1F2937] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
+                  className="px-3 py-1.5 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
                 >
                   <span>Lihat Profil</span>
                   <ArrowRight className="w-3.5 h-3.5" />

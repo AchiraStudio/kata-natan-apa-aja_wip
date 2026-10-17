@@ -1,6 +1,6 @@
 /**
  * TITIK. — NAVBAR & HEADER COMPONENT STYLES
- * Daylight Editorial Design System: Floating Island Header & Ergonomic Mobile Dock
+ * Daylight & Midnight Editorial: Floating Island Header & Ergonomic Mobile Dock
  */
 
 /* ==========================================================================
@@ -14,7 +14,7 @@
 
 /* Inner floating glassmorphic island */
 .navbar-floating-island {
-  @apply pointer-events-auto w-full max-w-7xl 2xl:max-w-[1536px] bg-[#FAF9F6]/90 backdrop-blur-md rounded-2xl border border-[#E5E4DF] shadow-[0_8px_30px_rgba(0,0,0,0.06)] px-3.5 sm:px-5 py-2.5 flex items-center justify-between gap-3 sm:gap-4 transition-all duration-200 hover:shadow-[0_12px_36px_rgba(0,0,0,0.08)];
+  @apply pointer-events-auto w-full max-w-7xl 2xl:max-w-[1536px] bg-[#FAF9F6]/90 dark:bg-[#151D2A]/90 backdrop-blur-md rounded-2xl border border-[#E5E4DF] dark:border-[#243042] shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)] px-3.5 sm:px-5 py-2.5 flex items-center justify-between gap-3 sm:gap-4 transition-all duration-200 hover:shadow-[0_12px_36px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_36px_rgba(0,0,0,0.45)];
 }
 
 /* Smart Auto-Hide States (Desktop & Mobile Top) */
@@ -34,7 +34,7 @@
 }
 
 .navbar-mobile-top-island {
-  @apply pointer-events-auto bg-[#FAF9F6]/90 backdrop-blur-md border border-[#E5E4DF] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] px-3.5 py-2 flex items-center justify-between;
+  @apply pointer-events-auto bg-[#FAF9F6]/90 dark:bg-[#151D2A]/90 backdrop-blur-md border border-[#E5E4DF] dark:border-[#243042] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.35)] px-3.5 py-2 flex items-center justify-between;
 }
 
 /* ==========================================================================
@@ -45,7 +45,7 @@
 }
 
 .navbar-mobile-dock-inner {
-  @apply pointer-events-auto bg-white/90 backdrop-blur-md border border-[#E5E4DF] rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.12)] p-1.5 flex items-center justify-around pb-[calc(0.375rem+env(safe-area-inset-bottom,0px))];
+  @apply pointer-events-auto bg-white/90 dark:bg-[#151D2A]/90 backdrop-blur-md border border-[#E5E4DF] dark:border-[#243042] rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.45)] p-1.5 flex items-center justify-around pb-[calc(0.375rem+env(safe-area-inset-bottom,0px))];
 }
 
 .navbar-visible-bottom {
@@ -61,11 +61,11 @@
 }
 
 .navbar-dock-item-active {
-  @apply text-[#0D9488] font-bold bg-[#0D9488]/10;
+  @apply text-[#0D9488] dark:text-[#14B8A6] font-bold bg-[#0D9488]/10 dark:bg-[#14B8A6]/15;
 }
 
 .navbar-dock-item-idle {
-  @apply text-[#6B7280] hover:text-[#111827] active:scale-95;
+  @apply text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] active:scale-95;
 }
 
 /* ==========================================================================
@@ -78,29 +78,29 @@
 }
 
 .navbar-menu-btn-active {
-  @apply bg-[#111827] border-[#111827] text-white shadow-xs;
+  @apply bg-[#111827] dark:bg-[#F9FAFB] border-[#111827] dark:border-[#F9FAFB] text-white dark:text-[#111827] shadow-xs;
 }
 
 .navbar-menu-btn-idle {
-  @apply bg-white border-[#E5E4DF] text-[#111827] hover:border-[#111827] hover:bg-[#FAF9F6];
+  @apply bg-white dark:bg-[#0B0F17] border-[#E5E4DF] dark:border-[#243042] text-[#111827] dark:text-[#F9FAFB] hover:border-[#111827] dark:hover:border-[#0D9488] hover:bg-[#FAF9F6] dark:hover:bg-[#151D2A];
 }
 
 /* Brand Wordmark & Monogram */
 .navbar-brand-logo {
-  @apply w-7 h-7 rounded-lg bg-[#111827] flex items-center justify-center text-white font-bold text-sm tracking-tighter shadow-xs transition-transform;
+  @apply w-7 h-7 rounded-lg bg-[#111827] dark:bg-[#0B0F17] dark:border dark:border-[#243042] flex items-center justify-center text-white font-bold text-sm tracking-tighter shadow-xs transition-transform;
 }
 
 .navbar-brand-title {
-  @apply font-extrabold text-base sm:text-lg tracking-tight text-[#111827] leading-none;
+  @apply font-extrabold text-base sm:text-lg tracking-tight text-[#111827] dark:text-[#F9FAFB] leading-none;
 }
 
 .navbar-brand-badge {
-  @apply text-[9px] font-mono-data text-[#6B7280] uppercase tracking-wider hidden sm:inline-block leading-none mt-1;
+  @apply text-[9px] font-mono-data text-[#6B7280] dark:text-[#94A3B8] uppercase tracking-wider hidden sm:inline-block leading-none mt-1;
 }
 
 /* Desktop Horizontal Pill Bar */
 .navbar-pill-bar {
-  @apply flex items-center bg-white rounded-2xl border border-[#E5E4DF] shadow-[0_2px_12px_rgba(0,0,0,0.04)] px-2 py-1.5 gap-0.5 relative;
+  @apply flex items-center bg-white dark:bg-[#0B0F17] rounded-2xl border border-[#E5E4DF] dark:border-[#243042] shadow-[0_2px_12px_rgba(0,0,0,0.04)] px-2 py-1.5 gap-0.5 relative;
 }
 
 .navbar-pill-item {
@@ -108,21 +108,21 @@
 }
 
 .navbar-pill-item-active {
-  @apply bg-[#111827] text-white font-bold shadow-xs;
+  @apply bg-[#111827] dark:bg-[#14B8A6] text-white font-bold shadow-xs;
 }
 
 .navbar-pill-item-idle {
-  @apply text-[#4B5563] hover:text-[#111827] hover:bg-[#FAF9F6] font-medium;
+  @apply text-[#4B5563] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] hover:bg-[#FAF9F6] dark:hover:bg-[#151D2A] font-medium;
 }
 
 /* Active Underline Pill Glow */
 .navbar-pill-indicator {
-  @apply absolute bottom-0 left-3 right-3 h-[2.5px] bg-[#0D9488] rounded-full;
+  @apply absolute bottom-0 left-3 right-3 h-[2.5px] bg-[#0D9488] dark:bg-[#14B8A6] rounded-full;
 }
 
 /* Quick Search Trigger Input in Header */
 .navbar-search-btn {
-  @apply hidden md:flex items-center gap-2 pl-3.5 pr-2.5 py-2 bg-white hover:bg-[#FAF9F6] rounded-xl border border-[#E5E4DF] text-xs text-[#6B7280] transition-all hover:border-[#111827]/40 shadow-2xs;
+  @apply hidden md:flex items-center gap-2 pl-3.5 pr-2.5 py-2 bg-white dark:bg-[#0B0F17] hover:bg-[#FAF9F6] dark:hover:bg-[#151D2A] rounded-xl border border-[#E5E4DF] dark:border-[#243042] text-xs text-[#6B7280] dark:text-[#94A3B8] transition-all hover:border-[#111827]/40 shadow-2xs;
 }
 
 /* Primary Report CTA in Header */

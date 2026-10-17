@@ -219,26 +219,26 @@ export const ReportView: React.FC = () => {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* Page Header */}
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 sm:p-8 shadow-tactile space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E7EB] pb-4">
+      <div className="bg-white dark:bg-[#151D2A] rounded-2xl border border-[#E5E7EB] dark:border-[#243042] p-6 sm:p-8 shadow-tactile space-y-4 transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E7EB] dark:border-[#243042] pb-4">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#DC2626]">
-              <span className="w-2 h-2 rounded-full bg-[#DC2626]"></span>
+            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#DC2626] dark:text-[#F87171]">
+              <span className="w-2 h-2 rounded-full bg-[#DC2626] dark:bg-[#F87171]"></span>
               <span>Partisipasi & Pengawasan Warga • Jabodetabek</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight">
               Tandai Titik Masalah & Kawal Realisasi
             </h1>
           </div>
 
           {/* Toggle Tab */}
-          <div className="inline-flex rounded-xl bg-[#F8F9FA] p-1 border border-[#E5E7EB] self-start sm:self-auto">
+          <div className="inline-flex rounded-xl bg-[#F8F9FA] dark:bg-[#101622] p-1 border border-[#E5E7EB] dark:border-[#243042] self-start sm:self-auto">
             <button
               onClick={() => setActiveTab('NEW_REPORT')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'NEW_REPORT'
-                  ? 'bg-white text-[#111827] shadow-xs'
-                  : 'text-[#6B7280] hover:text-[#111827]'
+                  ? 'bg-white dark:bg-[#1C2638] text-[#111827] dark:text-[#F9FAFB] shadow-xs'
+                  : 'text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB]'
               }`}
             >
               + Buat Laporan Baru
@@ -247,19 +247,19 @@ export const ReportView: React.FC = () => {
               onClick={() => setActiveTab('ALL_REPORTS')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                 activeTab === 'ALL_REPORTS'
-                  ? 'bg-white text-[#111827] shadow-xs'
-                  : 'text-[#6B7280] hover:text-[#111827]'
+                  ? 'bg-white dark:bg-[#1C2638] text-[#111827] dark:text-[#F9FAFB] shadow-xs'
+                  : 'text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB]'
               }`}
             >
               <span>Daftar Kasus Warga</span>
-              <span className="px-1.5 py-0.2 bg-[#F3F4F6] text-[#4B5563] rounded text-[10px] font-mono-data">
+              <span className="px-1.5 py-0.2 bg-[#F3F4F6] dark:bg-[#243042] text-[#4B5563] dark:text-[#94A3B8] rounded text-[10px] font-mono-data">
                 {reports.length}
               </span>
             </button>
           </div>
         </div>
 
-        <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed max-w-3xl">
+        <p className="text-xs sm:text-sm text-[#4B5563] dark:text-[#94A3B8] leading-relaxed max-w-3xl">
           Setiap masalah infrastruktur di lingkungan Anda dapat ditautkan langsung dengan pos anggaran APBD yang bertanggung jawab. Laporkan dengan bukti geotag presisi agar dapat dikawal bersama komunitas hingga tuntas.
         </p>
       </div>
@@ -269,13 +269,13 @@ export const ReportView: React.FC = () => {
       {/* ============================================================== */}
       {activeTab === 'ALL_REPORTS' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-tactile">
-            <div className="text-xs text-[#6B7280]">
-              Menampilkan <strong>{reports.length}</strong> kasus warga Jabodetabek yang terdaftar dalam observatorium.
+          <div className="flex items-center justify-between bg-white dark:bg-[#151D2A] p-4 rounded-xl border border-[#E5E7EB] dark:border-[#243042] shadow-tactile transition-colors">
+            <div className="text-xs text-[#6B7280] dark:text-[#94A3B8]">
+              Menampilkan <strong className="text-[#111827] dark:text-[#F9FAFB]">{reports.length}</strong> kasus warga Jabodetabek yang terdaftar dalam observatorium.
             </div>
             <button
               onClick={() => setActiveTab('NEW_REPORT')}
-              className="px-4 py-2 bg-[#111827] text-white text-xs font-bold rounded-lg hover:bg-[#1F2937] transition-all"
+              className="px-4 py-2 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs font-bold rounded-lg transition-all"
             >
               + Lapor Titik Baru
             </button>
@@ -285,12 +285,12 @@ export const ReportView: React.FC = () => {
             {reports.map(report => (
               <div
                 key={report.id}
-                className="bg-white rounded-2xl border border-[#E5E7EB] hover:border-[#111827] p-5 shadow-tactile shadow-tactile-hover transition-all flex flex-col justify-between group space-y-4"
+                className="bg-white dark:bg-[#151D2A] rounded-2xl border border-[#E5E7EB] dark:border-[#243042] hover:border-[#111827] dark:hover:border-[#0D9488] p-5 shadow-tactile transition-all flex flex-col justify-between group space-y-4"
               >
                 <div className="space-y-3">
                   <div 
                     onClick={() => navigate(`/lapor/${report.id}`)}
-                    className="relative h-44 rounded-xl overflow-hidden border border-[#E5E7EB] bg-[#F3F4F6] cursor-pointer"
+                    className="relative h-44 rounded-xl overflow-hidden border border-[#E5E7EB] dark:border-[#243042] bg-[#F3F4F6] dark:bg-[#101622] cursor-pointer"
                   >
                     <img 
                       src={report.photoUrl} 
@@ -298,15 +298,15 @@ export const ReportView: React.FC = () => {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                      <span className="text-[10px] font-mono-data font-bold bg-[#111827]/80 backdrop-blur-xs text-white px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-mono-data font-bold bg-[#111827]/80 dark:bg-[#0B0F17]/90 backdrop-blur-xs text-white px-2 py-0.5 rounded">
                         {report.id}
                       </span>
                     </div>
                     <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                      <span className="text-[10px] font-bold bg-white/90 backdrop-blur-xs text-[#111827] px-2 py-0.5 rounded border border-[#E5E7EB]">
+                      <span className="text-[10px] font-bold bg-white/90 dark:bg-[#151D2A]/90 backdrop-blur-xs text-[#111827] dark:text-[#F9FAFB] px-2 py-0.5 rounded border border-[#E5E7EB] dark:border-[#243042]">
                         {report.sector}
                       </span>
-                      <span className="text-[10px] font-bold bg-[#111827] text-white px-2 py-0.5 rounded font-mono-data">
+                      <span className="text-[10px] font-bold bg-[#111827] dark:bg-[#0D9488] text-white px-2 py-0.5 rounded font-mono-data">
                         Langkah {report.currentStep}/6
                       </span>
                     </div>
@@ -316,37 +316,37 @@ export const ReportView: React.FC = () => {
                     onClick={() => navigate(`/lapor/${report.id}`)}
                     className="cursor-pointer space-y-1"
                   >
-                    <div className="flex items-center gap-1.5 text-[11px] text-[#6B7280]">
-                      <MapPin className="w-3 h-3 text-[#9CA3AF]" />
+                    <div className="flex items-center gap-1.5 text-[11px] text-[#6B7280] dark:text-[#94A3B8]">
+                      <MapPin className="w-3 h-3 text-[#9CA3AF] dark:text-[#64748B]" />
                       <span>{report.subdistrict}</span>
                       <span>•</span>
                       <span>@{report.reporterHandle}</span>
                     </div>
 
-                    <h3 className="font-extrabold text-sm text-[#111827] group-hover:text-[#2563EB] transition-colors line-clamp-2 leading-snug">
+                    <h3 className="font-extrabold text-sm text-[#111827] dark:text-[#F9FAFB] group-hover:text-[#2563EB] dark:group-hover:text-[#38BDF8] transition-colors line-clamp-2 leading-snug">
                       {report.title}
                     </h3>
 
-                    <p className="text-xs text-[#4B5563] line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] line-clamp-2 leading-relaxed">
                       {report.description}
                     </p>
                   </div>
 
-                  <div className="text-[11px] text-[#4B5563] bg-[#F8F9FA] p-2.5 rounded-lg border border-[#E5E7EB] space-y-1">
-                    <div className="text-[10px] text-[#6B7280] font-semibold">Tautan Pos APBD:</div>
+                  <div className="text-[11px] text-[#4B5563] dark:text-[#94A3B8] bg-[#F8F9FA] dark:bg-[#101622] p-2.5 rounded-lg border border-[#E5E7EB] dark:border-[#243042] space-y-1">
+                    <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8] font-semibold">Tautan Pos APBD:</div>
                     <div className="font-medium truncate text-[#0D9488]">
                       {report.isBudgetLinkConfirmed ? report.linkedProjectTitle : 'Belum Ditautkan ke Proyek Aktif'}
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-[#F3F4F6] flex items-center justify-between">
+                <div className="pt-3 border-t border-[#F3F4F6] dark:border-[#243042] flex items-center justify-between">
                   <button
                     onClick={() => votePriority(report.id)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all transform active:scale-95 ${
                       report.userHasVoted
                         ? 'bg-[#0D9488] text-white shadow-xs'
-                        : 'bg-[#F8F9FA] text-[#111827] hover:bg-[#E5E7EB] border border-[#E5E7EB]'
+                        : 'bg-[#F8F9FA] dark:bg-[#1C2638] text-[#111827] dark:text-[#F9FAFB] hover:bg-[#E5E7EB] dark:hover:bg-[#243042] border border-[#E5E7EB] dark:border-[#243042]'
                     }`}
                   >
                     <ThumbsUp className="w-3.5 h-3.5" />
@@ -355,7 +355,7 @@ export const ReportView: React.FC = () => {
 
                   <button
                     onClick={() => navigate(`/lapor/${report.id}`)}
-                    className="text-xs font-bold text-[#111827] hover:text-[#2563EB] transition-colors flex items-center gap-1"
+                    className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB] hover:text-[#2563EB] dark:hover:text-[#38BDF8] transition-colors flex items-center gap-1"
                   >
                     <span>Audit Trail</span>
                     <ArrowRight className="w-3 h-3" />
@@ -371,10 +371,10 @@ export const ReportView: React.FC = () => {
       {/* MODE 2: 5-STEP GUIDED REPORTING WORKFLOW */}
       {/* ============================================================== */}
       {activeTab === 'NEW_REPORT' && !isSubmitted && (
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-tactile overflow-hidden">
+        <div className="bg-white dark:bg-[#151D2A] rounded-2xl border border-[#E5E7EB] dark:border-[#243042] shadow-tactile overflow-hidden transition-colors">
           
           {/* Stepper Progress Bar */}
-          <div className="border-b border-[#E5E7EB] bg-[#F8F9FA] px-4 sm:px-8 py-4">
+          <div className="border-b border-[#E5E7EB] dark:border-[#243042] bg-[#F8F9FA] dark:bg-[#101622] px-4 sm:px-8 py-4">
             <div className="flex items-center justify-between max-w-3xl mx-auto">
               {[
                 { s: 1, label: 'Lokasi & Objek' },
@@ -393,14 +393,14 @@ export const ReportView: React.FC = () => {
                         isPassed 
                           ? 'bg-[#0D9488] text-white' 
                           : isActive 
-                            ? 'bg-[#111827] text-white ring-4 ring-[#E5E7EB]' 
-                            : 'bg-white border border-[#D1D5DB] text-[#9CA3AF]'
+                            ? 'bg-[#111827] dark:bg-[#0D9488] text-white ring-4 ring-[#E5E7EB] dark:ring-[#243042]' 
+                            : 'bg-white dark:bg-[#151D2A] border border-[#D1D5DB] dark:border-[#334155] text-[#9CA3AF] dark:text-[#64748B]'
                       }`}
                     >
                       {isPassed ? '✓' : st.s}
                     </div>
                     <span className={`text-[11px] font-semibold hidden md:inline ${
-                      isActive ? 'text-[#111827]' : isPassed ? 'text-[#0D9488]' : 'text-[#9CA3AF]'
+                      isActive ? 'text-[#111827] dark:text-[#F9FAFB]' : isPassed ? 'text-[#0D9488]' : 'text-[#9CA3AF] dark:text-[#64748B]'
                     }`}>
                       {st.label}
                     </span>
@@ -415,11 +415,11 @@ export const ReportView: React.FC = () => {
             {/* STEP 1: LOKASI & SEKTOR */}
             {step === 1 && (
               <div className="space-y-6">
-                <div className="border-b border-[#E5E7EB] pb-3">
-                  <h3 className="font-extrabold text-lg text-[#111827]">
+                <div className="border-b border-[#E5E7EB] dark:border-[#243042] pb-3">
+                  <h3 className="font-extrabold text-lg text-[#111827] dark:text-[#F9FAFB]">
                     Langkah 1: Tentukan Wilayah & Objek Masalah
                   </h3>
-                  <p className="text-xs text-[#6B7280]">
+                  <p className="text-xs text-[#6B7280] dark:text-[#94A3B8]">
                     Pilih wilayah kecamatan dan sektor pelayanan publik yang berkaitan dengan masalah ini.
                   </p>
                 </div>
@@ -427,14 +427,14 @@ export const ReportView: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Kecamatan */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#111827]">Wilayah / Kota (Jabodetabek)</label>
+                    <label className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB]">Wilayah / Kota (Jabodetabek)</label>
                     <select
                       value={subdistrict}
                       onChange={e => {
                         setSubdistrict(e.target.value as SubdistrictType);
                         setFacilityId('');
                       }}
-                      className="w-full text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg p-2.5 font-medium text-[#111827] focus:outline-none focus:border-[#111827]"
+                      className="w-full text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg p-2.5 font-medium text-[#111827] dark:text-[#F9FAFB] focus:outline-none focus:border-[#111827] dark:focus:border-[#0D9488]"
                     >
                       {SUBDISTRICTS.map(sub => (
                         <option key={sub} value={sub}>{sub}</option>
@@ -444,14 +444,14 @@ export const ReportView: React.FC = () => {
 
                   {/* Sektor */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#111827]">Sektor Pelayanan</label>
+                    <label className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB]">Sektor Pelayanan</label>
                     <select
                       value={sector}
                       onChange={e => {
                         setSector(e.target.value as SectorType);
                         setFacilityId('');
                       }}
-                      className="w-full text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg p-2.5 font-medium text-[#111827] focus:outline-none focus:border-[#111827]"
+                      className="w-full text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg p-2.5 font-medium text-[#111827] dark:text-[#F9FAFB] focus:outline-none focus:border-[#111827] dark:focus:border-[#0D9488]"
                     >
                       {SECTORS.map(sec => (
                         <option key={sec} value={sec}>{sec}</option>
@@ -461,19 +461,19 @@ export const ReportView: React.FC = () => {
                 </div>
 
                 {/* Sektor Brief Info */}
-                <div className="p-3 bg-[#F8F9FA] rounded-xl border border-[#E5E7EB] text-xs space-y-1">
-                  <div className="font-bold text-[#111827] flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-[#2563EB]" />
+                <div className="p-3 bg-[#F8F9FA] dark:bg-[#101622] rounded-xl border border-[#E5E7EB] dark:border-[#243042] text-xs space-y-1">
+                  <div className="font-bold text-[#111827] dark:text-[#F9FAFB] flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#60A5FA]" />
                     <span>Fokus Pengawasan Sektor: {sector}</span>
                   </div>
-                  <p className="text-[#6B7280]">
+                  <p className="text-[#6B7280] dark:text-[#94A3B8]">
                     {SECTOR_DEFINITIONS.find(s => s.id === sector)?.description || 'Pelayanan publik standar daerah.'}
                   </p>
                 </div>
 
                 {/* Facility Choice */}
                 <div className="space-y-3">
-                  <label className="text-xs font-bold text-[#111827] block">
+                  <label className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB] block">
                     Jenis Objek Masalah
                   </label>
                   
@@ -483,15 +483,15 @@ export const ReportView: React.FC = () => {
                       onClick={() => setIsFacilityLinked(true)}
                       className={`p-3.5 rounded-xl border text-left transition-all ${
                         isFacilityLinked
-                          ? 'border-[#111827] bg-[#F8F9FA] ring-2 ring-[#111827]'
-                          : 'border-[#E5E7EB] hover:bg-[#F9FAFB]'
+                          ? 'border-[#111827] dark:border-[#0D9488] bg-[#F8F9FA] dark:bg-[#1C2638] ring-2 ring-[#111827] dark:ring-[#0D9488]'
+                          : 'border-[#E5E7EB] dark:border-[#243042] bg-white dark:bg-[#151D2A] hover:bg-[#F9FAFB] dark:hover:bg-[#1C2638]'
                       }`}
                     >
-                      <div className="font-bold text-xs text-[#111827] flex items-center gap-1.5">
-                        <Building2 className="w-4 h-4 text-[#2563EB]" />
+                      <div className="font-bold text-xs text-[#111827] dark:text-[#F9FAFB] flex items-center gap-1.5">
+                        <Building2 className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
                         <span>Fasilitas Publik Terdaftar</span>
                       </div>
-                      <p className="text-[11px] text-[#6B7280] mt-1">
+                      <p className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] mt-1">
                         Gedung sekolah, puskesmas, taman publik, jembatan terdata SIKD.
                       </p>
                     </button>
@@ -504,15 +504,15 @@ export const ReportView: React.FC = () => {
                       }}
                       className={`p-3.5 rounded-xl border text-left transition-all ${
                         !isFacilityLinked
-                          ? 'border-[#111827] bg-[#F8F9FA] ring-2 ring-[#111827]'
-                          : 'border-[#E5E7EB] hover:bg-[#F9FAFB]'
+                          ? 'border-[#111827] dark:border-[#0D9488] bg-[#F8F9FA] dark:bg-[#1C2638] ring-2 ring-[#111827] dark:ring-[#0D9488]'
+                          : 'border-[#E5E7EB] dark:border-[#243042] bg-white dark:bg-[#151D2A] hover:bg-[#F9FAFB] dark:hover:bg-[#1C2638]'
                       }`}
                     >
-                      <div className="font-bold text-xs text-[#111827] flex items-center gap-1.5">
+                      <div className="font-bold text-xs text-[#111827] dark:text-[#F9FAFB] flex items-center gap-1.5">
                         <MapPin className="w-4 h-4 text-[#DC2626]" />
                         <span>Titik Jalan / Lingkungan Umum</span>
                       </div>
-                      <p className="text-[11px] text-[#6B7280] mt-1">
+                      <p className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] mt-1">
                         Saluran drainase perkampungan, jalan lingkungan, trotoar bebas.
                       </p>
                     </button>
@@ -520,13 +520,13 @@ export const ReportView: React.FC = () => {
 
                   {isFacilityLinked && (
                     <div className="space-y-1.5 pt-2">
-                      <label className="text-xs font-semibold text-[#4B5563]">
+                      <label className="text-xs font-semibold text-[#4B5563] dark:text-[#94A3B8]">
                         Pilih Fasilitas Terdaftar di {subdistrict}:
                       </label>
                       <select
                         value={facilityId}
                         onChange={e => setFacilityId(e.target.value)}
-                        className="w-full text-xs bg-white border border-[#E5E7EB] rounded-lg p-2.5 font-medium text-[#111827] focus:outline-none focus:border-[#111827]"
+                        className="w-full text-xs bg-white dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg p-2.5 font-medium text-[#111827] dark:text-[#F9FAFB] focus:outline-none focus:border-[#111827] dark:focus:border-[#0D9488]"
                       >
                         <option value="">-- Pilih Fasilitas Terdata --</option>
                         {availableFacilities.map(f => (
@@ -544,10 +544,10 @@ export const ReportView: React.FC = () => {
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-[#E5E7EB] flex justify-end">
+                <div className="pt-4 border-t border-[#E5E7EB] dark:border-[#243042] flex justify-end">
                   <button
                     onClick={handleNext}
-                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all"
+                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all"
                   >
                     <span>Lanjutkan ke Deskripsi Masalah</span>
                     <ArrowRight className="w-4 h-4" />
@@ -559,18 +559,18 @@ export const ReportView: React.FC = () => {
             {/* STEP 2: DESKRIPSI & TINGKAT KEPARAHAN */}
             {step === 2 && (
               <div className="space-y-6">
-                <div className="border-b border-[#E5E7EB] pb-3">
-                  <h3 className="font-extrabold text-lg text-[#111827]">
+                <div className="border-b border-[#E5E7EB] dark:border-[#243042] pb-3">
+                  <h3 className="font-extrabold text-lg text-[#111827] dark:text-[#F9FAFB]">
                     Langkah 2: Rincian Masalah & Tingkat Keparahan
                   </h3>
-                  <p className="text-xs text-[#6B7280]">
+                  <p className="text-xs text-[#6B7280] dark:text-[#94A3B8]">
                     Tuliskan judul spesifik dan deskripsi objektif mengenai kerusakan fisik yang terjadi.
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#111827]">
+                    <label className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB]">
                       Judul Laporan Singkat & Jelas *
                     </label>
                     <input
@@ -578,12 +578,12 @@ export const ReportView: React.FC = () => {
                       placeholder="Contoh: Tanggul Drainase Jebol 4 Meter di Samping SDN Menteng"
                       value={title}
                       onChange={e => setTitle(e.target.value)}
-                      className="w-full text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg p-2.5 text-[#111827] focus:outline-none focus:border-[#111827]"
+                      className="w-full text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg p-2.5 text-[#111827] dark:text-[#F9FAFB] placeholder:text-[#9CA3AF] dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#111827] dark:focus:border-[#0D9488]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#111827]">
+                    <label className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB]">
                       Deskripsi Kronologis / Dampak Lapangan *
                     </label>
                     <textarea
@@ -591,13 +591,13 @@ export const ReportView: React.FC = () => {
                       placeholder="Jelaskan sejak kapan kerusakan terjadi, apakah menghambat akses warga/pasien, dan apakah sudah pernah dilaporkan ke RT/RW setempat..."
                       value={description}
                       onChange={e => setDescription(e.target.value)}
-                      className="w-full text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg p-2.5 text-[#111827] focus:outline-none focus:border-[#111827]"
+                      className="w-full text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg p-2.5 text-[#111827] dark:text-[#F9FAFB] placeholder:text-[#9CA3AF] dark:placeholder:text-[#64748B] focus:outline-none focus:border-[#111827] dark:focus:border-[#0D9488]"
                     />
                   </div>
 
                   {/* Tingkat Keparahan */}
                   <div className="space-y-2 pt-2">
-                    <label className="text-xs font-bold text-[#111827]">
+                    <label className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB]">
                       Tingkat Keparahan Dampak
                     </label>
                     
@@ -625,18 +625,18 @@ export const ReportView: React.FC = () => {
                           onClick={() => setSeverity(item.lvl)}
                           className={`p-3 rounded-xl border text-left transition-all ${
                             severity === item.lvl
-                              ? 'border-[#111827] bg-[#F8F9FA] ring-1 ring-[#111827]'
-                              : 'border-[#E5E7EB] bg-white hover:bg-[#F8F9FA]'
+                              ? 'border-[#111827] dark:border-[#0D9488] bg-[#F8F9FA] dark:bg-[#1C2638] ring-1 ring-[#111827] dark:ring-[#0D9488]'
+                              : 'border-[#E5E7EB] dark:border-[#243042] bg-white dark:bg-[#151D2A] hover:bg-[#F8F9FA] dark:hover:bg-[#1C2638]'
                           }`}
                         >
-                          <div className="font-bold text-xs text-[#111827] flex items-center justify-between">
+                          <div className="font-bold text-xs text-[#111827] dark:text-[#F9FAFB] flex items-center justify-between">
                             <span className="inline-flex items-center gap-1.5">
                               <span className={`w-2 h-2 rounded-full ${item.dot}`}></span>
                               <span>{item.lvl}</span>
                             </span>
-                            {severity === item.lvl && <span className="text-[10px] font-mono-data">Dipilih</span>}
+                            {severity === item.lvl && <span className="text-[10px] font-mono-data text-[#0D9488]">Dipilih</span>}
                           </div>
-                          <p className="text-[11px] text-[#4B5563] mt-1 leading-relaxed">
+                          <p className="text-[11px] text-[#4B5563] dark:text-[#94A3B8] mt-1 leading-relaxed">
                             {item.desc}
                           </p>
                         </button>
@@ -645,10 +645,10 @@ export const ReportView: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-[#E5E7EB] flex items-center justify-between">
+                <div className="pt-4 border-t border-[#E5E7EB] dark:border-[#243042] flex items-center justify-between">
                   <button
                     onClick={handleBack}
-                    className="px-4 py-2 text-xs font-semibold text-[#6B7280] hover:text-[#111827] flex items-center gap-1.5"
+                    className="px-4 py-2 text-xs font-semibold text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] flex items-center gap-1.5"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Kembali</span>
@@ -657,7 +657,7 @@ export const ReportView: React.FC = () => {
                   <button
                     onClick={handleNext}
                     disabled={!title.trim() || !description.trim()}
-                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] disabled:bg-[#D1D5DB] text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-all"
+                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] disabled:bg-[#D1D5DB] dark:disabled:bg-[#334155] text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-all"
                   >
                     <span>Lanjutkan ke Bukti Visual</span>
                     <ArrowRight className="w-4 h-4" />
@@ -669,11 +669,11 @@ export const ReportView: React.FC = () => {
             {/* STEP 3: BUKTI VISUAL & GEOTAG */}
             {step === 3 && (
               <div className="space-y-6">
-                <div className="border-b border-[#E5E7EB] pb-3">
-                  <h3 className="font-extrabold text-lg text-[#111827]">
+                <div className="border-b border-[#E5E7EB] dark:border-[#243042] pb-3">
+                  <h3 className="font-extrabold text-lg text-[#111827] dark:text-[#F9FAFB]">
                     Langkah 3: Foto Kondisi & Koordinat Lokasi
                   </h3>
-                  <p className="text-xs text-[#6B7280]">
+                  <p className="text-xs text-[#6B7280] dark:text-[#94A3B8]">
                     Pilih foto kondisi fisik lapangan dan atur identitas pelapor.
                   </p>
                 </div>
@@ -681,8 +681,8 @@ export const ReportView: React.FC = () => {
                 <div className="space-y-4">
                   {/* Photo Preset Selector */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[#111827] flex items-center gap-1.5">
-                      <Camera className="w-4 h-4 text-[#2563EB]" />
+                    <label className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB] flex items-center gap-1.5">
+                      <Camera className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
                       <span>Pilih Foto Bukti Kondisi Lapangan (Simulasi WIA)</span>
                     </label>
 
@@ -692,7 +692,7 @@ export const ReportView: React.FC = () => {
                           key={idx}
                           onClick={() => setPhotoUrl(p.url)}
                           className={`relative h-20 rounded-lg overflow-hidden border cursor-pointer group ${
-                            photoUrl === p.url ? 'ring-2 ring-[#111827] border-transparent' : 'border-[#E5E7EB]'
+                            photoUrl === p.url ? 'ring-2 ring-[#111827] dark:ring-[#0D9488] border-transparent' : 'border-[#E5E7EB] dark:border-[#243042]'
                           }`}
                         >
                           <img src={p.url} alt={p.label} className="w-full h-full object-cover" />
@@ -705,10 +705,10 @@ export const ReportView: React.FC = () => {
                   </div>
 
                   {/* Active Photo Preview Card */}
-                  <div className="rounded-xl overflow-hidden border border-[#E5E7EB] bg-[#F8F9FA]">
+                  <div className="rounded-xl overflow-hidden border border-[#E5E7EB] dark:border-[#243042] bg-[#F8F9FA] dark:bg-[#101622]">
                     <div className="h-52 sm:h-64 relative">
                       <img src={photoUrl} alt="Preview Bukti" className="w-full h-full object-cover" />
-                      <div className="absolute bottom-2 left-2 right-2 p-2 bg-[#111827]/85 backdrop-blur-xs text-white rounded-lg flex items-center justify-between text-xs font-mono-data">
+                      <div className="absolute bottom-2 left-2 right-2 p-2 bg-[#111827]/85 dark:bg-[#0B0F17]/90 backdrop-blur-xs text-white rounded-lg flex items-center justify-between text-xs font-mono-data">
                         <div className="flex items-center gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-[#0D9488]" />
                           <span>{coordinates[0].toFixed(5)}, {coordinates[1].toFixed(5)}</span>
@@ -721,15 +721,15 @@ export const ReportView: React.FC = () => {
                   {/* Reporter Handle & Privacy */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#111827]">Nama Akun Pelapor</label>
+                      <label className="text-xs font-bold text-[#111827] dark:text-[#F9FAFB]">Nama Akun Pelapor</label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#9CA3AF]">@</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#9CA3AF] dark:text-[#64748B]">@</span>
                         <input
                           type="text"
                           disabled={isAnonymous}
                           value={reporterHandle}
                           onChange={e => setReporterHandle(e.target.value)}
-                          className="w-full pl-7 pr-3 py-2 text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg text-[#111827] disabled:bg-[#E5E7EB] disabled:text-[#9CA3AF]"
+                          className="w-full pl-7 pr-3 py-2 text-xs bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg text-[#111827] dark:text-[#F9FAFB] disabled:bg-[#E5E7EB] dark:disabled:bg-[#1F2937] disabled:text-[#9CA3AF] dark:disabled:text-[#64748B] focus:outline-none focus:border-[#111827] dark:focus:border-[#0D9488]"
                         />
                       </div>
                     </div>
@@ -740,19 +740,19 @@ export const ReportView: React.FC = () => {
                         id="anonCheck"
                         checked={isAnonymous}
                         onChange={e => setIsAnonymous(e.target.checked)}
-                        className="w-4 h-4 rounded text-[#111827] focus:ring-0"
+                        className="w-4 h-4 rounded text-[#111827] dark:text-[#0D9488] focus:ring-0"
                       />
-                      <label htmlFor="anonCheck" className="text-xs font-medium text-[#4B5563] cursor-pointer">
+                      <label htmlFor="anonCheck" className="text-xs font-medium text-[#4B5563] dark:text-[#94A3B8] cursor-pointer">
                         Sembunyikan nama akun (Pelapor Anonim)
                       </label>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-[#E5E7EB] flex items-center justify-between">
+                <div className="pt-4 border-t border-[#E5E7EB] dark:border-[#243042] flex items-center justify-between">
                   <button
                     onClick={handleBack}
-                    className="px-4 py-2 text-xs font-semibold text-[#6B7280] hover:text-[#111827] flex items-center gap-1.5"
+                    className="px-4 py-2 text-xs font-semibold text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] flex items-center gap-1.5"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Kembali</span>
@@ -760,7 +760,7 @@ export const ReportView: React.FC = () => {
 
                   <button
                     onClick={handleNext}
-                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-all"
+                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-all"
                   >
                     <span>Lanjutkan ke Tautan APBD</span>
                     <ArrowRight className="w-4 h-4" />
@@ -772,37 +772,37 @@ export const ReportView: React.FC = () => {
             {/* STEP 4: KONTEKS OTOMATIS & PENCEGAHAN DUPLIKASI */}
             {step === 4 && (
               <div className="space-y-6">
-                <div className="border-b border-[#E5E7EB] pb-3">
-                  <h3 className="font-extrabold text-lg text-[#111827]">
+                <div className="border-b border-[#E5E7EB] dark:border-[#243042] pb-3">
+                  <h3 className="font-extrabold text-lg text-[#111827] dark:text-[#F9FAFB]">
                     Langkah 4: Tautan APBD & Cek Laporan Serupa
                   </h3>
-                  <p className="text-xs text-[#6B7280]">
+                  <p className="text-xs text-[#6B7280] dark:text-[#94A3B8]">
                     Periksa dinas penanggung jawab, pos anggaran terkait, dan laporan warga lain di lokasi yang sama.
                   </p>
                 </div>
 
                 {/* Auto Detection Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 bg-[#F8F9FA] rounded-xl border border-[#E5E7EB] space-y-1.5">
-                    <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">
+                  <div className="p-4 bg-[#F8F9FA] dark:bg-[#101622] rounded-xl border border-[#E5E7EB] dark:border-[#243042] space-y-1.5">
+                    <div className="text-[10px] font-bold text-[#6B7280] dark:text-[#94A3B8] uppercase tracking-wider">
                       Instansi Penanggung Jawab
                     </div>
-                    <div className="text-sm font-extrabold text-[#111827]">
+                    <div className="text-sm font-extrabold text-[#111827] dark:text-[#F9FAFB]">
                       {detectedAgency}
                     </div>
-                    <p className="text-[11px] text-[#4B5563]">
+                    <p className="text-[11px] text-[#4B5563] dark:text-[#94A3B8]">
                       Dinas teknis yang berwenang menangani sarana ini di Kecamatan {subdistrict}.
                     </p>
                   </div>
 
-                  <div className="p-4 bg-[#F8F9FA] rounded-xl border border-[#E5E7EB] space-y-1.5">
+                  <div className="p-4 bg-[#F8F9FA] dark:bg-[#101622] rounded-xl border border-[#E5E7EB] dark:border-[#243042] space-y-1.5">
                     <div className="text-[10px] font-bold text-[#0D9488] uppercase tracking-wider">
                       Tautan Pos Anggaran APBD
                     </div>
-                    <div className="text-sm font-extrabold text-[#111827]">
+                    <div className="text-sm font-extrabold text-[#111827] dark:text-[#F9FAFB]">
                       {linkedProject ? linkedProject.title : 'Pos Belanja Pemeliharaan Berkala'}
                     </div>
-                    <p className="text-[11px] text-[#4B5563]">
+                    <p className="text-[11px] text-[#4B5563] dark:text-[#94A3B8]">
                       {linkedProject 
                         ? `Pagu ${formatRupiahShort(linkedProject.budget.paguAnggaran)} • Pelaksana: ${linkedProject.contractorName}` 
                         : 'Menggunakan dana pemeliharaan rutin dinas terkait.'}
@@ -812,14 +812,14 @@ export const ReportView: React.FC = () => {
 
                 {/* Duplicate Warning / Prioritization Section */}
                 {potentialDuplicates.length > 0 && (
-                  <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB] space-y-3">
+                  <div className="p-4 rounded-xl bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] space-y-3">
                     <div className="flex items-start gap-2.5">
                       <AlertCircle className="w-4 h-4 text-[#D97706] shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-extrabold text-xs text-[#111827]">
+                        <h4 className="font-extrabold text-xs text-[#111827] dark:text-[#F9FAFB]">
                           Terdapat {potentialDuplicates.length} Laporan Serupa di Lokasi Ini
                         </h4>
-                        <p className="text-[11px] text-[#4B5563] mt-0.5 leading-relaxed">
+                        <p className="text-[11px] text-[#4B5563] dark:text-[#94A3B8] mt-0.5 leading-relaxed">
                           Jika masalah yang Anda temukan sama dengan laporan di bawah, berikan <strong>Suara Prioritas</strong> agar dukungan warga terkumpul pada satu kasus.
                         </p>
                       </div>
@@ -829,11 +829,11 @@ export const ReportView: React.FC = () => {
                       {potentialDuplicates.slice(0, 2).map(dup => (
                         <div 
                           key={dup.id}
-                          className="bg-white p-3 rounded-lg border border-[#E5E7EB] flex items-center justify-between gap-3 text-xs"
+                          className="bg-white dark:bg-[#151D2A] p-3 rounded-lg border border-[#E5E7EB] dark:border-[#243042] flex items-center justify-between gap-3 text-xs"
                         >
                           <div className="min-w-0">
-                            <div className="font-bold text-[#111827] truncate">{dup.title}</div>
-                            <div className="text-[10px] font-mono-data text-[#6B7280]">
+                            <div className="font-bold text-[#111827] dark:text-[#F9FAFB] truncate">{dup.title}</div>
+                            <div className="text-[10px] font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
                               {dup.subdistrict} • Tahap {dup.currentStep}/6 • {dup.priorityVotes} Suara
                             </div>
                           </div>
@@ -844,7 +844,7 @@ export const ReportView: React.FC = () => {
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 flex items-center gap-1 transition-all ${
                               dup.userHasVoted
                                 ? 'bg-[#0D9488] text-white'
-                                : 'bg-[#111827] text-white hover:bg-[#1F2937]'
+                                : 'bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white'
                             }`}
                           >
                             <ThumbsUp className="w-3 h-3" />
@@ -856,10 +856,10 @@ export const ReportView: React.FC = () => {
                   </div>
                 )}
 
-                <div className="pt-4 border-t border-[#E5E7EB] flex items-center justify-between">
+                <div className="pt-4 border-t border-[#E5E7EB] dark:border-[#243042] flex items-center justify-between">
                   <button
                     onClick={handleBack}
-                    className="px-4 py-2 text-xs font-semibold text-[#6B7280] hover:text-[#111827] flex items-center gap-1.5"
+                    className="px-4 py-2 text-xs font-semibold text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] flex items-center gap-1.5"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Kembali</span>
@@ -867,7 +867,7 @@ export const ReportView: React.FC = () => {
 
                   <button
                     onClick={handleNext}
-                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-all"
+                    className="px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-all"
                   >
                     <span>Lanjutkan ke Ringkasan</span>
                     <ArrowRight className="w-4 h-4" />
@@ -879,61 +879,61 @@ export const ReportView: React.FC = () => {
             {/* STEP 5: TINJAU & TERBITKAN */}
             {step === 5 && (
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="border-b border-[#E5E7EB] pb-3">
-                  <h3 className="font-extrabold text-lg text-[#111827]">
+                <div className="border-b border-[#E5E7EB] dark:border-[#243042] pb-3">
+                  <h3 className="font-extrabold text-lg text-[#111827] dark:text-[#F9FAFB]">
                     Langkah 5: Periksa & Kirim Laporan
                   </h3>
-                  <p className="text-xs text-[#6B7280]">
+                  <p className="text-xs text-[#6B7280] dark:text-[#94A3B8]">
                     Pastikan seluruh data lokasi dan deskripsi masalah sudah sesuai sebelum dikirim.
                   </p>
                 </div>
 
                 {/* Final Summary Card */}
-                <div className="bg-[#F8F9FA] rounded-xl border border-[#E5E7EB] p-4 sm:p-5 space-y-4">
+                <div className="bg-[#F8F9FA] dark:bg-[#101622] rounded-xl border border-[#E5E7EB] dark:border-[#243042] p-4 sm:p-5 space-y-4">
                   <div className="flex flex-col sm:flex-row gap-4">
                     <img 
                       src={photoUrl} 
                       alt="Review" 
-                      className="w-full sm:w-40 h-32 object-cover rounded-lg border border-[#E5E7EB]" 
+                      className="w-full sm:w-40 h-32 object-cover rounded-lg border border-[#E5E7EB] dark:border-[#243042]" 
                     />
                     <div className="space-y-2 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold bg-[#111827] text-white px-2 py-0.5 rounded">
+                        <span className="text-[10px] font-bold bg-[#111827] dark:bg-[#0D9488] text-white px-2 py-0.5 rounded">
                           {sector}
                         </span>
-                        <span className="text-[10px] font-bold bg-white text-[#111827] border border-[#E5E7EB] px-2 py-0.5 rounded inline-flex items-center gap-1">
+                        <span className="text-[10px] font-bold bg-white dark:bg-[#151D2A] text-[#111827] dark:text-[#F9FAFB] border border-[#E5E7EB] dark:border-[#243042] px-2 py-0.5 rounded inline-flex items-center gap-1">
                           <span className={`w-1.5 h-1.5 rounded-full ${
                             severity === 'Kritis' ? 'bg-[#DC2626]' : severity === 'Sedang' ? 'bg-[#D97706]' : 'bg-[#0D9488]'
                           }`}></span>
                           <span>Keparahan: {severity}</span>
                         </span>
                       </div>
-                      <h4 className="font-extrabold text-base text-[#111827] leading-snug">
+                      <h4 className="font-extrabold text-base text-[#111827] dark:text-[#F9FAFB] leading-snug">
                         {title}
                       </h4>
-                      <p className="text-xs text-[#4B5563] line-clamp-3">
+                      <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] line-clamp-3">
                         {description}
                       </p>
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-[#E5E7EB] grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="pt-3 border-t border-[#E5E7EB] dark:border-[#243042] grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
-                      <span className="text-[#6B7280]">Lokasi / Fasilitas:</span>
-                      <div className="font-bold text-[#111827]">
+                      <span className="text-[#6B7280] dark:text-[#94A3B8]">Lokasi / Fasilitas:</span>
+                      <div className="font-bold text-[#111827] dark:text-[#F9FAFB]">
                         {selectedFacilityObj ? selectedFacilityObj.name : `Titik Umum (${subdistrict})`}
                       </div>
                     </div>
                     <div>
-                      <span className="text-[#6B7280]">Instansi Penanggung Jawab:</span>
-                      <div className="font-bold text-[#111827]">{detectedAgency}</div>
+                      <span className="text-[#6B7280] dark:text-[#94A3B8]">Instansi Penanggung Jawab:</span>
+                      <div className="font-bold text-[#111827] dark:text-[#F9FAFB]">{detectedAgency}</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Open Civic Data Disclaimer */}
-                <div className="p-3.5 bg-white rounded-xl border border-[#E5E7EB] text-[11px] text-[#4B5563] space-y-1">
-                  <div className="font-bold text-[#111827] flex items-center gap-1.5">
+                <div className="p-3.5 bg-white dark:bg-[#151D2A] rounded-xl border border-[#E5E7EB] dark:border-[#243042] text-[11px] text-[#4B5563] dark:text-[#94A3B8] space-y-1">
+                  <div className="font-bold text-[#111827] dark:text-[#F9FAFB] flex items-center gap-1.5">
                     <FileCheck className="w-3.5 h-3.5 text-[#0D9488]" />
                     <span>Publikasi Data Terbuka</span>
                   </div>
@@ -942,11 +942,11 @@ export const ReportView: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="pt-4 border-t border-[#E5E7EB] flex items-center justify-between">
+                <div className="pt-4 border-t border-[#E5E7EB] dark:border-[#243042] flex items-center justify-between">
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="px-4 py-2 text-xs font-semibold text-[#6B7280] hover:text-[#111827] flex items-center gap-1.5"
+                    className="px-4 py-2 text-xs font-semibold text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] flex items-center gap-1.5"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Kembali</span>
@@ -954,7 +954,7 @@ export const ReportView: React.FC = () => {
 
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs sm:text-sm font-bold rounded-lg flex items-center gap-2 transition-all"
+                    className="px-6 py-2.5 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs sm:text-sm font-bold rounded-lg flex items-center gap-2 transition-all"
                   >
                     <span>Kirim Laporan Warga</span>
                     <ArrowRight className="w-4 h-4" />
@@ -971,8 +971,8 @@ export const ReportView: React.FC = () => {
       {/* SUCCESS CONFIRMATION MODAL / SCREEN */}
       {/* ============================================================== */}
       {isSubmitted && (
-        <div className="bg-white rounded-2xl border border-[#0D9488]/30 p-8 sm:p-10 shadow-tactile text-center space-y-6 max-w-2xl mx-auto">
-          <div className="w-16 h-16 rounded-full bg-[#ECFDF5] text-[#0D9488] flex items-center justify-center mx-auto border-2 border-[#A7F3D0]">
+        <div className="bg-white dark:bg-[#151D2A] rounded-2xl border border-[#0D9488]/30 dark:border-[#0D9488]/40 p-8 sm:p-10 shadow-tactile text-center space-y-6 max-w-2xl mx-auto transition-colors">
+          <div className="w-16 h-16 rounded-full bg-[#ECFDF5] dark:bg-[#0D9488]/20 text-[#0D9488] flex items-center justify-center mx-auto border-2 border-[#A7F3D0] dark:border-[#0D9488]/40">
             <CheckCircle2 className="w-8 h-8" />
           </div>
 
@@ -980,22 +980,22 @@ export const ReportView: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-[#0D9488]">
               Laporan Berhasil Dicatat & Geotag Terverifikasi
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight">
               Kasus Warga Terdaftar di Observatorium
             </h2>
-            <div className="inline-block px-3 py-1 bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg text-sm font-mono-data font-bold text-[#111827]">
+            <div className="inline-block px-3 py-1 bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] rounded-lg text-sm font-mono-data font-bold text-[#111827] dark:text-[#F9FAFB]">
               Kode Kasus: {createdReportId}
             </div>
           </div>
 
-          <p className="text-xs sm:text-sm text-[#4B5563] max-w-md mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#4B5563] dark:text-[#94A3B8] max-w-md mx-auto leading-relaxed">
             Laporan Anda telah masuk ke Tahap 2 (Verifikasi Bukti Visual & Geotag). Tautan APBD dan instansi penanggung jawab telah disinkronkan ke radar pengawasan.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
             <button
               onClick={() => navigate(`/lapor/${createdReportId}`)}
-              className="w-full sm:w-auto px-6 py-3 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-bold rounded-xl shadow-tactile flex items-center justify-center gap-2 transition-all"
+              className="w-full sm:w-auto px-6 py-3 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white text-xs font-bold rounded-xl shadow-tactile flex items-center justify-center gap-2 transition-all"
             >
               <span>Buka Halaman Audit Publik Kasus Ini</span>
               <ArrowRight className="w-4 h-4" />
@@ -1003,16 +1003,16 @@ export const ReportView: React.FC = () => {
 
             <button
               onClick={() => navigate('/peta')}
-              className="w-full sm:w-auto px-5 py-3 bg-white hover:bg-[#F3F4F6] text-[#111827] border border-[#E5E7EB] text-xs font-bold rounded-xl transition-colors"
+              className="w-full sm:w-auto px-5 py-3 bg-white dark:bg-[#1C2638] hover:bg-[#F3F4F6] dark:hover:bg-[#243042] text-[#111827] dark:text-[#F9FAFB] border border-[#E5E7EB] dark:border-[#243042] text-xs font-bold rounded-xl transition-colors"
             >
               Lihat di Peta Wilayah
             </button>
           </div>
 
-          <div className="pt-4 border-t border-[#E5E7EB]">
+          <div className="pt-4 border-t border-[#E5E7EB] dark:border-[#243042]">
             <button
               onClick={handleResetForm}
-              className="text-xs text-[#6B7280] hover:text-[#111827] font-semibold underline underline-offset-4"
+              className="text-xs text-[#6B7280] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-[#F9FAFB] font-semibold underline underline-offset-4"
             >
               + Tandai Titik Masalah Lainnya
             </button>
