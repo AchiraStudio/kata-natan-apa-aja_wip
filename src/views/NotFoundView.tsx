@@ -27,7 +27,7 @@ export const NotFoundView: React.FC = () => {
           Alamat atau kode kasus tidak terdaftar.
         </h1>
         <p className="text-sm sm:text-base text-[#4B5563] max-w-xl mx-auto leading-relaxed">
-          Periksa kembali URL yang Anda masukkan, atau gunakan pencarian cepat untuk menemukan fasilitas publik, paket anggaran, dan laporan warga Kota Bogor.
+          Periksa kembali URL yang Anda masukkan, atau gunakan pencarian cepat untuk menemukan fasilitas publik, paket anggaran, dan laporan warga di wilayah Jabodetabek.
         </p>
       </div>
 

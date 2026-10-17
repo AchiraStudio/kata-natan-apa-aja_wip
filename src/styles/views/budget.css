@@ -1,0 +1,25 @@
+/**
+ * TITIK. — BUDGET & APBD VIEW STYLES
+ * Easy to manage and edit: update budget summary cards, discrepancy alerts, and charts.
+ */
+
+.budget-page {
+  @apply min-h-screen bg-[#FAF9F6] pb-24;
+}
+
+.budget-container {
+  @apply max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8 space-y-6;
+}
+
+.budget-summary-banner {
+  @apply bg-white rounded-2xl border border-[#E5E4DF] p-6 sm:p-8 shadow-xs;
+}
+
+.budget-discrepancy-card {
+  @apply bg-white rounded-2xl border-2 border-[#DC2626]/20 p-5 sm:p-6 hover:shadow-tactile transition-all;
+}
+
+.budget-chart-container {
+  @apply bg-white rounded-2xl border border-[#E5E4DF] p-5 sm:p-6 shadow-xs;
+}
+

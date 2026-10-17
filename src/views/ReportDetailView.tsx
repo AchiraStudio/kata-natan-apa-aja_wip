@@ -302,8 +302,8 @@ export const ReportDetailView: React.FC = () => {
             </div>
 
             <div className="pt-2 border-t border-[#E5E7EB] text-[11px] text-[#6B7280] space-y-1">
-              <div>Kanal Pengaduan: SiBadra Pemkot Bogor</div>
-              <div>Sumber Data: Simulasi SIKD Kota Bogor</div>
+              <div>Kanal Pengaduan: Portal Pengaduan Resmi Pemda</div>
+              <div>Sumber Data: Simulasi SIKD Jabodetabek</div>
             </div>
           </div>
 
@@ -391,7 +391,7 @@ export const ReportDetailView: React.FC = () => {
               <span>Keterangan Sumber Data</span>
             </div>
             <p className="text-[#4B5563] leading-relaxed text-[11px]">
-              Catatan laporan dan tautan anggaran di halaman ini menggunakan data simulasi SIKD Kota Bogor untuk kompetisi WIA 2026.
+              Catatan laporan dan tautan anggaran di halaman ini menggunakan data simulasi SIKD wilayah Jabodetabek untuk kompetisi WIA 2026.
             </p>
           </div>
 

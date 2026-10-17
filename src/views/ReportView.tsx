@@ -88,7 +88,7 @@ export const ReportView: React.FC = () => {
   const [severity, setSeverity] = useState<'Rendah' | 'Sedang' | 'Kritis'>('Sedang');
 
   const [photoUrl, setPhotoUrl] = useState<string>(SAMPLE_PHOTO_PRESETS[0].url);
-  const [reporterHandle, setReporterHandle] = useState('warga_bogor_peduli');
+  const [reporterHandle, setReporterHandle] = useState('warga_peduli');
   const [isAnonymous, setIsAnonymous] = useState(false);
 
   // Initialize from query param or context
@@ -115,22 +115,22 @@ export const ReportView: React.FC = () => {
   const detectedAgency = selectedFacilityObj
     ? selectedFacilityObj.responsibleAgency
     : sector === 'Pendidikan'
-      ? 'Dinas Pendidikan Kota Bogor'
+      ? 'Dinas Pendidikan Pemda (Disdik)'
       : sector === 'Kesehatan'
-        ? 'Dinas Kesehatan Kota Bogor'
+        ? 'Dinas Kesehatan Pemda (Dinkes)'
         : sector === 'Lingkungan & Drainase'
-          ? 'Dinas Pekerjaan Umum & Penataan Ruang (PUPR) - SDA'
+          ? 'Dinas Sumber Daya Air / PUPR'
           : sector === 'Infrastruktur Jalan'
-            ? 'Dinas Pekerjaan Umum & Penataan Ruang (PUPR) - Bina Marga'
+            ? 'Dinas Bina Marga / PUPR'
             : sector === 'Ruang Terbuka Hijau'
-              ? 'Dinas Perumahan dan Permukiman (Disperumkim)'
+              ? 'Dinas Pertamanan & Hutan Kota / DLH'
               : sector === 'Pengelolaan Persampahan'
-                ? 'Dinas Lingkungan Hidup (DLH) Kota Bogor'
+                ? 'Dinas Lingkungan Hidup (DLH)'
                 : sector === 'Transportasi Publik'
-                  ? 'Dinas Perhubungan Kota Bogor'
+                  ? 'Dinas Perhubungan (Dishub)'
                   : sector === 'Pasar Tradisional'
-                    ? 'Perumda Pasar Pakuan Jaya / Disperindag'
-                    : 'Bagian Umum Setda Kota Bogor';
+                    ? 'Perumda Pasar Daerah / Disperindag'
+                    : 'DPMPTSP & Bagian Umum Pemda';
 
   // Auto-detected linked budget project
   const linkedProject = selectedFacilityObj && selectedFacilityObj.linkedProjectIds.length > 0
@@ -173,9 +173,9 @@ export const ReportView: React.FC = () => {
     // Slight randomized jitter for standalone coordinates
     const finalCoords: [number, number] = selectedFacilityObj
       ? [selectedFacilityObj.coordinates[0] + (Math.random() - 0.5) * 0.0008, selectedFacilityObj.coordinates[1] + (Math.random() - 0.5) * 0.0008]
-      : [-6.5971 + (Math.random() - 0.5) * 0.02, 106.8060 + (Math.random() - 0.5) * 0.02];
+      : [-6.2500 + (Math.random() - 0.5) * 0.05, 106.8200 + (Math.random() - 0.5) * 0.05];
 
-    const finalHandle = isAnonymous ? 'warga_anonim' : reporterHandle.replace('@', '').trim() || 'warga_bogor';
+    const finalHandle = isAnonymous ? 'warga_anonim' : reporterHandle.replace('@', '').trim() || 'warga_peduli';
 
     const newReport = addCitizenReport({
       title: title.trim(),
@@ -224,7 +224,7 @@ export const ReportView: React.FC = () => {
           <div className="space-y-1">
             <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#DC2626]">
               <span className="w-2 h-2 rounded-full bg-[#DC2626]"></span>
-              <span>Partisipasi & Pengawasan Warga • SIKD Kota Bogor</span>
+              <span>Partisipasi & Pengawasan Warga • Jabodetabek</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight">
               Tandai Titik Masalah & Kawal Realisasi
@@ -271,7 +271,7 @@ export const ReportView: React.FC = () => {
         <div className="space-y-6">
           <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-tactile">
             <div className="text-xs text-[#6B7280]">
-              Menampilkan <strong>{reports.length}</strong> kasus warga Kota Bogor yang terdaftar dalam observatorium.
+              Menampilkan <strong>{reports.length}</strong> kasus warga Jabodetabek yang terdaftar dalam observatorium.
             </div>
             <button
               onClick={() => setActiveTab('NEW_REPORT')}
@@ -427,7 +427,7 @@ export const ReportView: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Kecamatan */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#111827]">Kecamatan (Kota Bogor)</label>
+                    <label className="text-xs font-bold text-[#111827]">Wilayah / Kota (Jabodetabek)</label>
                     <select
                       value={subdistrict}
                       onChange={e => {
@@ -938,7 +938,7 @@ export const ReportView: React.FC = () => {
                     <span>Publikasi Data Terbuka</span>
                   </div>
                   <p>
-                    Laporan ini akan tampil pada peta dan direktori kasus warga Kota Bogor agar dapat dipantau bersama komunitas dan dinas terkait.
+                    Laporan ini akan tampil pada peta dan direktori kasus warga Jabodetabek agar dapat dipantau bersama komunitas dan dinas terkait.
                   </p>
                 </div>
 

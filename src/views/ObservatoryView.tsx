@@ -75,7 +75,7 @@ export const ObservatoryView: React.FC = () => {
       realisasiPenyerapan: realisasi,
       sisaPaguBelumTerikat: Math.max(0, pagu - terikat),
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: 'Oktober 2026'
     };
   }, [facilities, selectedSubdistrict, selectedSector]);
@@ -87,7 +87,8 @@ export const ObservatoryView: React.FC = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+    <div className="observatory-page">
+      <div className="observatory-container space-y-5">
       
       {/* Top Filter & Layer Control Bar */}
       <div className="bg-white p-4 rounded-xl border border-[#E5E7EB] space-y-3">
@@ -226,7 +227,7 @@ export const ObservatoryView: React.FC = () => {
             <InteractiveMap />
           </div>
           <div className="flex items-center justify-between text-[11px] text-[#6B7280] px-1 font-mono-data">
-            <span>Wilayah: Kota Bogor (-6.5971, 106.8060)</span>
+            <span>Wilayah: Jabodetabek</span>
             <span>Sumber: Simulasi SIKD 2026</span>
           </div>
         </div>
@@ -238,7 +239,7 @@ export const ObservatoryView: React.FC = () => {
           <div className="p-4 bg-[#F8F9FA] border-b border-[#E5E7EB] space-y-2.5">
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-[#111827]">
-                Anggaran {selectedSubdistrict === 'Semua' ? 'Kota Bogor' : selectedSubdistrict}
+                Anggaran {selectedSubdistrict === 'Semua' ? 'Jabodetabek' : selectedSubdistrict}
               </span>
               <span className="text-[11px] text-[#6B7280]">
                 {selectedSector === 'Semua' ? 'Semua Sektor' : selectedSector}
@@ -421,7 +422,7 @@ export const ObservatoryView: React.FC = () => {
               <div className="p-4">
                 <BudgetBreakdownCard
                   budget={aggregateBudget}
-                  title={`Rincian Anggaran: ${selectedSubdistrict === 'Semua' ? 'Kota Bogor' : selectedSubdistrict}`}
+                  title={`Rincian Anggaran: ${selectedSubdistrict === 'Semua' ? 'Jabodetabek' : selectedSubdistrict}`}
                   subtitle={selectedSector === 'Semua' ? 'Gabungan 9 Sektor Layanan Publik' : `Sektor ${selectedSector}`}
                 />
               </div>
@@ -430,8 +431,8 @@ export const ObservatoryView: React.FC = () => {
           </div>
 
         </aside>
-
       </div>
     </div>
-  );
+  </div>
+);
 };

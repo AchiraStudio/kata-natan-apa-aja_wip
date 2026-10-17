@@ -1,0 +1,60 @@
+/**
+ * TITIK. — MODAL & DIALOG COMPONENT STYLES
+ * Easy to manage and edit: update modal backdrops, dialog window, headers, and footers.
+ */
+
+/* Fixed Modal Overlay Wrapper */
+.modal-overlay {
+  @apply fixed inset-0 z-50 overflow-y-auto;
+}
+
+/* Centering Canvas Container */
+.modal-centering-wrap {
+  @apply min-h-screen px-3 py-4 sm:p-6 flex items-center justify-center text-center;
+}
+
+/* Modal Blurred Backdrop */
+.modal-backdrop {
+  @apply fixed inset-0 bg-[#111827]/40 backdrop-blur-xs transition-opacity duration-200;
+}
+
+/* Modal Window Container Card */
+.modal-window {
+  @apply relative z-10 w-full bg-white rounded-2xl border border-[#E5E4DF] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.18)] flex flex-col text-left max-h-[90vh] overflow-hidden select-none;
+}
+
+/* Modal Header Bar */
+.modal-header {
+  @apply p-4 sm:p-5 border-b border-[#E5E4DF] bg-[#FAF9F6]/90 flex items-center justify-between gap-3 shrink-0;
+}
+
+/* Modal Icon Container */
+.modal-icon-badge {
+  @apply w-9 h-9 rounded-xl bg-white border border-[#E5E4DF] text-[#111827] flex items-center justify-center shrink-0 shadow-2xs;
+}
+
+/* Modal Title Headline */
+.modal-title-text {
+  @apply font-extrabold text-base sm:text-lg text-[#111827] tracking-tight truncate;
+}
+
+/* Modal Subtitle */
+.modal-subtitle-text {
+  @apply text-xs text-[#6B7280] truncate mt-0.5;
+}
+
+/* Modal Close Button */
+.modal-close-button {
+  @apply w-8 h-8 rounded-lg bg-white hover:bg-[#F3F4F6] text-[#6B7280] hover:text-[#111827] border border-[#E5E4DF] flex items-center justify-center transition-colors shadow-2xs active:scale-95 shrink-0;
+}
+
+/* Modal Scrollable Body */
+.modal-body {
+  @apply flex-1 overflow-y-auto p-4 sm:p-6;
+}
+
+/* Modal Footer Bar */
+.modal-footer {
+  @apply p-4 sm:p-5 border-t border-[#E5E4DF] bg-[#FAF9F6]/80 flex flex-wrap items-center justify-between gap-3 shrink-0;
+}
+

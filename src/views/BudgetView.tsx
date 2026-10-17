@@ -65,7 +65,7 @@ export const BudgetView: React.FC = () => {
       realisasiPenyerapan: realisasi,
       sisaPaguBelumTerikat: Math.max(0, pagu - terikat),
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi Terbuka Format SIKD Kemendagri & BPKAD Kota Bogor 2026',
+      dataSource: 'Simulasi Terbuka Format SIKD Kemendagri & Portal Satu Data Jabodetabek 2026',
       lastUpdated: '15 Oktober 2026'
     };
   }, [budgetPrograms]);
@@ -88,7 +88,7 @@ export const BudgetView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E7EB] pb-4">
           <div className="space-y-1">
             <div className="text-xs font-semibold uppercase tracking-wider text-[#6B7280]">
-              Data Terbuka Keuangan Daerah • APBD Kota Bogor 2026
+              Data Terbuka Keuangan Daerah • APBD Wilayah Jabodetabek 2026
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight">
               Rincian Pagu, Kontrak, dan Pencairan Kas Daerah
@@ -111,7 +111,7 @@ export const BudgetView: React.FC = () => {
       {/* 4-Tier City Breakdown */}
       <BudgetBreakdownCard
         budget={totalCityBudget}
-        title="Rekapitulasi Anggaran 9 Sektor Layanan Publik Kota Bogor"
+        title="Rekapitulasi Anggaran 9 Sektor Layanan Publik Wilayah Jabodetabek"
         subtitle="Akumulasi program kerja dinas teknis per 30 September 2026"
       />
 

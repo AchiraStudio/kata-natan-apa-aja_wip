@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { useTitik } from '../context/TitikContext';
-import { KOTA_BOGOR_COORDINATES } from '../data/titikRegionalData';
 import { OfflineMapFallback } from './OfflineMapFallback';
 import { Layers, MapPin } from 'lucide-react';
 
@@ -10,6 +9,7 @@ export const InteractiveMap: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const mapTilerApiKey = import.meta.env.VITE_MAPTILER_API_KEY?.trim();
 
   const { 
     facilities, 
@@ -33,20 +33,26 @@ export const InteractiveMap: React.FC = () => {
     if (!mapInstanceRef.current) {
       try {
         const map = L.map(mapContainerRef.current, {
-          center: KOTA_BOGOR_COORDINATES,
-          zoom: 13,
+          center: [-6.35, 106.8],
+          zoom: 9,
           zoomControl: false,
           attributionControl: false
         });
 
-        // Daylight Minimalist Tile Layer (CartoDB Positron)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        const tileUrl = mapTilerApiKey
+          ? `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${encodeURIComponent(mapTilerApiKey)}`
+          : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+        L.tileLayer(tileUrl, {
           maxZoom: 19,
           subdomains: 'abcd',
         }).addTo(map);
 
         // Attribution
-        L.control.attribution({ position: 'bottomright', prefix: '© OpenStreetMap, © CARTO • TITIK. SIKD' }).addTo(map);
+        const tileAttribution = mapTilerApiKey
+          ? '© MapTiler, © OpenStreetMap contributors'
+          : '© OpenStreetMap, © CARTO';
+        L.control.attribution({ position: 'bottomright', prefix: `${tileAttribution} • TITIK. SIKD` }).addTo(map);
 
         // Zoom control
         L.control.zoom({ position: 'topright' }).addTo(map);
@@ -86,21 +92,7 @@ export const InteractiveMap: React.FC = () => {
         const isSelected = selectedFacility?.id === fac.id;
 
         const iconHtml = `
-          <div style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: ${isSelected ? '38px' : '30px'};
-            height: ${isSelected ? '38px' : '30px'};
-            background-color: #2563EB;
-            color: #FFFFFF;
-            border-radius: 50%;
-            border: 2px solid #FFFFFF;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            transform: ${isSelected ? 'scale(1.15)' : 'scale(1)'};
-          ">
+          <div class="map-pin-base map-pin-facility ${isSelected ? 'w-[38px] h-[38px] scale-110' : 'w-[30px] h-[30px]'}">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 21h18"/>
               <path d="M5 21V7l8-4v18"/>
@@ -123,19 +115,19 @@ export const InteractiveMap: React.FC = () => {
         const marker = L.marker(fac.coordinates, { icon: customIcon });
         
         marker.bindPopup(`
-          <div style="font-family: inherit; padding: 4px; max-width: 220px;">
-            <div style="font-size: 10px; font-weight: 700; color: #2563EB; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">
+          <div class="map-popup-card">
+            <div class="map-popup-badge-facility">
               Fasilitas Publik • ${fac.sector}
             </div>
-            <div style="font-size: 13px; font-weight: 700; color: #111827; line-height: 1.3; margin-bottom: 4px;">
+            <div class="map-popup-title">
               ${fac.name}
             </div>
-            <div style="font-size: 11px; color: #4B5563; margin-bottom: 6px;">
+            <div class="map-popup-address">
               ${fac.address}
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #E5E7EB; padding-top: 6px;">
-              <span style="font-size: 10px; color: #6B7280;">Kondisi: <strong>${fac.condition}</strong></span>
-              <span style="font-size: 11px; font-weight: 700; color: #111827;">${fac.activeReportsCount} Laporan</span>
+            <div class="map-popup-footer">
+              <span class="text-[10px] text-[#6B7280]">Kondisi: <strong>${fac.condition}</strong></span>
+              <span class="text-[11px] font-bold text-[#111827]">${fac.activeReportsCount} Laporan</span>
             </div>
           </div>
         `);
@@ -161,21 +153,7 @@ export const InteractiveMap: React.FC = () => {
         const isSelected = selectedReport?.id === rep.id;
 
         const iconHtml = `
-          <div style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: ${isSelected ? '36px' : '28px'};
-            height: ${isSelected ? '36px' : '28px'};
-            background-color: ${color};
-            color: #FFFFFF;
-            border-radius: 50%;
-            border: 2px solid #FFFFFF;
-            box-shadow: 0 4px 12px ${isCompleted ? 'rgba(13, 148, 136, 0.4)' : 'rgba(220, 38, 38, 0.4)'};
-            cursor: pointer;
-            transition: all 0.2s ease;
-            transform: ${isSelected ? 'scale(1.15)' : 'scale(1)'};
-          ">
+          <div class="map-pin-base ${isCompleted ? 'map-pin-report-green' : 'map-pin-report-urgent'} ${isSelected ? 'w-[36px] h-[36px] scale-110' : 'w-[28px] h-[28px]'}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               ${isCompleted 
                 ? '<path d="M20 6L9 17l-5-5"/>'
@@ -196,19 +174,19 @@ export const InteractiveMap: React.FC = () => {
         const marker = L.marker(rep.coordinates, { icon: customIcon });
 
         marker.bindPopup(`
-          <div style="font-family: inherit; padding: 4px; max-width: 220px;">
-            <div style="font-size: 10px; font-weight: 700; color: ${color}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">
+          <div class="map-popup-card">
+            <div class="map-popup-badge-report ${isCompleted ? 'text-[#0D9488]' : 'text-[#DC2626]'}">
               ${isCompleted ? 'Tuntas Terverifikasi' : 'Titik Masalah Warga'}
             </div>
-            <div style="font-size: 12px; font-weight: 700; color: #111827; line-height: 1.3; margin-bottom: 4px;">
+            <div class="map-popup-title">
               ${rep.title}
             </div>
-            <div style="font-size: 10px; color: #4B5563; margin-bottom: 6px;">
+            <div class="map-popup-desc">
               Oleh: @${rep.reporterHandle} • Langkah ${rep.currentStep}/6
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #E5E7EB; padding-top: 6px;">
-              <span style="font-size: 11px; font-weight: 700; color: #111827;">${rep.priorityVotes} Suara Prioritas</span>
-              <span style="font-size: 10px; color: #2563EB;">Lihat Audit &rarr;</span>
+            <div class="map-popup-footer">
+              <span class="text-[11px] font-bold text-[#111827]">${rep.priorityVotes} Suara Prioritas</span>
+              <span class="text-[10px] text-[#2563EB]">Lihat Audit &rarr;</span>
             </div>
           </div>
         `);
@@ -238,20 +216,7 @@ export const InteractiveMap: React.FC = () => {
         ];
 
         const iconHtml = `
-          <div style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            background-color: #D97706;
-            color: #FFFFFF;
-            border-radius: 50%;
-            border: 2px solid #FFFFFF;
-            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
-            cursor: pointer;
-            transition: all 0.2s ease;
-          ">
+          <div class="map-pin-base map-pin-project w-[28px] h-[28px]">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
@@ -270,14 +235,14 @@ export const InteractiveMap: React.FC = () => {
         const marker = L.marker(prjCoord, { icon: customIcon });
 
         marker.bindPopup(`
-          <div style="font-family: inherit; padding: 4px; max-width: 220px;">
-            <div style="font-size: 10px; font-weight: 700; color: #D97706; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">
+          <div class="map-popup-card">
+            <div class="map-popup-badge-project">
               Proyek APBD • ${prj.progressPercent}% Progres
             </div>
-            <div style="font-size: 12px; font-weight: 700; color: #111827; line-height: 1.3; margin-bottom: 4px;">
+            <div class="map-popup-title">
               ${prj.title}
             </div>
-            <div style="font-size: 10px; color: #4B5563; margin-bottom: 6px;">
+            <div class="map-popup-desc">
               Pagu: <strong>Rp ${(prj.budget.paguAnggaran / 1_000_000).toFixed(0)} Jt</strong>
             </div>
           </div>

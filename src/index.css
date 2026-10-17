@@ -1,103 +1,32 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-serif: 'Instrument Serif', Georgia, serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
-    --canvas-bg: #F8F9FA;
-    --card-bg: #FFFFFF;
-    --ink-primary: #111827;
-    --ink-secondary: #4B5563;
-    --ink-muted: #6B7280;
-    --border-hairline: #E5E7EB;
-  }
+/* ========================================================================= */
+/* TITIK. SYSTEM STYLES MANIFEST                                            */
+/* All modular CSS files are organized in src/styles/ for easy management   */
+/* ========================================================================= */
 
-  body {
-    font-family: var(--font-sans);
-    background-color: var(--canvas-bg);
-    color: var(--ink-primary);
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-  }
+/* 1. Design Tokens & CSS Variables */
+@import "./styles/tokens.css";
 
-  /* JetBrains Mono font class for data tables, currencies, coordinates */
-  .font-mono-data {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-  }
+/* 2. Global Typography & Fonts */
+@import "./styles/typography.css";
 
-  /* Instrument Serif italic editorial font class for hero headline accents */
-  .font-serif-editorial {
-    font-family: var(--font-serif);
-    font-style: italic;
-    font-weight: 400;
-  }
+/* 3. Global Utilities, Shadows & Scrollbar */
+@import "./styles/utilities.css";
 
-  /* Custom subtle daylight shadow */
-  .shadow-tactile {
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
-  }
+/* 4. Leaflet Map, Custom Pins & Popups */
+@import "./styles/leaflet.css";
 
-  .shadow-tactile-hover:hover {
-    box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.07), 0 2px 6px 0 rgba(0, 0, 0, 0.03);
-  }
-}
+/* 5. Reusable Component Styles */
+@import "./styles/components/buttons.css";
+@import "./styles/components/cards.css";
+@import "./styles/components/modal.css";
+@import "./styles/components/navbar.css";
+@import "./styles/components/footer.css";
 
-/* Leaflet Map Customization for Daylight Editorial */
-.leaflet-container {
-  font-family: var(--font-sans) !important;
-  background-color: #F3F4F6 !important;
-  border-radius: inherit;
-  z-index: 1;
-}
-
-.leaflet-control-zoom {
-  border: 1px solid #E5E7EB !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
-  border-radius: 8px !important;
-  overflow: hidden;
-}
-
-.leaflet-control-zoom-in,
-.leaflet-control-zoom-out {
-  background-color: #FFFFFF !important;
-  color: #111827 !important;
-  border-bottom: 1px solid #E5E7EB !important;
-}
-
-.leaflet-control-zoom-in:hover,
-.leaflet-control-zoom-out:hover {
-  background-color: #F9FAFB !important;
-}
-
-.leaflet-popup-content-wrapper {
-  background: #FFFFFF !important;
-  color: #111827 !important;
-  border: 1px solid #E5E7EB !important;
-  border-radius: 12px !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08) !important;
-  padding: 4px !important;
-}
-
-.leaflet-popup-tip {
-  background: #FFFFFF !important;
-  border: 1px solid #E5E7EB !important;
-}
-
-/* Custom minimal scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #F8F9FA;
-}
-::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
-}
+/* 6. View & Page Styles */
+@import "./styles/views/landing.css";
+@import "./styles/views/observatory.css";
+@import "./styles/views/facilities.css";
+@import "./styles/views/reports.css";
+@import "./styles/views/budget.css";

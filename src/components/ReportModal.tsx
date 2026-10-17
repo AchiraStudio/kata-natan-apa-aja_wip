@@ -55,12 +55,12 @@ export const ReportModal: React.FC = () => {
   const detectedAgency = selectedFacilityObj 
     ? selectedFacilityObj.responsibleAgency
     : sector === 'Pendidikan'
-      ? 'Dinas Pendidikan Kota Bogor'
+      ? 'Dinas Pendidikan Pemda (Disdik)'
       : sector === 'Kesehatan'
-        ? 'Dinas Kesehatan Kota Bogor'
+        ? 'Dinas Kesehatan Pemda (Dinkes)'
         : sector === 'Lingkungan & Drainase'
-          ? 'Dinas Pekerjaan Umum & Penataan Ruang (PUPR) - Bidang SDA'
-          : 'Dinas Pekerjaan Umum & Penataan Ruang (PUPR) - Bidang Bina Marga';
+          ? 'Dinas Sumber Daya Air / PUPR'
+          : 'Dinas Bina Marga / PUPR';
 
   // Automated Context: Budget Linkage
   const linkedProject = selectedFacilityObj && selectedFacilityObj.linkedProjectIds.length > 0

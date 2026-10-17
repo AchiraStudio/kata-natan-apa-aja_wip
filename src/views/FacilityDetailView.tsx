@@ -33,7 +33,7 @@ export const FacilityDetailView: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
         <h2 className="text-2xl font-bold text-[#111827]">Fasilitas Tidak Ditemukan</h2>
         <p className="text-xs text-[#6B7280]">
-          ID Fasilitas "{id}" tidak terdaftar dalam basis data simulasi SIKD Kota Bogor.
+          ID Fasilitas "{id}" tidak terdaftar dalam basis data simulasi SIKD Jabodetabek.
         </p>
         <button
           onClick={() => navigate('/fasilitas')}
@@ -155,7 +155,7 @@ export const FacilityDetailView: React.FC = () => {
       <BudgetBreakdownCard
         budget={facility.budgetSummary}
         title={`Rincian Anggaran Pemeliharaan: ${facility.name}`}
-        subtitle={`Alokasi APBD Kota Bogor TA 2026 pada fasilitas ini`}
+        subtitle={`Alokasi APBD Wilayah Jabodetabek TA 2026 pada fasilitas ini`}
       />
 
       {/* Active Projects and Citizen Cases Grid */}
@@ -168,7 +168,7 @@ export const FacilityDetailView: React.FC = () => {
               <Coins className="w-4 h-4 text-[#D97706]" />
               <span>Paket Pekerjaan APBD ({linkedProjects.length})</span>
             </h3>
-            <span className="text-xs text-[#6B7280]">SIKD Kota Bogor</span>
+            <span className="text-xs text-[#6B7280]">SIKD Jabodetabek</span>
           </div>
 
           {linkedProjects.length === 0 ? (

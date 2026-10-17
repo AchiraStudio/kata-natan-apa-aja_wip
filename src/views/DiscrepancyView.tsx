@@ -29,7 +29,7 @@ export const DiscrepancyView: React.FC = () => {
       {/* Editorial Masthead */}
       <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 sm:p-8 space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wider text-[#6B7280]">
-          Evaluasi Pelaksanaan Proyek • Kota Bogor 2026
+          Evaluasi Pelaksanaan Proyek • Jabodetabek 2026
         </div>
 
         <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight">
@@ -49,7 +49,7 @@ export const DiscrepancyView: React.FC = () => {
               Perbandingan Persentase Dana Cair (%) dan Jumlah Laporan Warga
             </h3>
             <p className="text-xs text-[#6B7280] mt-0.5">
-              Lima sampel fasilitas publik di Kota Bogor per Kuartal IV 2026
+              Sampel fasilitas publik di wilayah Jabodetabek per Kuartal IV 2026
             </p>
           </div>
           <span className="text-xs font-mono-data text-[#6B7280]">

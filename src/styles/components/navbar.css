@@ -1,0 +1,76 @@
+/**
+ * TITIK. — NAVBAR & HEADER COMPONENT STYLES
+ * Easy to manage and edit: update header bar, navigation pills, brand mark, and flyouts.
+ */
+
+/* Sticky Header Bar */
+.navbar-header {
+  @apply sticky top-0 z-40 bg-[#FAF9F6]/95 backdrop-blur-md border-b border-[#E5E4DF] transition-all;
+}
+
+.navbar-container {
+  @apply max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12;
+}
+
+.navbar-inner {
+  @apply flex items-center justify-between h-16 sm:h-[70px] gap-3 sm:gap-4;
+}
+
+/* Circular Hamburger Button */
+.navbar-menu-btn {
+  @apply w-9 h-9 sm:w-10 sm:h-10 rounded-full border transition-all flex items-center justify-center focus:outline-none active:scale-95 shadow-2xs;
+}
+
+.navbar-menu-btn-active {
+  @apply bg-[#111827] border-[#111827] text-white shadow-xs;
+}
+
+.navbar-menu-btn-idle {
+  @apply bg-white border-[#E5E4DF] text-[#111827] hover:border-[#111827] hover:bg-[#FAF9F6];
+}
+
+/* Brand Wordmark & Monogram */
+.navbar-brand-logo {
+  @apply w-7 h-7 rounded-lg bg-[#111827] flex items-center justify-center text-white font-bold text-sm tracking-tighter shadow-xs transition-transform;
+}
+
+.navbar-brand-title {
+  @apply font-extrabold text-base sm:text-lg tracking-tight text-[#111827] leading-none;
+}
+
+.navbar-brand-badge {
+  @apply text-[9px] font-mono-data text-[#6B7280] uppercase tracking-wider hidden sm:inline-block leading-none mt-1;
+}
+
+/* Desktop Horizontal Pill Bar */
+.navbar-pill-bar {
+  @apply hidden lg:flex items-center bg-white rounded-2xl border border-[#E5E4DF] shadow-[0_2px_12px_rgba(0,0,0,0.04)] px-2 py-1.5 gap-0.5 relative;
+}
+
+.navbar-pill-item {
+  @apply relative px-3 sm:px-3.5 py-2 text-xs rounded-xl flex items-center gap-1.5 transition-all select-none;
+}
+
+.navbar-pill-item-active {
+  @apply bg-[#111827] text-white font-bold shadow-xs;
+}
+
+.navbar-pill-item-idle {
+  @apply text-[#4B5563] hover:text-[#111827] hover:bg-[#FAF9F6] font-medium;
+}
+
+/* Active Underline Pill Glow */
+.navbar-pill-indicator {
+  @apply absolute bottom-0 left-3 right-3 h-[2.5px] bg-[#0D9488] rounded-full;
+}
+
+/* Quick Search Trigger Input in Header */
+.navbar-search-btn {
+  @apply hidden md:flex items-center gap-2 pl-3.5 pr-2.5 py-2 bg-white hover:bg-[#FAF9F6] rounded-xl border border-[#E5E4DF] text-xs text-[#6B7280] transition-all hover:border-[#111827]/40 shadow-2xs;
+}
+
+/* Primary Report CTA in Header */
+.navbar-report-cta {
+  @apply flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-bold rounded-xl shadow-xs transition-all active:scale-95;
+}
+

@@ -1,0 +1,43 @@
+/**
+ * TITIK. — BUTTON COMPONENT STYLES
+ * Easy to manage and edit: update buttons, pill action triggers, and tactile states.
+ */
+
+/* Primary Dark Button */
+.btn-primary {
+  @apply px-5 py-2.5 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-xs active:scale-95 inline-flex items-center justify-center gap-2;
+}
+
+/* Accent Teal Button */
+.btn-teal {
+  @apply px-5 py-2.5 bg-[#0D9488] hover:bg-[#0F766E] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-xs active:scale-95 inline-flex items-center justify-center gap-2;
+}
+
+/* Alert Red Button */
+.btn-alert {
+  @apply px-5 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-xs active:scale-95 inline-flex items-center justify-center gap-2;
+}
+
+/* Secondary Neutral / Outline Button */
+.btn-secondary {
+  @apply px-4 py-2.5 bg-white hover:bg-[#FAF9F6] text-[#111827] border border-[#E5E4DF] hover:border-[#111827]/40 text-xs font-semibold rounded-xl transition-all shadow-2xs active:scale-95 inline-flex items-center justify-center gap-2;
+}
+
+/* Subtle Ghost Button */
+.btn-ghost {
+  @apply px-3 py-2 text-[#4B5563] hover:text-[#111827] hover:bg-black/5 text-xs font-semibold rounded-lg transition-colors inline-flex items-center justify-center gap-1.5;
+}
+
+/* Quick Filter Chip Button */
+.btn-chip {
+  @apply px-3 py-1.5 rounded-lg text-xs font-medium border transition-all inline-flex items-center gap-1.5;
+}
+
+.btn-chip-active {
+  @apply bg-[#111827] text-white border-[#111827] shadow-2xs;
+}
+
+.btn-chip-idle {
+  @apply bg-[#FAF9F6] text-[#4B5563] border-[#E5E4DF] hover:border-[#111827] hover:text-[#111827];
+}
+

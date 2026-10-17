@@ -48,7 +48,7 @@ export const ReportsView: React.FC = () => {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#DC2626]">
             <span className="w-2 h-2 rounded-full bg-[#DC2626]"></span>
-            <span>Partisipasi Komunitas Kota Bogor</span>
+            <span>Partisipasi Komunitas Jabodetabek</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight">
             Laporan Warga & Kawal Anggaran ("Titik Masalah")

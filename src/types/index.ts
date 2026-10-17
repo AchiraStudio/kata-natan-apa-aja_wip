@@ -10,12 +10,22 @@ export type SectorType =
   | 'Layanan Administrasi';
 
 export type SubdistrictType = 
+  | 'Jakarta Pusat'
+  | 'Jakarta Selatan'
+  | 'Jakarta Timur'
+  | 'Jakarta Barat'
+  | 'Jakarta Utara'
   | 'Bogor Tengah'
   | 'Bogor Selatan'
   | 'Bogor Barat'
   | 'Bogor Timur'
   | 'Bogor Utara'
-  | 'Tanah Sareal';
+  | 'Tanah Sareal'
+  | 'Depok'
+  | 'Kota Tangerang'
+  | 'Tangerang Selatan'
+  | 'Kota Bekasi'
+  | string;
 
 export type FacilityCondition = 'Baik' | 'Rusak Ringan' | 'Rusak Sedang' | 'Rusak Berat' | 'Perlu Intervensi Kritis';
 

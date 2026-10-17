@@ -23,7 +23,7 @@ import { DataSourceModal } from './components/DataSourceModal';
 
 const AppLayout: React.FC = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FA] text-[#111827]">
+    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-[#111827]">
       {/* Top Daylight Editorial Navbar */}
       <Navbar />
 

@@ -88,7 +88,7 @@ export const BudgetBreakdownCard: React.FC<Props> = ({
             {formatRupiahFull(paguAnggaran)}
           </div>
           <p className="text-[11px] text-[#6B7280] leading-snug">
-            Alokasi resmi yang disahkan dalam dokumen APBD Kota Bogor.
+            Alokasi resmi yang disahkan dalam dokumen APBD daerah.
           </p>
         </div>
 

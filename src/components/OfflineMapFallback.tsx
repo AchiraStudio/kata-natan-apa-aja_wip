@@ -35,7 +35,7 @@ export const OfflineMapFallback: React.FC<Props> = () => {
       <div className="flex items-center justify-between text-xs pb-2 border-b border-[#E5E7EB]">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#0D9488]"></span>
-          <span className="font-bold text-[#111827]">Peta Vektor Spasial Kota Bogor (Mode Resilient)</span>
+          <span className="font-bold text-[#111827]">Peta Vektor Spasial Jabodetabek (Mode Resilient)</span>
         </div>
         <span className="text-[11px] text-[#6B7280]">
           Klik wilayah kecamatan untuk menyaring titik

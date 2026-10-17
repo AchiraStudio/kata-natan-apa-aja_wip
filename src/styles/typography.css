@@ -1,0 +1,54 @@
+/**
+ * TITIK. — TYPOGRAPHY & FONT RULES
+ * Easy to manage and edit: update typography scale, font classes, and editorial rules.
+ */
+
+/* Custom Tailwind v4 Utilities for data & editorial fonts */
+@utility font-mono-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@utility font-serif-editorial {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Base Body Typography */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--canvas-bg);
+  color: var(--ink-primary);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Standardized Typography Classes */
+.text-hero-headline {
+  @apply text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-[#111827] tracking-tight leading-[1.02];
+}
+
+.text-section-header {
+  @apply text-xl sm:text-2xl lg:text-3xl font-black text-[#111827] tracking-tight;
+}
+
+.text-section-sub {
+  @apply text-xs sm:text-sm text-[#4B5563] leading-relaxed;
+}
+
+.text-meta-badge {
+  @apply text-[10px] uppercase tracking-wider font-semibold;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.text-code-chip {
+  @apply text-[11px] font-medium text-[#111827];
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+

@@ -11,15 +11,26 @@ import {
   SourceMetadata
 } from '../types';
 
-export const KOTA_BOGOR_COORDINATES: [number, number] = [-6.5971, 106.8060];
+export const JABODETABEK_COORDINATES: [number, number] = [-6.2500, 106.8200];
+export const KOTA_BOGOR_COORDINATES: [number, number] = JABODETABEK_COORDINATES;
 
 export const SUBDISTRICTS: SubdistrictType[] = [
+  'Jakarta Pusat',
+  'Jakarta Selatan',
+  'Jakarta Timur',
+  'Jakarta Barat',
+  'Jakarta Utara',
   'Bogor Tengah',
-  'Bogor Selatan',
   'Bogor Barat',
+  'Bogor Selatan',
   'Bogor Timur',
   'Bogor Utara',
-  'Tanah Sareal'
+  'Tanah Sareal',
+  'Depok',
+  'Citayem',
+  'Kota Tangerang',
+  'Tangerang Selatan',
+  'Kota Bekasi'
 ];
 
 export const SECTORS: SectorType[] = [
@@ -39,69 +50,69 @@ export const SECTOR_DEFINITIONS: SectorMeta[] = [
     id: 'Pendidikan',
     label: 'Pendidikan',
     description: 'Sarana & prasarana gedung sekolah dasar dan menengah negeri, ruang laboratorium, dan fasilitas penunjang belajar.',
-    defaultAgency: 'Dinas Pendidikan Kota Bogor',
+    defaultAgency: 'Dinas Pendidikan Pemda (Disdik)',
     color: '#2563EB'
   },
   {
     id: 'Kesehatan',
     label: 'Kesehatan',
     description: 'Puskesmas induk, puskesmas pembantu, RSUD, instalasi farmasi, dan sarana gawat darurat dasar 24 jam.',
-    defaultAgency: 'Dinas Kesehatan Kota Bogor',
+    defaultAgency: 'Dinas Kesehatan Pemda (Dinkes)',
     color: '#0D9488'
   },
   {
     id: 'Lingkungan & Drainase',
     label: 'Lingkungan & Drainase',
     description: 'Sistem drainase primer/sekunder, box culvert, kolam retensi pencegah banjir limpasan, dan sudetan sungai.',
-    defaultAgency: 'Dinas Pekerjaan Umum & Penataan Ruang (PUPR) - SDA',
+    defaultAgency: 'Dinas Sumber Daya Air / PUPR',
     color: '#0284C7'
   },
   {
     id: 'Infrastruktur Jalan',
     label: 'Infrastruktur Jalan & Jembatan',
     description: 'Jalan arteri kota, jembatan penghubung, jalur pedestrian, trotoar disabilitas, dan penerangan jalan umum (PJU).',
-    defaultAgency: 'Dinas Pekerjaan Umum & Penataan Ruang (PUPR) - Bina Marga',
+    defaultAgency: 'Dinas Bina Marga / PUPR',
     color: '#D97706'
   },
   {
     id: 'Transportasi Publik',
     label: 'Transportasi Publik',
-    description: 'Halte integrasi Biskita Trans Pakuan, jalur pemandu difabel, dan fasilitas integrasi transit stasiun KRL.',
-    defaultAgency: 'Dinas Perhubungan (Dishub) Kota Bogor',
+    description: 'Halte integrasi transportasi bus, jalur pemandu difabel, dan fasilitas integrasi transit stasiun KRL / LRT.',
+    defaultAgency: 'Dinas Perhubungan (Dishub)',
     color: '#2563EB'
   },
   {
     id: 'Ruang Terbuka Hijau',
     label: 'Ruang Terbuka Hijau & Taman',
     description: 'Taman kota tematik, alun-alun publik, jalur hijau tepian sungai, dan fasilitas rekreasi warga terbuka.',
-    defaultAgency: 'Dinas Perumahan & Permukiman (Disperumkim)',
+    defaultAgency: 'Dinas Pertamanan & Hutan Kota / DLH',
     color: '#15803D'
   },
   {
     id: 'Pengelolaan Persampahan',
     label: 'Pengelolaan Persampahan',
     description: 'Tempat Pengolahan Sampah Terpadu (TPST 3R), bank sampah induk, dan armada pengangkutan sampah permukiman.',
-    defaultAgency: 'Dinas Lingkungan Hidup (DLH) Kota Bogor',
+    defaultAgency: 'Dinas Lingkungan Hidup (DLH)',
     color: '#B45309'
   },
   {
     id: 'Pasar Tradisional',
     label: 'Pasar Tradisional',
     description: 'Revitalisasi los basah/kering pasar rakyat, instalasi pengelolaan limbah pasar, dan proteksi kebakaran.',
-    defaultAgency: 'Perumda Pasar Pakuan Jaya / Disperindag',
+    defaultAgency: 'Perumda Pasar Daerah / Disperindag',
     color: '#DC2626'
   },
   {
     id: 'Layanan Administrasi',
     label: 'Layanan Administrasi Publik',
-    description: 'Mal Pelayanan Publik (MPP), kantor kelurahan terpadu, dan loket kependudukan ramah inklusi.',
-    defaultAgency: 'Bagian Organisasi & DPMPTSP Kota Bogor',
+    description: 'Mal Pelayanan Publik (MPP), kantor kelurahan/kecamatan terpadu, dan loket kependudukan ramah inklusi.',
+    defaultAgency: 'DPMPTSP & Bagian Umum Pemda',
     color: '#4B5563'
   }
 ];
 
 export const STANDARD_SOURCE_METADATA: SourceMetadata = {
-  sourceName: 'Simulasi Terbuka Format SIKD Kemendagri & Satu Data Kota Bogor 2026',
+  sourceName: 'Simulasi Terbuka Format SIKD Kemendagri & Portal Satu Data Jabodetabek 2026',
   sourceType: 'OFFICIAL_SIMULATED',
   reportingPeriod: 'APBD Murni TA 2026 (Periode Pelaporan: 01 Jan - 30 Sep 2026)',
   publicationDate: '15 Oktober 2026',
@@ -151,7 +162,7 @@ export const INITIAL_FACILITIES: PublicFacility[] = [
       realisasiPenyerapan: 480_000_000,
       sisaPaguBelumTerikat: 60_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '14 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -176,7 +187,7 @@ export const INITIAL_FACILITIES: PublicFacility[] = [
       realisasiPenyerapan: 1_280_000_000,
       sisaPaguBelumTerikat: 50_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '12 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -201,7 +212,7 @@ export const INITIAL_FACILITIES: PublicFacility[] = [
       realisasiPenyerapan: 2_470_000_000,
       sisaPaguBelumTerikat: 80_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '15 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -226,7 +237,7 @@ export const INITIAL_FACILITIES: PublicFacility[] = [
       realisasiPenyerapan: 3_700_000_000,
       sisaPaguBelumTerikat: 50_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '16 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -251,7 +262,7 @@ export const INITIAL_FACILITIES: PublicFacility[] = [
       realisasiPenyerapan: 1_150_000_000,
       sisaPaguBelumTerikat: 50_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '15 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -276,7 +287,7 @@ export const INITIAL_FACILITIES: PublicFacility[] = [
       realisasiPenyerapan: 850_000_000,
       sisaPaguBelumTerikat: 60_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '12 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -301,7 +312,7 @@ export const INITIAL_FACILITIES: PublicFacility[] = [
       realisasiPenyerapan: 410_000_000,
       sisaPaguBelumTerikat: 650_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '16 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -326,7 +337,7 @@ export const INITIAL_FACILITIES: PublicFacility[] = [
       realisasiPenyerapan: 780_000_000,
       sisaPaguBelumTerikat: 80_000_000,
       linkageConfidence: 'Sedang (75%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '10 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -351,7 +362,7 @@ export const INITIAL_FACILITIES: PublicFacility[] = [
       realisasiPenyerapan: 3_100_000_000,
       sisaPaguBelumTerikat: 300_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '14 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -376,16 +387,141 @@ export const INITIAL_FACILITIES: PublicFacility[] = [
       realisasiPenyerapan: 790_000_000,
       sisaPaguBelumTerikat: 20_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '16 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
     photoUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 'FAC-JKT-001',
+    name: 'SMPN 1 Jakarta (Cikini)',
+    sector: 'Pendidikan',
+    subdistrict: 'Jakarta Pusat',
+    address: 'Jl. Cikini Raya No. 87, Menteng, Jakarta Pusat',
+    coordinates: [-6.1905, 106.8378],
+    responsibleAgency: 'Dinas Pendidikan Pemda DKI Jakarta',
+    condition: 'Baik',
+    serviceCapacity: '720 Siswa Aktif (24 Rombel)',
+    activeReportsCount: 1,
+    resolvedReportsCount: 5,
+    linkedProjectIds: ['PRJ-BGR-2026-EDU-01'],
+    budgetSummary: {
+      paguAnggaran: 1_250_000_000,
+      danaTerikatKontrak: 1_180_000_000,
+      realisasiPenyerapan: 950_000_000,
+      sisaPaguBelumTerikat: 70_000_000,
+      linkageConfidence: 'Tinggi (98%)',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
+      lastUpdated: '15 Okt 2026',
+      sourceMetadata: STANDARD_SOURCE_METADATA
+    },
+    photoUrl: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 'FAC-JKT-002',
+    name: 'Puskesmas Kecamatan Kebayoran Baru',
+    sector: 'Kesehatan',
+    subdistrict: 'Jakarta Selatan',
+    address: 'Jl. Iskandarsyah Raya No. 10, Melawai, Kebayoran Baru',
+    coordinates: [-6.2443, 106.8005],
+    responsibleAgency: 'Dinas Kesehatan Pemda DKI Jakarta',
+    condition: 'Baik',
+    serviceCapacity: '15.000 Pasien/Tahun',
+    activeReportsCount: 2,
+    resolvedReportsCount: 8,
+    linkedProjectIds: ['PRJ-BGR-2026-HLT-02'],
+    budgetSummary: {
+      paguAnggaran: 2_100_000_000,
+      danaTerikatKontrak: 1_950_000_000,
+      realisasiPenyerapan: 1_600_000_000,
+      sisaPaguBelumTerikat: 150_000_000,
+      linkageConfidence: 'Tinggi (98%)',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
+      lastUpdated: '14 Okt 2026',
+      sourceMetadata: STANDARD_SOURCE_METADATA
+    },
+    photoUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 'FAC-DPK-001',
+    name: 'Saluran Drainase Primer Margonda Raya',
+    sector: 'Lingkungan & Drainase',
+    subdistrict: 'Depok',
+    address: 'Jl. Margonda Raya Km. 4.5, Kemiri Muka, Beji, Depok',
+    coordinates: [-6.3725, 106.8324],
+    responsibleAgency: 'Dinas PUPR Pemkot Depok - SDA',
+    condition: 'Rusak Sedang',
+    serviceCapacity: 'Tampungan Limpasan 12.000 m3/detik',
+    activeReportsCount: 5,
+    resolvedReportsCount: 3,
+    linkedProjectIds: ['PRJ-BGR-2026-DRN-03'],
+    budgetSummary: {
+      paguAnggaran: 1_600_000_000,
+      danaTerikatKontrak: 1_450_000_000,
+      realisasiPenyerapan: 1_100_000_000,
+      sisaPaguBelumTerikat: 150_000_000,
+      linkageConfidence: 'Tinggi (98%)',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
+      lastUpdated: '15 Okt 2026',
+      sourceMetadata: STANDARD_SOURCE_METADATA
+    },
+    photoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18615f3?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 'FAC-TNG-001',
+    name: 'Ruas Jalan & Trotoar Daan Mogot Barat',
+    sector: 'Infrastruktur Jalan',
+    subdistrict: 'Kota Tangerang',
+    address: 'Jl. Daan Mogot Km. 22, Sukasari, Kota Tangerang',
+    coordinates: [-6.1738, 106.6389],
+    responsibleAgency: 'Dinas PUPR / Bina Marga Kota Tangerang',
+    condition: 'Rusak Ringan',
+    serviceCapacity: 'LHR 35.000 Kendaraan/Hari',
+    activeReportsCount: 3,
+    resolvedReportsCount: 6,
+    linkedProjectIds: ['PRJ-BGR-2026-RDS-04'],
+    budgetSummary: {
+      paguAnggaran: 1_850_000_000,
+      danaTerikatKontrak: 1_700_000_000,
+      realisasiPenyerapan: 1_300_000_000,
+      sisaPaguBelumTerikat: 150_000_000,
+      linkageConfidence: 'Tinggi (98%)',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
+      lastUpdated: '16 Okt 2026',
+      sourceMetadata: STANDARD_SOURCE_METADATA
+    },
+    photoUrl: 'https://images.unsplash.com/photo-1545459720-aac8509eb02c?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 'FAC-BKS-001',
+    name: 'Taman Kota Patriot Bina Bangsa',
+    sector: 'Ruang Terbuka Hijau',
+    subdistrict: 'Kota Bekasi',
+    address: 'Jl. Ahmad Yani No. 2, Marga Jaya, Bekasi Selatan',
+    coordinates: [-6.2383, 106.9956],
+    responsibleAgency: 'Dinas Pertamanan & LH Kota Bekasi',
+    condition: 'Baik',
+    serviceCapacity: '2.500 Pengunjung/Hari',
+    activeReportsCount: 1,
+    resolvedReportsCount: 7,
+    linkedProjectIds: ['PRJ-BGR-2026-PRK-06'],
+    budgetSummary: {
+      paguAnggaran: 750_000_000,
+      danaTerikatKontrak: 720_000_000,
+      realisasiPenyerapan: 680_000_000,
+      sisaPaguBelumTerikat: 30_000_000,
+      linkageConfidence: 'Tinggi (98%)',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
+      lastUpdated: '12 Okt 2026',
+      sourceMetadata: STANDARD_SOURCE_METADATA
+    },
+    photoUrl: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=800&q=80'
   }
 ];
 
 // ============================================================================
-// 2. BUDGET PROGRAMS & ACTIVITIES HIERARCHY (APBD KOTA BOGOR 2026)
+// 2. BUDGET PROGRAMS & ACTIVITIES HIERARCHY (APBD JABODETABEK 2026)
 // ============================================================================
 export const INITIAL_BUDGET_PROGRAMS: BudgetProgram[] = [
   {
@@ -482,7 +618,7 @@ export const INITIAL_BUDGET_PROJECTS: BudgetProject[] = [
       realisasiPenyerapan: 480_000_000,
       sisaPaguBelumTerikat: 60_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '14 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -508,7 +644,7 @@ export const INITIAL_BUDGET_PROJECTS: BudgetProject[] = [
       realisasiPenyerapan: 2_470_000_000,
       sisaPaguBelumTerikat: 80_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '15 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -534,7 +670,7 @@ export const INITIAL_BUDGET_PROJECTS: BudgetProject[] = [
       realisasiPenyerapan: 410_000_000,
       sisaPaguBelumTerikat: 650_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '16 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -560,7 +696,7 @@ export const INITIAL_BUDGET_PROJECTS: BudgetProject[] = [
       realisasiPenyerapan: 1_280_000_000,
       sisaPaguBelumTerikat: 50_000_000,
       linkageConfidence: 'Tinggi (98%)',
-      dataSource: 'Simulasi SIKD / Satu Data Kota Bogor 2026',
+      dataSource: 'Simulasi SIKD / Satu Data Jabodetabek 2026',
       lastUpdated: '12 Okt 2026',
       sourceMetadata: STANDARD_SOURCE_METADATA
     },
@@ -630,9 +766,9 @@ export const INITIAL_REPORTS: CitizenReport[] = [
         stepNumber: 5,
         title: 'Menunggu Respon Resmi Dinas',
         date: 'Sedang Berjalan',
-        description: 'Notifikasi audit publik telah diteruskan ke Pejabat Pembuat Komitmen (PPK) Dinas PUPR Kota Bogor.',
+        description: 'Notifikasi audit publik telah diteruskan ke Pejabat Pembuat Komitmen (PPK) Dinas PUPR terkait.',
         status: 'IN_PROGRESS',
-        actor: 'Dinas PUPR Kota Bogor'
+        actor: 'Dinas PUPR'
       },
       {
         stepNumber: 6,
@@ -696,7 +832,7 @@ export const INITIAL_REPORTS: CitizenReport[] = [
         date: '10 Okt 2026, 09:30 WIB',
         description: 'Terkonfirmasi terikat kontrak Rp 790 Jt dengan progres tercatat 56%.',
         status: 'COMPLETED',
-        actor: 'Satu Data Kota Bogor'
+        actor: 'Satu Data Daerah'
       },
       {
         stepNumber: 5,
@@ -704,7 +840,7 @@ export const INITIAL_REPORTS: CitizenReport[] = [
         date: '12 Okt 2026, 11:00 WIB',
         description: 'Dinas Pendidikan melayangkan Surat Peringatan 1 (SP1) kepada kontraktor pelaksana CV. Cipta Graha Mandiri untuk melanjutkan perbaikan dalam 3x24 jam.',
         status: 'COMPLETED',
-        actor: 'Kadis Pendidikan Kota Bogor'
+        actor: 'Dinas Pendidikan'
       },
       {
         stepNumber: 6,
@@ -840,7 +976,7 @@ export const INITIAL_REPORTS: CitizenReport[] = [
         date: '16 Okt 2026, 10:00 WIB',
         description: 'Pos pemeliharaan rutin terkonfirmasi aktif.',
         status: 'COMPLETED',
-        actor: 'SIKD Kota Bogor'
+        actor: 'SIKD Daerah'
       },
       {
         stepNumber: 5,
@@ -869,7 +1005,7 @@ export const INITIAL_REPORTS: CitizenReport[] = [
     facilityId: 'FAC-BGR-005',
     facilityName: 'Halte Integrasi Biskita Stasiun Bogor',
     coordinates: [-6.5962, 106.7907],
-    responsibleAgency: 'Dinas Perhubungan (Dishub) Kota Bogor',
+    responsibleAgency: 'Dinas Perhubungan (Dishub)',
     linkedProjectId: 'PRJ-BGR-2026-TRN-05',
     linkedProjectTitle: 'Pemeliharaan Fasilitas Integrasi Transit Biskita Trans Pakuan',
     isBudgetLinkConfirmed: true,
@@ -912,7 +1048,7 @@ export const INITIAL_REPORTS: CitizenReport[] = [
         date: 'Menunggu Langkah 3',
         description: 'Pengecekan alokasi kontrak pemeliharaan vendor tapping.',
         status: 'PENDING',
-        actor: 'SIKD Kota Bogor'
+        actor: 'SIKD Daerah'
       },
       {
         stepNumber: 5,
@@ -920,7 +1056,7 @@ export const INITIAL_REPORTS: CitizenReport[] = [
         date: 'Menunggu Langkah 4',
         description: 'Surat tugas teknisi vendor Biskita.',
         status: 'PENDING',
-        actor: 'Dishub Kota Bogor'
+        actor: 'Dinas Perhubungan (Dishub)'
       },
       {
         stepNumber: 6,
@@ -950,7 +1086,7 @@ export const INITIAL_DISCREPANCIES: DiscrepancyFlag[] = [
     unresolvedReportsCount: 9,
     flagReason: 'Kas Daerah telah mencairkan Rp 2,47 miliar (95% dari pagu), tetapi warga sekitar masih melaporkan 9 titik banjir setinggi 30-50 cm setiap hujan turun.',
     agencyName: 'Dinas Pekerjaan Umum & Penataan Ruang (PUPR) - SDA',
-    auditRecommendation: 'Inspektorat Kota Bogor perlu memeriksa kemiringan saluran box culvert di lapangan sebelum masa pemeliharaan kontraktor berakhir.',
+    auditRecommendation: 'Inspektorat Daerah perlu memeriksa kemiringan saluran box culvert di lapangan sebelum masa pemeliharaan kontraktor berakhir.',
     coordinates: [-6.6095, 106.8124],
     severity: 'Tinggi',
     confidenceLevel: 'Tinggi (98%)',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTitik } from '../context/TitikContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   SECTOR_DEFINITIONS, 
   SUBDISTRICTS, 
@@ -27,11 +27,27 @@ export const FacilitiesView: React.FC = () => {
   } = useTitik();
 
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const [sectorFilter, setSectorFilter] = useState<'Semua' | SectorType>('Semua');
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get('q') || '');
+  const [sectorFilter, setSectorFilter] = useState<'Semua' | SectorType>(() => {
+    const s = searchParams.get('sektor');
+    return (s as SectorType) || 'Semua';
+  });
   const [subdistrictFilter, setSubdistrictFilter] = useState<'Semua' | SubdistrictType>('Semua');
   const [conditionFilter, setConditionFilter] = useState<'Semua' | FacilityCondition>('Semua');
   const [showSavedOnly, setShowSavedOnly] = useState(false);
+
+  // Sync state whenever URL search parameters change
+  React.useEffect(() => {
+    const qParam = searchParams.get('q');
+    if (qParam !== null) {
+      setSearch(qParam);
+    }
+    const sParam = searchParams.get('sektor');
+    if (sParam) {
+      setSectorFilter(sParam as SectorType);
+    }
+  }, [searchParams]);
 
   const filtered = facilities.filter(fac => {
     if (showSavedOnly && !savedFacilityIds.includes(fac.id)) return false;
@@ -57,13 +73,13 @@ export const FacilitiesView: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-xl border border-[#E5E7EB]">
         <div className="space-y-1.5">
           <div className="text-xs font-semibold uppercase tracking-wider text-[#6B7280]">
-            Inventaris Sarana Layanan Publik • Kota Bogor
+            Inventaris Sarana Layanan Publik • Jabodetabek
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight">
             Direktori Fasilitas Publik & Alokasi Pemeliharaan
           </h1>
           <p className="text-sm text-[#4B5563] max-w-2xl">
-            Memuat {facilities.length} fasilitas publik di 6 kecamatan Kota Bogor beserta kondisi bangunan, instansi pengelola, dan pagu anggaran tahun berjalan.
+            Memuat {facilities.length} fasilitas publik terdata di wilayah Jabodetabek beserta kondisi bangunan, instansi pengelola, dan pagu anggaran tahun berjalan.
           </p>
         </div>
 
@@ -114,7 +130,7 @@ export const FacilitiesView: React.FC = () => {
             onChange={e => setSubdistrictFilter(e.target.value as any)}
             className="text-xs bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg px-2.5 py-2 font-medium text-[#111827] focus:outline-none"
           >
-            <option value="Semua">Semua Kecamatan (6)</option>
+            <option value="Semua">Semua Wilayah ({SUBDISTRICTS.length})</option>
             {SUBDISTRICTS.map(sub => (
               <option key={sub} value={sub}>{sub}</option>
             ))}

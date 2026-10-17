@@ -1,0 +1,99 @@
+/**
+ * TITIK. — LANDING PAGE VIEW STYLES
+ * Easy to manage and edit: update hero section, search console, quick chips, and stat grids.
+ */
+
+/* Main Page Canvas Wrapper */
+.landing-page-wrap {
+  @apply pb-24 bg-[#EAF3E8];
+}
+
+/* Full-Screen Editorial Hero Section */
+.landing-hero-section {
+  @apply relative overflow-hidden w-full min-h-[calc(100vh-4rem)] flex flex-col justify-between border-b border-[#E5E4DF] bg-[#FAF9F6];
+}
+
+/* Ambient Radial Glows */
+.landing-glow-amber {
+  @apply absolute -top-24 right-1/4 w-[36rem] h-[36rem] bg-[#F59E0B]/10 rounded-full blur-3xl pointer-events-none;
+}
+
+.landing-glow-teal {
+  @apply absolute top-1/3 right-10 w-[30rem] h-[30rem] bg-[#0D9488]/10 rounded-full blur-3xl pointer-events-none;
+}
+
+/* Hero Content Grid & Columns */
+.landing-hero-container {
+  @apply w-full max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex-1 flex flex-col justify-between py-6 sm:py-8 lg:py-10;
+}
+
+.landing-hero-grid {
+  @apply w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-16 items-center;
+}
+
+/* Hero Headline & Mission Copy */
+.landing-headline {
+  @apply text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-[#111827] tracking-tight leading-[1.02];
+}
+
+.landing-description {
+  @apply text-xs sm:text-sm md:text-base text-[#4B5563] max-w-lg leading-relaxed;
+}
+
+/* High-Impact Stat Ledger */
+.landing-ledger-box {
+  @apply pt-3 border-t border-[#E5E4DF] space-y-1.5;
+}
+
+.landing-ledger-label {
+  @apply text-[11px] font-mono-data uppercase tracking-wider text-[#6B7280];
+}
+
+.landing-ledger-amount {
+  @apply text-3xl sm:text-4xl xl:text-5xl font-extrabold text-[#111827] font-mono-data tracking-tight flex items-baseline gap-2;
+}
+
+/* Search Console Card */
+.landing-search-card {
+  @apply bg-white rounded-2xl border border-[#E5E4DF] p-6 sm:p-8 xl:p-10 shadow-xs space-y-6;
+}
+
+.landing-search-header {
+  @apply flex items-center justify-between border-b border-[#E5E4DF] pb-3 text-xs;
+}
+
+.landing-search-input-wrap {
+  @apply relative flex items-center;
+}
+
+.landing-search-input {
+  @apply w-full pl-10 pr-24 py-3.5 bg-[#FAF9F6] focus:bg-white text-xs sm:text-sm text-[#111827] placeholder-[#9CA3AF] rounded-xl border border-[#E5E4DF] focus:border-[#111827] focus:outline-none transition-all font-medium;
+}
+
+.landing-search-submit {
+  @apply absolute right-1.5 px-4 py-2 bg-[#111827] hover:bg-[#1F2937] text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5;
+}
+
+/* Quick Priority Filter Chips */
+.landing-quick-chip {
+  @apply px-3 py-1.5 bg-[#FAF9F6] hover:bg-[#111827] hover:text-white text-[#4B5563] border border-[#E5E4DF] rounded-md text-xs font-medium transition-colors;
+}
+
+/* Bottom Stats Strip on Hero */
+.landing-stat-strip {
+  @apply border-t border-[#E5E4DF] bg-white/70 backdrop-blur-xs py-4 sm:py-5;
+}
+
+.landing-stat-box {
+  @apply p-3 sm:p-4 rounded-xl border border-[#E5E4DF]/60 bg-white/80 shadow-2xs;
+}
+
+/* Feature & Action Grid Section */
+.landing-feature-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.landing-feature-card {
+  @apply bg-white rounded-2xl border border-[#E5E4DF] p-6 hover:shadow-tactile hover:border-[#111827]/40 transition-all flex flex-col justify-between;
+}
+

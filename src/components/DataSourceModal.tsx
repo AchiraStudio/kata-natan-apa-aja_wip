@@ -25,10 +25,10 @@ export const DataSourceModal: React.FC = () => {
             </div>
             <div>
               <h3 className="font-extrabold text-base sm:text-lg text-[#111827] tracking-tight">
-                Sumber Data & Metodologi SIKD
+                Sumber Data Resmi & Metodologi
               </h3>
               <p className="text-xs text-[#6B7280]">
-                Rincian sumber data, batas simulasi kompetisi, dan klasifikasi bukti
+                Rujukan APBD pemerintah dan batas data prototipe
               </p>
             </div>
           </div>
@@ -44,14 +44,31 @@ export const DataSourceModal: React.FC = () => {
         {/* Body (Scrollable) */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 text-xs text-[#4B5563] leading-relaxed">
           
-          {/* Important Notice */}
+          {/* Official sources and prototype data scope */}
           <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB] space-y-1.5">
             <div className="font-bold text-sm text-[#111827] flex items-center gap-1.5">
               <Database className="w-4 h-4 text-[#2563EB]" />
-              <span>Konteks Simulasi Kompetisi MIA / WIA 2026</span>
+              <span>Rujukan Data Pemerintah Resmi</span>
             </div>
             <p className="text-xs text-[#4B5563]">
-              <strong>TITIK.</strong> menggunakan struktur anggaran dan fasilitas publik Kota Bogor sesuai <em>Bagan Akun Standar (BAS) Permendagri No. 77/2020</em>. Angka anggaran, nama paket kontrak, dan laporan warga pada prototipe ini merupakan simulasi untuk mendemonstrasikan pelacakan anggaran publik.
+              Gunakan sumber berikut untuk memeriksa data APBD dan dataset daerah yang dipublikasikan pemerintah:
+            </p>
+            <ul className="list-disc pl-4 space-y-1 text-xs">
+              <li>
+                <a className="font-semibold text-[#2563EB] underline" href="https://djpk.kemenkeu.go.id/portal/data/apbd" target="_blank" rel="noreferrer">
+                  Portal Data APBD DJPK Kementerian Keuangan (SIKD)
+                </a>
+                {' '}untuk postur dan realisasi APBD menurut pemerintah daerah dan periode.
+              </li>
+              <li>
+                <a className="font-semibold text-[#2563EB] underline" href="https://satudata.kemendagri.go.id" target="_blank" rel="noreferrer">
+                  Portal Satu Data Daerah & Open Data se-Jabodetabek
+                </a>
+                {' '}untuk dataset transparansi yang diterbitkan pemerintah daerah.
+              </li>
+            </ul>
+            <p className="text-xs text-[#4B5563]">
+              <strong>Batas prototipe:</strong> angka rinci program/proyek, fasilitas, dan laporan warga yang tampil di TITIK masih data simulasi statis; aplikasi belum mengimpor atau menyinkronkan dataset dari tautan resmi di atas. Bagan Akun Standar mengacu pada Permendagri No. 77/2020 sebagai struktur klasifikasi, bukan sumber angka anggaran.
             </p>
           </div>
 
@@ -65,7 +82,7 @@ export const DataSourceModal: React.FC = () => {
               <div className="p-3.5 rounded-xl border border-[#E5E7EB] bg-[#F8F9FA] space-y-1.5">
                 <div className="inline-flex items-center gap-1.5 text-[10px] font-mono-data font-bold uppercase tracking-wider text-[#111827]">
                   <span className="w-2 h-2 rounded-full bg-[#2563EB]"></span>
-                  <span>1. Data APBD (Simulasi SIKD)</span>
+                  <span>1. Data APBD</span>
                 </div>
                 <div className="font-bold text-xs text-[#111827]">Alokasi & Realisasi Kas</div>
                 <p className="text-[11px] text-[#6B7280]">
