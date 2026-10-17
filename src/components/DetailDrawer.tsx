@@ -367,14 +367,14 @@ export const DetailDrawer: React.FC = () => {
             </div>
           </div>
 
-          {/* 6-Step Audit Timeline */}
+          {/* Civic Audit Timeline */}
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-[#E5E4DF] dark:border-[#243042] pb-2">
               <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">
-                Riwayat Penanganan (6 Tahap)
+                Jejak Audit Laporan (Append-Only)
               </h4>
-              <span className="text-xs font-mono-data font-semibold text-[#4B5563] dark:text-[#94A3B8]">
-                Tahap {selectedReport.currentStep}/6
+              <span className="text-xs font-mono-data font-semibold text-[#0D9488]">
+                {selectedReport.timeline?.length || 1} Peristiwa
               </span>
             </div>
 

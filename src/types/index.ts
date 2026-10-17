@@ -191,3 +191,12 @@ export interface SectorMeta {
   defaultAgency: string;
   color: string;
 }
+
+export type RealtimeSyncStatus = 'LIVE' | 'SYNCING' | 'CACHED' | 'OFFLINE';
+
+export interface TelemetryEvent {
+  id: string;
+  timestamp: string;
+  message: string;
+  type: 'REPORT' | 'VOTE' | 'SIKD_SYNC';
+}

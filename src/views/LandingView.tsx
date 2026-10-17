@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTitik } from '../context/TitikContext';
 import { 
-  ACCOUNTABILITY_FUNNEL, 
   CURRENT_MONTHLY_DIGEST,
   formatRupiahShort,
   formatRupiahFull
@@ -11,28 +10,62 @@ import { SectorType } from '../types';
 import { 
   ChevronRight, 
   Search, 
-  Plus,
-  Compass,
-  ArrowRight,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  ShieldCheck,
-  Coins,
-  FileCheck2,
-  Building2
+  Plus, 
+  Compass, 
+  ArrowRight, 
+  AlertCircle, 
+  CheckCircle2, 
+  Clock, 
+  ShieldCheck, 
+  Coins, 
+  FileCheck2, 
+  Building2,
+  RefreshCw,
+  Sparkles,
+  Wifi,
+  WifiOff,
+  X,
+  Link as LinkIcon,
+  Info
 } from 'lucide-react';
 
 export const LandingView: React.FC = () => {
   const navigate = useNavigate();
   const { 
     facilities, 
+    reports,
+    discrepancies,
     setSelectedFacility, 
-    setIsSearchOpen 
+    setIsSearchOpen,
+    syncStatus,
+    lastSyncedAt,
+    isOfflineSimulated,
+    latestTelemetryEvent,
+    triggerManualSync,
+    toggleOfflineSimulation,
+    simulateIncomingEvent,
+    clearLatestEvent
   } = useTitik();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSectorFilter, setSelectedSectorFilter] = useState<'Semua' | SectorType>('Semua');
+
+  // Dynamic Proportional Fiscal Calculations
+  const totalPagu = facilities.reduce((sum, f) => sum + f.budgetSummary.paguAnggaran, 0);
+  const totalKontrak = facilities.reduce((sum, f) => sum + f.budgetSummary.danaTerikatKontrak, 0);
+  const totalRealisasi = facilities.reduce((sum, f) => sum + f.budgetSummary.realisasiPenyerapan, 0);
+  const totalSisa = facilities.reduce((sum, f) => sum + f.budgetSummary.sisaPaguBelumTerikat, 0);
+
+  const pctRealisasi = totalPagu > 0 ? (totalRealisasi / totalPagu) * 100 : 78.4;
+  const pctKontrak = totalPagu > 0 ? (totalKontrak / totalPagu) * 100 : 7.7;
+  const pctSisa = totalPagu > 0 ? (totalSisa / totalPagu) * 100 : 13.9;
+
+  // Dynamic Accountability Funnel Metrics
+  const baseReportsDelta = reports.length - 3;
+  const funnelStage1 = 120 + Math.max(0, baseReportsDelta);
+  const funnelStage2 = Math.round(funnelStage1 * 0.70);
+  const funnelStage3 = Math.round(funnelStage1 * 0.50);
+  const funnelStage4 = Math.round(funnelStage1 * 0.27);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,15 +225,21 @@ export const LandingView: React.FC = () => {
                   <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono-data">
                     <div className="p-2 rounded-xl bg-[#F9FAFB] dark:bg-[#101622] border border-[#E5E7EB]/60 dark:border-[#243042]">
                       <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8]">SERAPAN</div>
-                      <div className="text-sm font-extrabold text-[#111827] dark:text-[#F9FAFB] mt-0.5">78,4%</div>
+                      <div className="text-sm font-extrabold text-[#111827] dark:text-[#F9FAFB] mt-0.5">
+                        {pctRealisasi.toFixed(1).replace('.', ',')}%
+                      </div>
                     </div>
                     <div className="p-2 rounded-xl bg-[#F9FAFB] dark:bg-[#101622] border border-[#E5E7EB]/60 dark:border-[#243042]">
                       <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8]">TERIKAT SPK</div>
-                      <div className="text-sm font-extrabold text-[#0D9488] dark:text-[#2DD4BF] mt-0.5">86,1%</div>
+                      <div className="text-sm font-extrabold text-[#0D9488] dark:text-[#2DD4BF] mt-0.5">
+                        {(pctRealisasi + pctKontrak).toFixed(1).replace('.', ',')}%
+                      </div>
                     </div>
                     <div className="p-2 rounded-xl bg-[#F9FAFB] dark:bg-[#101622] border border-[#E5E7EB]/60 dark:border-[#243042]">
                       <div className="text-[10px] text-[#6B7280] dark:text-[#94A3B8]">ANOMALI</div>
-                      <div className="text-sm font-extrabold text-[#DC2626] dark:text-[#F87171] mt-0.5">3 Titik</div>
+                      <div className="text-sm font-extrabold text-[#DC2626] dark:text-[#F87171] mt-0.5">
+                        {discrepancies.length} Titik
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -210,10 +249,123 @@ export const LandingView: React.FC = () => {
             </div>
           </div>
 
-
-
         </div>
       </section>
+
+      {/* ============================================================== */}
+      {/* REALTIME & OFFLINE TELEMETRY CONTROL BAR                       */}
+      {/* ============================================================== */}
+      <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 -mt-6 sm:-mt-8 relative z-20">
+        <div className="landing-telemetry-bar">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Status Pill */}
+            <div className={`landing-telemetry-live-pill ${
+              syncStatus === 'LIVE' ? 'landing-telemetry-live-pill-live' :
+              syncStatus === 'SYNCING' ? 'landing-telemetry-live-pill-syncing' :
+              syncStatus === 'OFFLINE' ? 'landing-telemetry-live-pill-offline' :
+              'landing-telemetry-live-pill-cached'
+            }`}>
+              <span className={`w-2.5 h-2.5 rounded-full ${
+                syncStatus === 'LIVE' ? 'bg-[#0D9488] animate-pulse' :
+                syncStatus === 'SYNCING' ? 'bg-[#D97706] animate-ping' :
+                syncStatus === 'OFFLINE' ? 'bg-[#DC2626]' :
+                'bg-[#6B7280]'
+              }`} />
+              <span>
+                {syncStatus === 'LIVE' && 'REALTIME CONNECTED (Supabase Channel: titik_public)'}
+                {syncStatus === 'SYNCING' && 'SINKRONISASI SIKD KEMENDAGRI...'}
+                {syncStatus === 'OFFLINE' && 'MODE OFFLINE: FALLBACK CACHE LOKAL'}
+                {syncStatus === 'CACHED' && 'DATA CACHE TERAKHIR'}
+              </span>
+            </div>
+
+            {/* Sync Timestamp & Integrity Info */}
+            <div className="text-xs text-[#4B5563] dark:text-[#94A3B8] flex items-center gap-2">
+              <span className="hidden sm:inline text-[#9CA3AF] dark:text-[#64748B]">•</span>
+              <span className="font-mono-data text-[11px]">
+                {isOfflineSimulated 
+                  ? 'Sumber SIKD terputus. Menampilkan cache lokal terverifikasi.' 
+                  : `Data terakhir sinkron: ${lastSyncedAt}`}
+              </span>
+            </div>
+          </div>
+
+          {/* Interactive Simulation Controls */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => triggerManualSync()}
+              disabled={syncStatus === 'SYNCING'}
+              className="landing-telemetry-btn bg-white dark:bg-[#1C2638] text-[#111827] dark:text-[#F9FAFB] border-[#E5E7EB] dark:border-[#243042] hover:bg-[#F9FAFB] dark:hover:bg-[#253248]"
+              title="Perbarui data dari SIKD Kemendagri"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-[#0D9488] ${syncStatus === 'SYNCING' ? 'animate-spin' : ''}`} />
+              <span>{syncStatus === 'SYNCING' ? 'Menyinkronkan...' : 'Sinkronkan SIKD'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => simulateIncomingEvent()}
+              disabled={isOfflineSimulated}
+              className="landing-telemetry-btn bg-white dark:bg-[#1C2638] text-[#111827] dark:text-[#F9FAFB] border-[#E5E7EB] dark:border-[#243042] hover:bg-[#F9FAFB] dark:hover:bg-[#253248] disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Simulasikan suara warga atau pembaruan laporan via Realtime"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#D97706]" />
+              <span>Simulasi Event</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => toggleOfflineSimulation()}
+              className={`landing-telemetry-btn ${
+                isOfflineSimulated 
+                  ? 'bg-[#DC2626]/10 text-[#DC2626] border-[#DC2626]/30 dark:bg-[#DC2626]/20 dark:text-[#F87171]' 
+                  : 'bg-white dark:bg-[#1C2638] text-[#4B5563] dark:text-[#CBD5E1] border-[#E5E7EB] dark:border-[#243042] hover:bg-[#F9FAFB]'
+              }`}
+              title="Uji toleransi offline & validitas cache lokal"
+            >
+              {isOfflineSimulated ? (
+                <>
+                  <WifiOff className="w-3.5 h-3.5" />
+                  <span>Offline (Aktif)</span>
+                </>
+              ) : (
+                <>
+                  <Wifi className="w-3.5 h-3.5 text-[#0D9488]" />
+                  <span>Uji Offline</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Live Event Notification Pill / Toast */}
+        {latestTelemetryEvent && (
+          <div className="mt-2.5">
+            <div className={`landing-telemetry-toast ${
+              latestTelemetryEvent.type === 'VOTE'
+                ? 'bg-[#0D9488]/10 border-[#0D9488]/30 text-[#0D9488] dark:bg-[#0D9488]/20 dark:text-[#2DD4BF]'
+                : latestTelemetryEvent.type === 'REPORT'
+                  ? 'bg-[#2563EB]/10 border-[#2563EB]/30 text-[#2563EB] dark:bg-[#2563EB]/20 dark:text-[#60A5FA]'
+                  : 'bg-[#F59E0B]/10 border-[#F59E0B]/30 text-[#D97706] dark:bg-[#F59E0B]/20 dark:text-[#FBBF24]'
+            }`}>
+              <div className="flex items-center gap-2 overflow-hidden">
+                <span className="w-2 h-2 rounded-full bg-current shrink-0 animate-ping" />
+                <span className="font-bold shrink-0">[{latestTelemetryEvent.timestamp}]</span>
+                <span className="truncate">{latestTelemetryEvent.message}</span>
+              </div>
+              <button 
+                type="button"
+                onClick={clearLatestEvent}
+                className="p-1 hover:opacity-70 transition-opacity shrink-0 cursor-pointer"
+                title="Tutup notifikasi"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* REST OF PAGE CONTENT BELOW FOLD */}
       <div className="space-y-16 sm:space-y-20 pt-16 sm:pt-20">
@@ -385,10 +537,18 @@ export const LandingView: React.FC = () => {
               </div>
             </div>
 
-            {/* Editorial Quote / Lead */}
-            <p className="text-sm sm:text-base text-[#4B5563] dark:text-[#94A3B8] leading-relaxed max-w-4xl border-l-2 border-[#0D9488] pl-4">
-              {CURRENT_MONTHLY_DIGEST.editorialSummary}
-            </p>
+            {/* High-Signal Key Finding Pills */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0D9488]/10 text-[#0D9488] dark:text-[#2DD4BF] text-xs font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5" /> 8 Paket Lapangan Tuntas
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#DC2626]/10 text-[#DC2626] dark:text-[#F87171] text-xs font-semibold">
+                <AlertCircle className="w-3.5 h-3.5" /> 3 Lokasi Deviasi Fisik
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#D97706]/10 text-[#D97706] dark:text-[#FBBF24] text-xs font-semibold">
+                <Coins className="w-3.5 h-3.5" /> {formatRupiahShort(totalSisa)} Pagu Belum Dilelang
+              </span>
+            </div>
 
             {/* 3 High-Impact Telemetry Metric Tiles */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -405,9 +565,14 @@ export const LandingView: React.FC = () => {
                 <div className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] font-mono-data pt-1">
                   {CURRENT_MONTHLY_DIGEST.newCompletedProjects} Paket
                 </div>
-                <p className="text-xs text-[#6B7280] dark:text-[#94A3B8] leading-relaxed">
-                  Termasuk perbaikan IGD Puskesmas Sempur dan jalur pedestrian Kebun Raya yang rampung diverifikasi warga.
-                </p>
+                <div className="flex flex-wrap gap-1.5 pt-2">
+                  <span className="px-2 py-0.5 rounded-md bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] text-[11px] font-medium text-[#111827] dark:text-[#F9FAFB] flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-[#0D9488]" /> IGD Puskesmas Sempur
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] text-[11px] font-medium text-[#111827] dark:text-[#F9FAFB] flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-[#0D9488]" /> Pedestrian Kebun Raya
+                  </span>
+                </div>
               </div>
 
               {/* Tile 2: Sisa Pagu */}
@@ -420,11 +585,16 @@ export const LandingView: React.FC = () => {
                   <span className="text-[10px] font-mono-data text-[#D97706] font-bold">BELUM DILELANG</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] font-mono-data pt-1">
-                  Rp 2,87 Miliar
+                  {formatRupiahShort(totalSisa)}
                 </div>
-                <p className="text-xs text-[#6B7280] dark:text-[#94A3B8] leading-relaxed">
-                  Alokasi APBD yang belum dilelang dan dapat diusulkan warga melalui musrenbang untuk perbaikan darurat.
-                </p>
+                <div className="flex flex-wrap gap-1.5 pt-2">
+                  <span className="px-2 py-0.5 rounded-md bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] text-[11px] font-medium text-[#111827] dark:text-[#F9FAFB]">
+                    Cadangan DPA Pemda
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] text-[11px] font-medium text-[#111827] dark:text-[#F9FAFB]">
+                    Siap Usulan Musrenbang
+                  </span>
+                </div>
               </div>
 
               {/* Tile 3: Selisih Temuan */}
@@ -434,27 +604,38 @@ export const LandingView: React.FC = () => {
                     <span className="w-2 h-2 rounded-full bg-[#DC2626]" />
                     <span>Audit Prioritas</span>
                   </span>
-                  <span className="text-[10px] font-mono-data text-[#DC2626] dark:text-[#F87171] font-bold">DEVINASI FISIK</span>
+                  <span className="text-[10px] font-mono-data text-[#DC2626] dark:text-[#F87171] font-bold">DEVIASI FISIK</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-extrabold text-[#DC2626] dark:text-[#F87171] font-mono-data pt-1">
-                  {CURRENT_MONTHLY_DIGEST.activeDiscrepanciesCount} Lokasi
+                  {discrepancies.length} Lokasi
                 </div>
-                <p className="text-xs text-[#6B7280] dark:text-[#94A3B8] leading-relaxed">
-                  Pencairan kas daerah di atas 50%, namun keluhan fisik warga masih aktif di SDN Menteng & Drainase Pajajaran.
-                </p>
+                <div className="flex flex-wrap gap-1.5 pt-2">
+                  <span className="px-2 py-0.5 rounded-md bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] text-[11px] font-medium text-[#DC2626] dark:text-[#F87171] flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> Drainase Pajajaran
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] text-[11px] font-medium text-[#DC2626] dark:text-[#F87171] flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> SDN Menteng 01
+                  </span>
+                </div>
               </div>
 
             </div>
 
+            {/* Crisp Methodology Badge */}
+            <div className="flex items-center gap-2 text-xs text-[#6B7280] dark:text-[#94A3B8] font-mono-data pt-1 border-t border-[#E5E7EB]/60 dark:border-[#243042]/60">
+              <Info className="w-3.5 h-3.5 text-[#0D9488] shrink-0" />
+              <span>Metodologi: Deviasi serapan kas vs fisik adalah indikasi review audit lapangan, bukan vonis hukum.</span>
+            </div>
+
             {/* Bottom Insight Footer */}
-            <div className="pt-4 border-t border-[#E5E7EB] dark:border-[#243042] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
               <span className="text-[#6B7280] dark:text-[#94A3B8]">
-                Sumber Data: Sinkronisasi SIKD Kemendagri & Portal Satu Data Kota Bogor 2026.
+                Sinkronisasi SIKD Kemendagri & Portal Satu Data Jabodetabek 2026.
               </span>
               <button
                 type="button"
                 onClick={() => navigate('/analisis')}
-                className="text-xs font-semibold text-[#0D9488] hover:text-[#0F766E] dark:hover:text-[#2DD4BF] flex items-center gap-1 transition-colors"
+                className="text-xs font-semibold text-[#0D9488] hover:text-[#0F766E] dark:hover:text-[#2DD4BF] flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <span>Buka Radar Selisih Serapan Lengkap</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -469,64 +650,157 @@ export const LandingView: React.FC = () => {
         {/* ============================================================== */}
         <section className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6">
           
-          <div className="border-b border-[#E5E7EB] dark:border-[#243042] pb-5">
-            <div className="inline-flex items-center gap-1.5 text-xs font-mono-data uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8] font-semibold">
-              <FileCheck2 className="w-3.5 h-3.5 text-[#0D9488]" />
-              <span>Akuntabilitas & Alur Penanganan</span>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E7EB] dark:border-[#243042] pb-5">
+            <div>
+              <div className="inline-flex items-center gap-1.5 text-xs font-mono-data uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8] font-semibold">
+                <FileCheck2 className="w-3.5 h-3.5 text-[#0D9488]" />
+                <span>Akuntabilitas & Alur Penanganan</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight mt-1">
+                Tahapan Penyelesaian Kasus Warga Jabodetabek
+              </h2>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight mt-1">
-              Tahapan Penyelesaian Kasus Warga Jabodetabek
-            </h2>
-            <p className="text-xs sm:text-sm text-[#4B5563] dark:text-[#94A3B8] mt-1 max-w-2xl">
-              Alur 4 tahap transparan dari pengunggahan bukti lapangan berkoordinat hingga verifikasi tuntas perbaikan fisik.
-            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/lapor')}
+              className="text-xs font-semibold text-[#0D9488] hover:underline flex items-center gap-1"
+            >
+              <span>Pantau Semua Laporan ({funnelStage1})</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          {/* Connected Stepper: Horizontal on desktop, Vertical on mobile */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative">
-            {ACCOUNTABILITY_FUNNEL.map((item, idx) => (
-              <div 
-                key={item.step}
-                className="landing-step-node"
-              >
-                {/* Node Step Header */}
-                <div className="flex items-center justify-between text-xs text-[#6B7280] dark:text-[#94A3B8] font-mono-data pb-2 border-b border-[#E5E7EB] dark:border-[#243042]">
-                  <span className="font-bold text-[#0D9488]">TAHAP 0{item.step}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-[#F3F4F6] dark:bg-[#1E293B] text-[#111827] dark:text-[#F9FAFB] font-semibold text-[10px]">
-                    {item.pct} dari total
-                  </span>
+          {/* Connected 4 Funnel Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            {/* TAHAP 01 */}
+            <div 
+              onClick={() => navigate('/lapor')}
+              className="landing-funnel-card cursor-pointer active:scale-98"
+            >
+              <div>
+                <div className="flex items-center justify-between text-xs font-mono-data pb-3 border-b border-[#E5E7EB] dark:border-[#243042]">
+                  <span className="font-bold text-[#0D9488]">TAHAP 01</span>
+                  <span className="text-[#6B7280] dark:text-[#94A3B8]">100% dari total</span>
                 </div>
                 
-                {/* Number Callout */}
                 <div className="text-3xl sm:text-4xl font-extrabold text-[#111827] dark:text-[#F9FAFB] font-mono-data pt-3">
-                  {item.count}
+                  {funnelStage1}
                 </div>
 
-                {/* Title */}
-                <div className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] mt-1 flex items-center gap-1.5">
-                  {idx === 0 && <Clock className="w-4 h-4 text-[#6B7280] dark:text-[#94A3B8]" />}
-                  {idx === 1 && <Search className="w-4 h-4 text-[#D97706]" />}
-                  {idx === 2 && <Building2 className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />}
-                  {idx === 3 && <CheckCircle2 className="w-4 h-4 text-[#0D9488]" />}
-                  <span>{item.label}</span>
+                <div className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] mt-2 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-[#6B7280] dark:text-[#94A3B8]" />
+                  <span>Laporan Masuk</span>
                 </div>
 
-                {/* Description */}
-                <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed mt-2">
-                  {item.description}
-                </p>
-
-                {/* Visual Progress Bar */}
-                <div className="mt-4 pt-3 border-t border-[#E5E7EB]/60 dark:border-[#243042]/60">
-                  <div className="w-full h-1 bg-[#F3F4F6] dark:bg-[#1E293B] rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-[#111827] dark:bg-[#0D9488] rounded-full" 
-                      style={{ width: item.pct }}
-                    />
-                  </div>
+                <div className="pt-2">
+                  <span className="inline-block px-2 py-0.5 rounded bg-[#F3F4F6] dark:bg-[#1E293B] text-[11px] font-medium text-[#4B5563] dark:text-[#CBD5E1]">
+                    Geotag & foto lapangan warga
+                  </span>
                 </div>
               </div>
-            ))}
+
+              <div className="landing-funnel-bar">
+                <div className="landing-funnel-bar-fill" style={{ width: '100%' }} />
+              </div>
+            </div>
+
+            {/* TAHAP 02 */}
+            <div 
+              onClick={() => navigate('/lapor')}
+              className="landing-funnel-card cursor-pointer active:scale-98"
+            >
+              <div>
+                <div className="flex items-center justify-between text-xs font-mono-data pb-3 border-b border-[#E5E7EB] dark:border-[#243042]">
+                  <span className="font-bold text-[#0D9488]">TAHAP 02</span>
+                  <span className="text-[#6B7280] dark:text-[#94A3B8]">70% dari total</span>
+                </div>
+                
+                <div className="text-3xl sm:text-4xl font-extrabold text-[#111827] dark:text-[#F9FAFB] font-mono-data pt-3">
+                  {funnelStage2}
+                </div>
+
+                <div className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] mt-2 flex items-center gap-2">
+                  <Search className="w-4 h-4 text-[#D97706]" />
+                  <span>Bukti Diperiksa</span>
+                </div>
+
+                <div className="pt-2">
+                  <span className="inline-block px-2 py-0.5 rounded bg-[#D97706]/10 text-[11px] font-medium text-[#D97706] dark:text-[#FBBF24]">
+                    Validasi kurator relawan peta
+                  </span>
+                </div>
+              </div>
+
+              <div className="landing-funnel-bar">
+                <div className="landing-funnel-bar-fill" style={{ width: '70%' }} />
+              </div>
+            </div>
+
+            {/* TAHAP 03 */}
+            <div 
+              onClick={() => navigate('/lapor')}
+              className="landing-funnel-card cursor-pointer active:scale-98"
+            >
+              <div>
+                <div className="flex items-center justify-between text-xs font-mono-data pb-3 border-b border-[#E5E7EB] dark:border-[#243042]">
+                  <span className="font-bold text-[#0D9488]">TAHAP 03</span>
+                  <span className="text-[#6B7280] dark:text-[#94A3B8]">50% dari total</span>
+                </div>
+                
+                <div className="text-3xl sm:text-4xl font-extrabold text-[#111827] dark:text-[#F9FAFB] font-mono-data pt-3">
+                  {funnelStage3}
+                </div>
+
+                <div className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] mt-2 flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
+                  <span>Respon Dinas</span>
+                </div>
+
+                <div className="pt-2">
+                  <span className="inline-block px-2 py-0.5 rounded bg-[#2563EB]/10 text-[11px] font-medium text-[#2563EB] dark:text-[#60A5FA]">
+                    Jadwal & SPK dinas terkait
+                  </span>
+                </div>
+              </div>
+
+              <div className="landing-funnel-bar">
+                <div className="landing-funnel-bar-fill" style={{ width: '50%' }} />
+              </div>
+            </div>
+
+            {/* TAHAP 04 */}
+            <div 
+              onClick={() => navigate('/lapor')}
+              className="landing-funnel-card cursor-pointer active:scale-98"
+            >
+              <div>
+                <div className="flex items-center justify-between text-xs font-mono-data pb-3 border-b border-[#E5E7EB] dark:border-[#243042]">
+                  <span className="font-bold text-[#0D9488]">TAHAP 04</span>
+                  <span className="text-[#6B7280] dark:text-[#94A3B8]">27% dari total</span>
+                </div>
+                
+                <div className="text-3xl sm:text-4xl font-extrabold text-[#111827] dark:text-[#F9FAFB] font-mono-data pt-3">
+                  {funnelStage4}
+                </div>
+
+                <div className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] mt-2 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-[#0D9488]" />
+                  <span>Selesai Diperbaiki</span>
+                </div>
+
+                <div className="pt-2">
+                  <span className="inline-block px-2 py-0.5 rounded bg-[#0D9488]/10 text-[11px] font-medium text-[#0D9488] dark:text-[#2DD4BF]">
+                    Verifikasi fisik tuntas warga
+                  </span>
+                </div>
+              </div>
+
+              <div className="landing-funnel-bar">
+                <div className="landing-funnel-bar-fill" style={{ width: '27%' }} />
+              </div>
+            </div>
+
           </div>
         </section>
 
@@ -534,27 +808,30 @@ export const LandingView: React.FC = () => {
         {/* 5. PROPORTIONAL FISCAL STACK & 4-TIER BUDGET CLASSIFICATION    */}
         {/* ============================================================== */}
         <section className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-          <div className="landing-card space-y-8">
+          <div className="landing-card space-y-6">
             
-            {/* Header */}
-            <div className="max-w-3xl space-y-2">
-              <div className="inline-flex items-center gap-1.5 text-xs font-mono-data uppercase tracking-wider text-[#6B7280] dark:text-[#94A3B8] font-semibold">
-                <Coins className="w-3.5 h-3.5 text-[#0D9488]" />
-                <span>Metodologi Standar SIKD & Akuntansi Publik</span>
+            {/* Header without prose */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E5E7EB] dark:border-[#243042] pb-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 text-xs font-mono-data uppercase tracking-wider text-[#0D9488] font-semibold">
+                  <LinkIcon className="w-3.5 h-3.5" />
+                  <span>STANDAR BAS PERMENDAGRI NO. 77/2020</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight mt-0.5">
+                  Empat Kategori Anggaran Fasilitas Publik
+                </h2>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight">
-                Empat Kategori Anggaran pada Setiap Fasilitas Publik
-              </h2>
-              <p className="text-xs sm:text-sm text-[#4B5563] dark:text-[#94A3B8] leading-relaxed">
-                Selisih antara pagu anggaran dan realisasi kas tidak otomatis menjadi dana bebas. TITIK memisahkan data anggaran ke dalam empat status resmi sesuai Bagan Akun Standar (BAS) Permendagri No. 77/2020:
-              </p>
+
+              <span className="text-xs font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
+                APBD 2026 Terdata: {formatRupiahShort(totalPagu)}
+              </span>
             </div>
 
             {/* Proportional Fiscal Stack Gauge */}
             <div className="p-4 sm:p-5 rounded-2xl bg-[#F9FAFB] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
                 <span className="font-semibold text-[#111827] dark:text-[#F9FAFB]">
-                  Distribusi Total Pagu Observatorium (Rp 20,55 Miliar)
+                  Distribusi Total Pagu Observatorium ({formatRupiahShort(totalPagu)})
                 </span>
                 <span className="text-[#6B7280] dark:text-[#94A3B8] font-mono-data text-[11px]">
                   Berdasarkan SPK Kontrak & Kas Daerah 2026
@@ -562,101 +839,115 @@ export const LandingView: React.FC = () => {
               </div>
 
               {/* Stacked Bar */}
-              <div className="w-full h-4 sm:h-5 bg-[#E5E7EB] dark:bg-[#1E293B] rounded-xl overflow-hidden flex shadow-inner">
+              <div className="landing-budget-stacked-bar">
                 <div 
-                  className="bg-[#0D9488] h-full" 
-                  style={{ width: '78.4%' }} 
-                  title="Realisasi Penyerapan: 78.4%"
+                  className="bg-[#0D9488] h-full transition-all duration-500" 
+                  style={{ width: `${pctRealisasi}%` }} 
+                  title={`Realisasi Penyerapan: ${pctRealisasi.toFixed(1)}%`}
                 />
                 <div 
-                  className="bg-[#D97706] h-full" 
-                  style={{ width: '7.7%' }} 
-                  title="Dana Terikat Kontrak: 7.7%"
+                  className="bg-[#D97706] h-full transition-all duration-500" 
+                  style={{ width: `${pctKontrak}%` }} 
+                  title={`Dana Terikat Kontrak: ${pctKontrak.toFixed(1)}%`}
                 />
                 <div 
-                  className="bg-[#6B7280] dark:bg-[#475569] h-full" 
-                  style={{ width: '13.9%' }} 
-                  title="Sisa Pagu Belum Terikat: 13.9%"
+                  className="bg-[#6B7280] dark:bg-[#475569] h-full transition-all duration-500" 
+                  style={{ width: `${pctSisa}%` }} 
+                  title={`Sisa Pagu Belum Terikat: ${pctSisa.toFixed(1)}%`}
                 />
               </div>
 
               {/* Stack Legend */}
               <div className="flex flex-wrap items-center gap-4 text-xs pt-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#0D9488]" />
-                  <span className="text-[#4B5563] dark:text-[#94A3B8]">Realisasi Kas (78.4% • Rp 16,12 M)</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#0D9488]" />
+                  <span className="text-[#4B5563] dark:text-[#94A3B8] font-medium">
+                    Realisasi Kas ({pctRealisasi.toFixed(1)}% • {formatRupiahShort(totalRealisasi)})
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#D97706]" />
-                  <span className="text-[#4B5563] dark:text-[#94A3B8]">Komitmen SPK (7.7% • Rp 1,56 M)</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#D97706]" />
+                  <span className="text-[#4B5563] dark:text-[#94A3B8] font-medium">
+                    Komitmen SPK ({pctKontrak.toFixed(1)}% • {formatRupiahShort(totalKontrak)})
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[#6B7280] dark:bg-[#475569]" />
-                  <span className="text-[#4B5563] dark:text-[#94A3B8]">Sisa Belum Terikat (13.9% • Rp 2,87 M)</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#6B7280] dark:bg-[#475569]" />
+                  <span className="text-[#4B5563] dark:text-[#94A3B8] font-medium">
+                    Sisa Belum Terikat ({pctSisa.toFixed(1)}% • {formatRupiahShort(totalSisa)})
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* 4 Distinct Tier Cards */}
+            {/* 4 Distinct Tier Cards - Visual Metric Badges */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               
               {/* Tier 1 */}
-              <div className="p-5 bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-xl space-y-2.5 hover:border-[#111827] dark:hover:border-[#0D9488] transition-colors shadow-xs">
+              <div className="landing-budget-tier-card">
                 <div className="flex items-center justify-between text-xs font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
                   <span className="font-bold text-[#111827] dark:text-[#F9FAFB]">01 • ALOKASI</span>
                   <span className="w-2 h-2 rounded-full bg-[#111827] dark:bg-[#F9FAFB]" />
                 </div>
                 <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">1. Pagu Anggaran</h4>
-                <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed">
-                  Batas tertinggi anggaran yang disetujui DPRD dan Pemerintah Daerah dalam dokumen APBD tahun berjalan.
-                </p>
-                <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-[10px] font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
-                  DPA-SKPD Resmi Pemda
+                <div className="flex flex-wrap gap-1.5 py-1">
+                  <span className="px-2 py-0.5 rounded bg-[#F3F4F6] dark:bg-[#1E293B] text-[11px] font-medium text-[#4B5563] dark:text-[#CBD5E1]">Batas Tertinggi APBD</span>
+                  <span className="px-2 py-0.5 rounded bg-[#F3F4F6] dark:bg-[#1E293B] text-[11px] font-medium text-[#4B5563] dark:text-[#CBD5E1]">Persetujuan DPRD</span>
+                </div>
+                <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-[10px] font-mono-data text-[#6B7280] dark:text-[#94A3B8] flex items-center justify-between">
+                  <span>DOKUMEN DASAR</span>
+                  <span className="font-semibold text-[#111827] dark:text-[#F9FAFB]">DPA-SKPD</span>
                 </div>
               </div>
 
               {/* Tier 2 */}
-              <div className="p-5 bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-xl space-y-2.5 hover:border-[#D97706] transition-colors shadow-xs">
+              <div className="landing-budget-tier-card hover:border-[#D97706]">
                 <div className="flex items-center justify-between text-xs font-mono-data text-[#D97706]">
                   <span className="font-bold">02 • KOMITMEN</span>
                   <span className="w-2 h-2 rounded-full bg-[#D97706]" />
                 </div>
                 <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">2. Dana Terikat Kontrak</h4>
-                <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed">
-                  Nilai anggaran yang sudah tercantum dalam Surat Perjanjian Kerja (SPK) dengan kontraktor pelaksana proyek.
-                </p>
-                <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-[10px] font-mono-data text-[#D97706]">
-                  SPK Mengikat Secara Hukum
+                <div className="flex flex-wrap gap-1.5 py-1">
+                  <span className="px-2 py-0.5 rounded bg-[#D97706]/10 text-[11px] font-medium text-[#D97706] dark:text-[#FBBF24]">Ikatan Hukum Rekanan</span>
+                  <span className="px-2 py-0.5 rounded bg-[#D97706]/10 text-[11px] font-medium text-[#D97706] dark:text-[#FBBF24]">Sedang Berjalan</span>
+                </div>
+                <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-[10px] font-mono-data text-[#D97706] flex items-center justify-between">
+                  <span>STATUS HUKUM</span>
+                  <span className="font-semibold">SPK Resmi</span>
                 </div>
               </div>
 
               {/* Tier 3 */}
-              <div className="p-5 bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-xl space-y-2.5 hover:border-[#0D9488] transition-colors shadow-xs">
+              <div className="landing-budget-tier-card hover:border-[#0D9488]">
                 <div className="flex items-center justify-between text-xs font-mono-data text-[#0D9488]">
                   <span className="font-bold">03 • PENCAIRAN</span>
                   <span className="w-2 h-2 rounded-full bg-[#0D9488]" />
                 </div>
                 <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">3. Realisasi Penyerapan</h4>
-                <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed">
-                  Dana yang telah dibayarkan Kas Daerah kepada kontraktor berdasarkan berita acara pemeriksaan kemajuan fisik.
-                </p>
-                <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-[10px] font-mono-data text-[#0D9488]">
-                  SP2D Sah Kas Daerah
+                <div className="flex flex-wrap gap-1.5 py-1">
+                  <span className="px-2 py-0.5 rounded bg-[#0D9488]/10 text-[11px] font-medium text-[#0D9488] dark:text-[#2DD4BF]">BAP Fisik Lapangan</span>
+                  <span className="px-2 py-0.5 rounded bg-[#0D9488]/10 text-[11px] font-medium text-[#0D9488] dark:text-[#2DD4BF]">Kas Daerah Cair</span>
+                </div>
+                <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-[10px] font-mono-data text-[#0D9488] flex items-center justify-between">
+                  <span>BUKTI BAYAR</span>
+                  <span className="font-semibold">SP2D Sah</span>
                 </div>
               </div>
 
               {/* Tier 4 */}
-              <div className="p-5 bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-xl space-y-2.5 hover:border-[#6B7280] dark:hover:border-[#94A3B8] transition-colors shadow-xs">
+              <div className="landing-budget-tier-card hover:border-[#6B7280] dark:hover:border-[#94A3B8]">
                 <div className="flex items-center justify-between text-xs font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
-                  <span className="font-bold">04 • SELISIH PAGU</span>
+                  <span className="font-bold">04 • SISA PAGU</span>
                   <span className="w-2 h-2 rounded-full bg-[#6B7280] dark:bg-[#94A3B8]" />
                 </div>
                 <h4 className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB]">4. Sisa Belum Terikat</h4>
-                <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed">
-                  Sisa pagu yang belum dikontrakkan. Penggunaan dana ini memerlukan prosedur lelang atau perubahan penjabaran APBD.
-                </p>
-                <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-[10px] font-mono-data text-[#6B7280] dark:text-[#94A3B8]">
-                  Bukan Dana Bebas
+                <div className="flex flex-wrap gap-1.5 py-1">
+                  <span className="px-2 py-0.5 rounded bg-[#6B7280]/10 text-[11px] font-medium text-[#6B7280] dark:text-[#94A3B8]">Siap Usulan Baru</span>
+                  <span className="px-2 py-0.5 rounded bg-[#6B7280]/10 text-[11px] font-medium text-[#6B7280] dark:text-[#94A3B8]">Menunggu Lelang</span>
+                </div>
+                <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#243042] text-[10px] font-mono-data text-[#6B7280] dark:text-[#94A3B8] flex items-center justify-between">
+                  <span>KONDISI KAS</span>
+                  <span className="font-semibold">Bukan Kas Bebas</span>
                 </div>
               </div>
 

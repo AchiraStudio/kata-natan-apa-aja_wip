@@ -78,9 +78,21 @@ export const FacilitiesView: React.FC = () => {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] dark:text-[#F9FAFB] tracking-tight">
             Direktori Fasilitas Publik & Alokasi Pemeliharaan
           </h1>
-          <p className="text-sm text-[#4B5563] dark:text-[#94A3B8] max-w-2xl">
-            Memuat {facilities.length} fasilitas publik terdata di wilayah Jabodetabek beserta kondisi bangunan, instansi pengelola, dan pagu anggaran tahun berjalan.
-          </p>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] text-xs font-mono-data font-bold text-[#111827] dark:text-[#F9FAFB]">
+              <span className="w-2 h-2 rounded-full bg-[#0D9488]"></span>
+              <span>{facilities.length} Sarana Terdata</span>
+            </span>
+
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#FEF2F2] dark:bg-[#7F1D1D]/20 border border-[#FCA5A5] dark:border-[#991B1B] text-xs font-mono-data font-bold text-[#DC2626] dark:text-[#F87171]">
+              <span className="w-2 h-2 rounded-full bg-[#DC2626]"></span>
+              <span>{facilities.filter(f => f.condition === 'Perlu Intervensi Kritis').length} Intervensi Kritis</span>
+            </span>
+
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] text-xs font-mono-data font-bold text-[#D97706]">
+              <span>Pagu APBD: {formatRupiahShort(facilities.reduce((acc, f) => acc + f.budgetSummary.paguAnggaran, 0))}</span>
+            </span>
+          </div>
         </div>
 
         <button
@@ -202,17 +214,32 @@ export const FacilitiesView: React.FC = () => {
                 </div>
 
                 {/* Metadata Pill Box */}
-                <div className="p-2.5 rounded-lg bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] text-xs space-y-1 text-[#4B5563] dark:text-[#94A3B8]">
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-[#6B7280] dark:text-[#94A3B8]">Kondisi Fisik:</span>
-                    <span className="font-bold text-[#111827] dark:text-[#F9FAFB]">{facility.condition}</span>
+                <div className="p-2.5 rounded-lg bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] text-xs space-y-1.5 text-[#4B5563] dark:text-[#94A3B8]">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-[#6B7280] dark:text-[#94A3B8]">Kondisi Fisik</span>
+                    <span className={`inline-flex items-center gap-1 font-bold text-[11px] ${
+                      facility.condition === 'Perlu Intervensi Kritis' 
+                        ? 'text-[#DC2626] dark:text-[#F87171]' 
+                        : facility.condition === 'Rusak Sedang'
+                          ? 'text-[#D97706] dark:text-[#FBBF24]'
+                          : 'text-[#0D9488] dark:text-[#2DD4BF]'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        facility.condition === 'Perlu Intervensi Kritis' 
+                          ? 'bg-[#DC2626]' 
+                          : facility.condition === 'Rusak Sedang'
+                            ? 'bg-[#D97706]'
+                            : 'bg-[#0D9488]'
+                      }`}></span>
+                      <span>{facility.condition}</span>
+                    </span>
                   </div>
                   <div className="flex justify-between text-[11px]">
-                    <span className="text-[#6B7280] dark:text-[#94A3B8]">Kapasitas Layanan:</span>
-                    <span className="font-medium text-[#111827] dark:text-[#F9FAFB]">{facility.serviceCapacity}</span>
+                    <span className="text-[#6B7280] dark:text-[#94A3B8]">Kapasitas Layanan</span>
+                    <span className="font-semibold text-[#111827] dark:text-[#F9FAFB] font-mono-data">{facility.serviceCapacity}</span>
                   </div>
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-[#6B7280] dark:text-[#94A3B8]">Pengelola:</span>
+                  <div className="flex justify-between text-[11px] pt-1 border-t border-[#E5E7EB] dark:border-[#243042]">
+                    <span className="text-[#6B7280] dark:text-[#94A3B8]">Pengelola</span>
                     <span className="font-medium text-[#111827] dark:text-[#F9FAFB] truncate max-w-[170px]">{facility.responsibleAgency}</span>
                   </div>
                 </div>

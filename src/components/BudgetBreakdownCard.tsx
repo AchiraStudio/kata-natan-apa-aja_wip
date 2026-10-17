@@ -87,9 +87,12 @@ export const BudgetBreakdownCard: React.FC<Props> = ({
           <div className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] font-mono-data">
             {formatRupiahFull(paguAnggaran)}
           </div>
-          <p className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] leading-snug">
-            Alokasi resmi yang disahkan dalam dokumen APBD daerah.
-          </p>
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <span className="text-[10px] font-mono-data bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] px-2 py-0.5 rounded font-semibold text-[#111827] dark:text-[#F9FAFB]">
+              DPA-SKPD Resmi
+            </span>
+            <span className="text-[10px] text-[#6B7280] dark:text-[#94A3B8] font-mono-data">Perda APBD</span>
+          </div>
         </div>
 
         <div className="p-3 rounded-lg bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] space-y-1">
@@ -103,9 +106,12 @@ export const BudgetBreakdownCard: React.FC<Props> = ({
           <div className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] font-mono-data">
             {formatRupiahFull(danaTerikatKontrak)}
           </div>
-          <p className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] leading-snug">
-            Dana yang sudah masuk dalam Surat Perjanjian Kerja (SPK) kontraktor.
-          </p>
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <span className="text-[10px] font-mono-data bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] px-2 py-0.5 rounded font-semibold text-[#D97706]">
+              SPK Sah Rekanan
+            </span>
+            <span className="text-[10px] text-[#6B7280] dark:text-[#94A3B8] font-mono-data">Ikatan Hukum</span>
+          </div>
         </div>
 
         <div className="p-3 rounded-lg bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] space-y-1">
@@ -119,9 +125,12 @@ export const BudgetBreakdownCard: React.FC<Props> = ({
           <div className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] font-mono-data">
             {formatRupiahFull(realisasiPenyerapan)}
           </div>
-          <p className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] leading-snug">
-            Pembayaran yang telah dicairkan Kas Daerah sesuai progres fisik.
-          </p>
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <span className="text-[10px] font-mono-data bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] px-2 py-0.5 rounded font-semibold text-[#0D9488]">
+              SP2D Kas Cair
+            </span>
+            <span className="text-[10px] text-[#6B7280] dark:text-[#94A3B8] font-mono-data">BAP Fisik</span>
+          </div>
         </div>
 
         <div className="p-3 rounded-lg bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] space-y-1">
@@ -135,18 +144,30 @@ export const BudgetBreakdownCard: React.FC<Props> = ({
           <div className="font-bold text-sm text-[#111827] dark:text-[#F9FAFB] font-mono-data">
             {formatRupiahFull(sisaPaguBelumTerikat)}
           </div>
-          <p className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] leading-snug">
-            Selisih pagu yang belum dikontrakkan kepada penyedia jasa.
-          </p>
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <span className="text-[10px] font-mono-data bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] px-2 py-0.5 rounded font-semibold text-[#6B7280] dark:text-[#94A3B8]">
+              Belum Kontrak
+            </span>
+            <span className="text-[10px] text-[#6B7280] dark:text-[#94A3B8] font-mono-data">Sisa Alokasi</span>
+          </div>
         </div>
       </div>
 
-      {/* Methodology Note */}
-      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] text-xs text-[#4B5563] dark:text-[#94A3B8]">
-        <Info className="w-4 h-4 text-[#6B7280] dark:text-[#94A3B8] shrink-0 mt-0.5" />
-        <p className="text-[11px] leading-relaxed">
-          <strong className="text-[#111827] dark:text-[#F9FAFB]">Catatan Perbendaharaan:</strong> Sisa Pagu Belum Terikat bukan dana tunai bebas. Penggunaan atau pergeseran anggaran ini memerlukan pengadaan baru atau mekanisme perubahan penjabaran APBD.
-        </p>
+      {/* Methodology Visual Note */}
+      <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg bg-[#F8F9FA] dark:bg-[#101622] border border-[#E5E7EB] dark:border-[#243042] text-[11px]">
+        <span className="font-bold text-[#111827] dark:text-[#F9FAFB] flex items-center gap-1">
+          <Info className="w-3.5 h-3.5 text-[#0D9488]" />
+          Ketentuan Kas:
+        </span>
+        <span className="bg-white dark:bg-[#151D2A] px-2 py-0.5 rounded border border-[#E5E7EB] dark:border-[#243042] text-[#4B5563] dark:text-[#94A3B8]">
+          Bukan Kas Bebas
+        </span>
+        <span className="bg-white dark:bg-[#151D2A] px-2 py-0.5 rounded border border-[#E5E7EB] dark:border-[#243042] text-[#4B5563] dark:text-[#94A3B8]">
+          Perlu Prosedur Perubahan APBD
+        </span>
+        <span className="bg-white dark:bg-[#151D2A] px-2 py-0.5 rounded border border-[#E5E7EB] dark:border-[#243042] text-[#0D9488] font-mono-data font-semibold">
+          Format SIKD Sah
+        </span>
       </div>
 
       {/* Source Attribution */}

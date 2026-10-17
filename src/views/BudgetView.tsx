@@ -102,9 +102,58 @@ export const BudgetView: React.FC = () => {
           </button>
         </div>
 
-        <p className="text-sm text-[#4B5563] dark:text-[#94A3B8] leading-relaxed max-w-4xl">
-          Data di bawah ini menyajikan susunan anggaran daerah mulai dari tingkat sektor layanan, program dinas, hingga sub-kegiatan proyek fisik. Setiap baris memisahkan nilai pagu awal, dana yang sudah terikat kontrak, dan pembayaran yang telah cair.
-        </p>
+        {/* 4-Metric Visual KPI Summary: Less Text, More Show */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+          <div className="p-3 bg-[#F8F9FA] dark:bg-[#101622] rounded-xl border border-[#E5E7EB] dark:border-[#243042]">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono-data font-bold uppercase text-[#6B7280] dark:text-[#94A3B8]">Pagu APBD</span>
+              <span className="text-[10px] font-mono-data font-bold text-[#111827] dark:text-[#F9FAFB] bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] px-1.5 py-0.2 rounded">100%</span>
+            </div>
+            <div className="text-base sm:text-lg font-extrabold font-mono-data text-[#111827] dark:text-[#F9FAFB] mt-1">
+              {formatRupiahShort(totalCityBudget.paguAnggaran)}
+            </div>
+            <div className="w-full h-1 bg-[#111827] dark:bg-[#F9FAFB] rounded-full mt-2" />
+          </div>
+
+          <div className="p-3 bg-[#F8F9FA] dark:bg-[#101622] rounded-xl border border-[#E5E7EB] dark:border-[#243042]">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono-data font-bold uppercase text-[#D97706]">Terikat Kontrak</span>
+              <span className="text-[10px] font-mono-data font-bold text-[#D97706] bg-[#D97706]/10 px-1.5 py-0.2 rounded">
+                {Math.round((totalCityBudget.danaTerikatKontrak / totalCityBudget.paguAnggaran) * 100)}%
+              </span>
+            </div>
+            <div className="text-base sm:text-lg font-extrabold font-mono-data text-[#D97706] mt-1">
+              {formatRupiahShort(totalCityBudget.danaTerikatKontrak)}
+            </div>
+            <div className="w-full h-1 bg-[#D97706] rounded-full mt-2" />
+          </div>
+
+          <div className="p-3 bg-[#F8F9FA] dark:bg-[#101622] rounded-xl border border-[#E5E7EB] dark:border-[#243042]">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono-data font-bold uppercase text-[#0D9488]">Kas Daerah Cair</span>
+              <span className="text-[10px] font-mono-data font-bold text-[#0D9488] bg-[#0D9488]/10 px-1.5 py-0.2 rounded">
+                {Math.round((totalCityBudget.realisasiPenyerapan / totalCityBudget.paguAnggaran) * 100)}%
+              </span>
+            </div>
+            <div className="text-base sm:text-lg font-extrabold font-mono-data text-[#0D9488] mt-1">
+              {formatRupiahShort(totalCityBudget.realisasiPenyerapan)}
+            </div>
+            <div className="w-full h-1 bg-[#0D9488] rounded-full mt-2" />
+          </div>
+
+          <div className="p-3 bg-[#F8F9FA] dark:bg-[#101622] rounded-xl border border-[#E5E7EB] dark:border-[#243042]">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono-data font-bold uppercase text-[#6B7280] dark:text-[#94A3B8]">Belum Terikat</span>
+              <span className="text-[10px] font-mono-data font-bold text-[#6B7280] dark:text-[#94A3B8] bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] px-1.5 py-0.2 rounded">
+                {Math.round((totalCityBudget.sisaPaguBelumTerikat / totalCityBudget.paguAnggaran) * 100)}%
+              </span>
+            </div>
+            <div className="text-base sm:text-lg font-extrabold font-mono-data text-[#6B7280] dark:text-[#94A3B8] mt-1">
+              {formatRupiahShort(totalCityBudget.sisaPaguBelumTerikat)}
+            </div>
+            <div className="w-full h-1 bg-[#9CA3AF] dark:bg-[#475569] rounded-full mt-2" />
+          </div>
+        </div>
       </div>
 
       {/* 4-Tier City Breakdown */}

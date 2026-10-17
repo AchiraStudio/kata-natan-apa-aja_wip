@@ -40,9 +40,11 @@ export const DiscrepancyDetector: React.FC<Props> = ({
           <h3 className="font-bold text-base text-[#111827] dark:text-[#F9FAFB] tracking-tight">
             Daftar Proyek dengan Selisih Serapan & Kondisi Lapangan
           </h3>
-          <p className="text-xs text-[#6B7280] dark:text-[#94A3B8] mt-0.5">
-            Proyek yang pencairan anggarannya sudah berjalan tetapi masih memiliki laporan kerusakan aktif dari warga
-          </p>
+          <div className="flex items-center gap-2 pt-0.5">
+            <span className="text-[11px] font-mono-data text-[#6B7280] dark:text-[#94A3B8]">Audit SIKD vs Temuan Lapangan</span>
+            <span className="w-1 h-1 rounded-full bg-[#9CA3AF]"></span>
+            <span className="text-[11px] font-mono-data text-[#DC2626] font-semibold">{discrepancies.length} Titik Anomali</span>
+          </div>
         </div>
 
         {showAllLink && (
@@ -79,15 +81,34 @@ export const DiscrepancyDetector: React.FC<Props> = ({
                   {item.title}
                 </h4>
 
-                <p className="text-xs text-[#4B5563] dark:text-[#94A3B8] leading-relaxed">
-                  {item.flagReason}
-                </p>
+                {/* Visual Ratio Progress Bar */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[11px] font-mono-data">
+                    <span className="text-[#6B7280] dark:text-[#94A3B8]">Dana Cair: <strong className="text-[#111827] dark:text-[#F9FAFB]">{item.realizationPercent}%</strong></span>
+                    <span className="text-[#DC2626] dark:text-[#F87171] font-bold">{item.unresolvedReportsCount} Aduan Aktif</span>
+                  </div>
+                  <div className="w-full h-2 bg-[#F3F4F6] dark:bg-[#101622] rounded-full overflow-hidden flex border border-[#E5E7EB] dark:border-[#243042]">
+                    <div 
+                      style={{ width: `${Math.min(100, item.realizationPercent)}%` }} 
+                      className="bg-[#111827] dark:bg-[#0D9488] h-full" 
+                    />
+                    <div 
+                      style={{ width: `${Math.min(100, item.unresolvedReportsCount * 10)}%` }} 
+                      className="bg-[#DC2626] h-full" 
+                    />
+                  </div>
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#4B5563] dark:text-[#94A3B8] bg-[#F8F9FA] dark:bg-[#101622] px-2.5 py-1 rounded-lg border border-[#E5E7EB] dark:border-[#243042]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span>
+                  <span>{item.flagReason}</span>
+                </div>
               </div>
 
               {/* Metrics Comparison Ledger */}
-              <div className="flex items-center gap-4 bg-[#F8F9FA] dark:bg-[#101622] p-3.5 rounded-lg border border-[#E5E7EB] dark:border-[#243042] shrink-0">
-                <div className="text-left pr-2">
-                  <div className="text-[11px] text-[#6B7280] dark:text-[#94A3B8]">Dana Cair</div>
+              <div className="flex items-center gap-3 bg-[#F8F9FA] dark:bg-[#101622] p-3 rounded-xl border border-[#E5E7EB] dark:border-[#243042] shrink-0">
+                <div className="text-left px-2">
+                  <div className="text-[10px] font-mono-data text-[#6B7280] dark:text-[#94A3B8] uppercase">Kas Cair</div>
                   <div className="text-lg font-extrabold text-[#111827] dark:text-[#F9FAFB] font-mono-data">
                     {item.realizationPercent}%
                   </div>
@@ -95,8 +116,8 @@ export const DiscrepancyDetector: React.FC<Props> = ({
 
                 <div className="h-8 w-px bg-[#E5E7EB] dark:bg-[#243042]" />
 
-                <div className="text-left pr-2">
-                  <div className="text-[11px] text-[#6B7280] dark:text-[#94A3B8]">Laporan Aktif</div>
+                <div className="text-left px-2">
+                  <div className="text-[10px] font-mono-data text-[#DC2626] dark:text-[#F87171] uppercase">Aduan</div>
                   <div className="text-lg font-extrabold text-[#DC2626] dark:text-[#F87171] font-mono-data">
                     {item.unresolvedReportsCount}
                   </div>
@@ -104,20 +125,22 @@ export const DiscrepancyDetector: React.FC<Props> = ({
 
                 <button
                   onClick={() => handleInspect(item)}
-                  className="px-3.5 py-2 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
+                  className="px-3 py-2 bg-[#111827] hover:bg-[#1F2937] dark:bg-[#0D9488] dark:hover:bg-[#0F766E] text-white rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
                 >
-                  Periksa Fasilitas
+                  Periksa
                 </button>
               </div>
             </div>
 
             <div className="pt-3 border-t border-[#E5E7EB] dark:border-[#243042] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-              <div>
-                <span className="font-semibold text-[#111827] dark:text-[#F9FAFB]">Tindak Lanjut yang Disarankan: </span>
-                <span className="text-[#4B5563] dark:text-[#94A3B8]">{item.auditRecommendation}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono-data font-bold uppercase bg-[#D97706]/10 text-[#D97706] dark:text-[#FBBF24] px-2 py-0.5 rounded">
+                  Rekomendasi
+                </span>
+                <span className="text-[#4B5563] dark:text-[#94A3B8] text-[11px]">{item.auditRecommendation}</span>
               </div>
-              <span className="text-[11px] text-[#6B7280] dark:text-[#94A3B8] shrink-0">
-                Instansi: {item.agencyName}
+              <span className="text-[10px] font-mono-data text-[#6B7280] dark:text-[#94A3B8] shrink-0">
+                SKPD: {item.agencyName}
               </span>
             </div>
           </div>

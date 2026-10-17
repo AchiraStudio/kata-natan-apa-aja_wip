@@ -72,3 +72,59 @@
 .landing-step-node {
   @apply relative flex flex-col p-5 bg-white dark:bg-[#151D2A] rounded-2xl border border-[#E5E7EB] dark:border-[#243042] shadow-[0_2px_12px_rgba(0,0,0,0.03)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.2)] transition-all hover:border-[#111827] dark:hover:border-[#0D9488] hover:shadow-sm;
 }
+
+/* Realtime Telemetry Control Bar & Status Widget */
+.landing-telemetry-bar {
+  @apply bg-white/90 dark:bg-[#151D2A]/90 backdrop-blur-md rounded-2xl border border-[#E5E7EB] dark:border-[#243042] p-4 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4;
+}
+
+.landing-telemetry-live-pill {
+  @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono-data font-bold transition-all;
+}
+
+.landing-telemetry-live-pill-live {
+  @apply bg-[#0D9488]/10 text-[#0D9488] dark:bg-[#0D9488]/20 dark:text-[#2DD4BF] border border-[#0D9488]/20;
+}
+
+.landing-telemetry-live-pill-syncing {
+  @apply bg-[#D97706]/10 text-[#D97706] dark:bg-[#D97706]/20 dark:text-[#FBBF24] border border-[#D97706]/20 animate-pulse;
+}
+
+.landing-telemetry-live-pill-offline {
+  @apply bg-[#DC2626]/10 text-[#DC2626] dark:bg-[#DC2626]/20 dark:text-[#F87171] border border-[#DC2626]/20;
+}
+
+.landing-telemetry-live-pill-cached {
+  @apply bg-[#6B7280]/10 text-[#6B7280] dark:bg-[#6B7280]/20 dark:text-[#94A3B8] border border-[#6B7280]/20;
+}
+
+.landing-telemetry-btn {
+  @apply px-3.5 py-1.5 rounded-xl text-xs font-medium border transition-all flex items-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer;
+}
+
+.landing-telemetry-toast {
+  @apply flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border text-xs font-mono-data transition-all duration-300;
+}
+
+/* 4-Stage Accountability Funnel Card */
+.landing-funnel-card {
+  @apply relative flex flex-col justify-between p-5 sm:p-6 bg-white dark:bg-[#151D2A] rounded-2xl border border-[#E5E7EB] dark:border-[#243042] shadow-[0_2px_12px_rgba(0,0,0,0.03)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)] transition-all hover:border-[#111827] dark:hover:border-[#0D9488] hover:shadow-md;
+}
+
+.landing-funnel-bar {
+  @apply w-full h-1.5 bg-[#F3F4F6] dark:bg-[#1E293B] rounded-full overflow-hidden mt-4 pt-0;
+}
+
+.landing-funnel-bar-fill {
+  @apply h-full bg-[#0D9488] rounded-full transition-all duration-700;
+}
+
+/* Proportional Stacked Gauge */
+.landing-budget-stacked-bar {
+  @apply w-full h-4 sm:h-5 bg-[#E5E7EB] dark:bg-[#1E293B] rounded-xl overflow-hidden flex shadow-inner;
+}
+
+.landing-budget-tier-card {
+  @apply p-5 bg-white dark:bg-[#151D2A] border border-[#E5E7EB] dark:border-[#243042] rounded-xl space-y-2.5 hover:border-[#111827] dark:hover:border-[#0D9488] transition-all shadow-xs;
+}
+

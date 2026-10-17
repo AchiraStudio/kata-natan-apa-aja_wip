@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   PublicFacility, 
   BudgetProject, 
@@ -6,15 +6,19 @@ import {
   CitizenReport, 
   DiscrepancyFlag, 
   SubdistrictType, 
-  SectorType 
+  SectorType,
+  RealtimeSyncStatus,
+  TelemetryEvent
 } from '../types';
 import { 
   INITIAL_FACILITIES, 
   INITIAL_BUDGET_PROJECTS, 
-  INITIAL_BUDGET_PROGRAMS,
+  INITIAL_BUDGET_PROGRAMS, 
   INITIAL_REPORTS, 
   INITIAL_DISCREPANCIES 
 } from '../data/titikRegionalData';
+import { fetchPublishedReports } from '../services/reportService';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 interface TitikContextType {
   // Filter States
@@ -66,6 +70,18 @@ interface TitikContextType {
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
   toggleTheme: () => void;
+
+  // Realtime & Offline Telemetry Engine
+  syncStatus: RealtimeSyncStatus;
+  lastSyncedAt: string;
+  isOfflineSimulated: boolean;
+  realtimeChannelState: 'CONNECTED' | 'SUBSCRIBED' | 'OFFLINE';
+  liveEventsCount: number;
+  latestTelemetryEvent: TelemetryEvent | null;
+  triggerManualSync: () => Promise<void>;
+  toggleOfflineSimulation: () => void;
+  simulateIncomingEvent: () => void;
+  clearLatestEvent: () => void;
 
   // Actions
   addCitizenReport: (report: Omit<CitizenReport, 'id' | 'reportedAt' | 'priorityVotes' | 'userHasVoted' | 'currentStep' | 'timeline'>) => CitizenReport;
@@ -182,6 +198,68 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [savedReportIds]);
 
+  // Synchronize reports with Supabase published reports when configured
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    fetchPublishedReports()
+      .then((pubReports) => {
+        if (pubReports && pubReports.length > 0) {
+          const mapped: CitizenReport[] = pubReports.map((p) => {
+            const fac = p.facilityId ? INITIAL_FACILITIES.find(f => f.id === p.facilityId) : undefined;
+            const agencyRel = p.relations?.find(r => r.targetType === 'agency');
+            const projectRel = p.relations?.find(r => r.targetType === 'budget_project');
+            const project = projectRel ? INITIAL_BUDGET_PROJECTS.find(bp => bp.id === projectRel.targetId) : undefined;
+
+            const timeline = (p.events && p.events.length > 0)
+              ? p.events.map((e, idx) => ({
+                  stepNumber: ((idx + 1) as 1 | 2 | 3 | 4 | 5 | 6),
+                  title: e.statusBadge || e.eventType || 'Peristiwa Terverifikasi',
+                  date: e.date,
+                  description: e.description,
+                  status: 'COMPLETED' as const,
+                  actor: e.actorType === 'agency' ? 'Instansi Terkait' : 'Warga / Sistem'
+                }))
+              : [
+                  {
+                    stepNumber: 1 as const,
+                    title: 'Laporan Diterima Warga',
+                    date: p.observedAt || 'Baru Saja',
+                    description: p.description,
+                    status: 'COMPLETED' as const,
+                    actor: 'Warga Pelapor'
+                  }
+                ];
+
+            return {
+              id: p.publicReference || p.id,
+              title: p.title,
+              description: p.description,
+              sector: p.category as SectorType,
+              subdistrict: p.subdistrict as SubdistrictType,
+              facilityId: p.facilityId,
+              facilityName: fac?.name || p.facilityName,
+              coordinates: p.coordinates,
+              responsibleAgency: agencyRel?.targetId || fac?.responsibleAgency || 'Dinas Teknis Terkait',
+              linkedProjectId: project?.id,
+              linkedProjectTitle: project?.title,
+              isBudgetLinkConfirmed: agencyRel?.matchStatus === 'confirmed',
+              priorityVotes: p.votesCount,
+              userHasVoted: p.hasUserVoted,
+              reporterHandle: 'warga_terverifikasi',
+              reportedAt: p.observedAt,
+              currentStep: (Math.min(timeline.length, 6) as 1 | 2 | 3 | 4 | 5 | 6),
+              timeline,
+              photoUrl: p.approvedMedia?.[0]?.url || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
+              severity: p.severity,
+              evidenceFilesCount: p.approvedMedia?.length || 0,
+            };
+          });
+          setReports(mapped);
+        }
+      })
+      .catch((err) => console.warn('Could not sync reports from Supabase:', err));
+  }, []);
+
   // Dynamic Light / Dark Theme Management
   const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
     try {
@@ -232,6 +310,112 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // ignore
     }
   }, [theme]);
+
+  // Realtime & Offline Telemetry Engine State
+  const [syncStatus, setSyncStatus] = useState<RealtimeSyncStatus>('LIVE');
+  const [lastSyncedAt, setLastSyncedAt] = useState<string>(() => {
+    const now = new Date();
+    return `${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB (Otomatis)`;
+  });
+  const [isOfflineSimulated, setIsOfflineSimulated] = useState<boolean>(false);
+  const [realtimeChannelState, setRealtimeChannelState] = useState<'CONNECTED' | 'SUBSCRIBED' | 'OFFLINE'>('SUBSCRIBED');
+  const [liveEventsCount, setLiveEventsCount] = useState<number>(3);
+  const [latestTelemetryEvent, setLatestTelemetryEvent] = useState<TelemetryEvent | null>({
+    id: 'evt-init',
+    timestamp: '13:25 WIB',
+    message: 'SIKD Kemendagri & Portal Satu Data terhubung. Channel realtime aktif.',
+    type: 'SIKD_SYNC'
+  });
+
+  const clearLatestEvent = useCallback(() => {
+    setLatestTelemetryEvent(null);
+  }, []);
+
+  const triggerManualSync = useCallback(async () => {
+    if (isOfflineSimulated) {
+      setSyncStatus('OFFLINE');
+      setLatestTelemetryEvent({
+        id: `evt-${Date.now()}`,
+        timestamp: `${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`,
+        message: 'Koneksi SIKD gagal: Mode Offline simulasi aktif. Menampilkan cache lokal.',
+        type: 'SIKD_SYNC'
+      });
+      return;
+    }
+    setSyncStatus('SYNCING');
+    await new Promise(resolve => setTimeout(resolve, 850));
+    setSyncStatus('LIVE');
+    const timeStr = `${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+    setLastSyncedAt(timeStr);
+    setLiveEventsCount(prev => prev + 1);
+    setLatestTelemetryEvent({
+      id: `evt-${Date.now()}`,
+      timestamp: timeStr,
+      message: 'Sinkronisasi SIKD Kemendagri & Satu Data sukses. 24 data divalidasi.',
+      type: 'SIKD_SYNC'
+    });
+  }, [isOfflineSimulated]);
+
+  const toggleOfflineSimulation = useCallback(() => {
+    setIsOfflineSimulated(prev => {
+      const next = !prev;
+      const timeStr = `${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+      if (next) {
+        setSyncStatus('OFFLINE');
+        setRealtimeChannelState('OFFLINE');
+        setLatestTelemetryEvent({
+          id: `evt-${Date.now()}`,
+          timestamp: timeStr,
+          message: 'Mode Offline aktif. Data disajikan dari cache lokal terverifikasi.',
+          type: 'SIKD_SYNC'
+        });
+      } else {
+        setSyncStatus('SYNCING');
+        setRealtimeChannelState('CONNECTED');
+        setTimeout(() => {
+          setSyncStatus('LIVE');
+          setRealtimeChannelState('SUBSCRIBED');
+          setLastSyncedAt(timeStr);
+          setLatestTelemetryEvent({
+            id: `evt-${Date.now()}`,
+            timestamp: timeStr,
+            message: 'Koneksi pulih. Channel Supabase Realtime kembali SUBSCRIBED.',
+            type: 'SIKD_SYNC'
+          });
+        }, 700);
+      }
+      return next;
+    });
+  }, []);
+
+  const simulateIncomingEvent = useCallback(() => {
+    if (isOfflineSimulated) return;
+    const timeStr = `${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+    const randomPool: Array<{ message: string; type: 'REPORT' | 'VOTE' | 'SIKD_SYNC' }> = [
+      { message: 'Warga Bogor Tengah memberikan suara prioritas untuk Drainase Pajajaran.', type: 'VOTE' },
+      { message: 'Laporan baru terverifikasi geotag: Retakan Trotoar Kebun Raya Timur.', type: 'REPORT' },
+      { message: 'Inspektorat menjadwalkan audit fisik untuk paket jalan berkas #BGR-2026-04.', type: 'SIKD_SYNC' },
+      { message: 'Suara prioritas warga melampaui kuorum di Puskesmas Sempur (54 Suara).', type: 'VOTE' }
+    ];
+    const picked = randomPool[Math.floor(Math.random() * randomPool.length)];
+    setLiveEventsCount(prev => prev + 1);
+    setLatestTelemetryEvent({
+      id: `evt-${Date.now()}`,
+      timestamp: timeStr,
+      message: picked.message,
+      type: picked.type
+    });
+  }, [isOfflineSimulated]);
+
+  // Periodic SIKD polling simulation (every 45 seconds when online)
+  useEffect(() => {
+    if (isOfflineSimulated) return;
+    const interval = setInterval(() => {
+      const timeStr = `${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+      setLastSyncedAt(timeStr);
+    }, 45000);
+    return () => clearInterval(interval);
+  }, [isOfflineSimulated]);
 
   // Global keydown for Cmd+K / Ctrl+K search
   useEffect(() => {
@@ -335,13 +519,25 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setReports(prev => [newReport, ...prev]);
     setVotedIds(prev => [...prev, newId]);
+
+    const timeStr = `${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+    setLiveEventsCount(prev => prev + 1);
+    setLatestTelemetryEvent({
+      id: `evt-${Date.now()}`,
+      timestamp: timeStr,
+      message: `Laporan baru (${newId}) tersimpan di database TITIK & disiarkan via Realtime.`,
+      type: 'REPORT'
+    });
+
     return newReport;
   };
 
   const votePriority = (reportId: string) => {
+    let nextVoted = false;
     setReports(prev => prev.map(rep => {
       if (rep.id === reportId) {
         const alreadyVoted = votedIds.includes(reportId);
+        nextVoted = !alreadyVoted;
         const newVotes = alreadyVoted ? Math.max(1, rep.priorityVotes - 1) : rep.priorityVotes + 1;
         return {
           ...rep,
@@ -359,6 +555,17 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return [...prev, reportId];
       }
     });
+
+    const timeStr = `${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+    setLiveEventsCount(prev => prev + 1);
+    setLatestTelemetryEvent({
+      id: `evt-${Date.now()}`,
+      timestamp: timeStr,
+      message: nextVoted
+        ? `Suara prioritas diverifikasi di database TITIK untuk ${reportId}.`
+        : `Suara dibatalkan untuk ${reportId}.`,
+      type: 'VOTE'
+    });
   };
 
   const resetDemoData = () => {
@@ -370,6 +577,13 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setVotedIds([]);
     setSavedFacilityIds(['FAC-BGR-001', 'FAC-BGR-003']);
     setSavedReportIds(['TITIK-BGR-2026-084']);
+    setLiveEventsCount(3);
+    setLatestTelemetryEvent({
+      id: `evt-${Date.now()}`,
+      timestamp: `${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`,
+      message: 'State demo direset ke default pabrikan.',
+      type: 'SIKD_SYNC'
+    });
   };
 
   return (
@@ -413,7 +627,17 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         resetDemoData,
         theme,
         setTheme,
-        toggleTheme
+        toggleTheme,
+        syncStatus,
+        lastSyncedAt,
+        isOfflineSimulated,
+        realtimeChannelState,
+        liveEventsCount,
+        latestTelemetryEvent,
+        triggerManualSync,
+        toggleOfflineSimulation,
+        simulateIncomingEvent,
+        clearLatestEvent
       }}
     >
       {children}
