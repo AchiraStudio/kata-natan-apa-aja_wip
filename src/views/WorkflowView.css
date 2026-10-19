@@ -1,0 +1,154 @@
+/* ==========================================================================
+   TITIK. WorkflowView Dedicated Stylesheet
+   Design Spine: Deep Forest Green (#263F35), Geometric Angled Slashes (-35deg),
+   Soft Sage (#E7EBDD), Cream Canvas (#F7F6F1), Pill Ergonomics, Elevated Cards
+   ========================================================================== */
+
+/* Hero Banner with Geometric Ribbons & Angled Slashes (-35deg) */
+.workflow-hero-banner {
+  background-color: var(--titik-forest, #263F35);
+  color: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--titik-radius-card-lg, 32px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+/* Dynamic Geometric Angled Slashes Container (-35deg) */
+.workflow-slashes-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.workflow-ambient-glow {
+  position: absolute;
+  top: -4rem;
+  right: -4rem;
+  width: 18rem;
+  height: 18rem;
+  border-radius: var(--titik-radius-pill, 9999px);
+  background-color: rgba(16, 185, 129, 0.15);
+  filter: blur(48px);
+}
+
+.workflow-ribbon {
+  position: absolute;
+  transform: rotate(var(--titik-slash-angle, -35deg));
+  transform-origin: center;
+}
+
+.workflow-ribbon-1 {
+  top: -2.5rem;
+  right: -3rem;
+  width: 16rem;
+  height: 6rem;
+  background-color: rgba(255, 255, 255, 0.06);
+  border-radius: 1.5rem;
+}
+
+.workflow-ribbon-2 {
+  bottom: -2rem;
+  left: 25%;
+  width: 20rem;
+  height: 4rem;
+  background-color: rgba(255, 255, 255, 0.04);
+  border-radius: 1rem;
+}
+
+.workflow-slash-line {
+  position: absolute;
+  transform: rotate(var(--titik-slash-angle, -35deg));
+  transform-origin: center;
+}
+
+.workflow-slash-1 {
+  top: 2rem;
+  left: 45%;
+  width: 9rem;
+  height: 1.5px;
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.workflow-slash-2 {
+  bottom: 1.5rem;
+  right: 25%;
+  width: 11rem;
+  height: 1px;
+  background-color: rgba(231, 235, 221, 0.25);
+}
+
+/* Stage Step Badges (Dedicated Step Color Modifiers) */
+.workflow-step-badge {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--titik-radius-pill, 9999px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.workflow-step-badge--01 {
+  background-color: var(--titik-forest, #263F35);
+}
+
+.workflow-step-badge--02 {
+  background-color: #92400E;
+}
+
+.workflow-step-badge--03 {
+  background-color: #1E40AF;
+}
+
+.workflow-step-badge--04 {
+  background-color: #047857;
+}
+
+/* Elevated Stage Cards (rounded-3xl) */
+.workflow-stage-card {
+  border-radius: var(--titik-radius-card-lg, 32px);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease;
+}
+
+.workflow-stage-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+}
+
+/* Elevated Comparison Card (rounded-3xl) */
+.workflow-comparison-card {
+  border-radius: var(--titik-radius-card-lg, 32px);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+}
+
+/* Action Banner Container */
+.workflow-action-banner {
+  border-radius: var(--titik-radius-card-lg, 32px);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+}
+
+/* Action Banner Pill Buttons */
+.workflow-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--titik-radius-pill, 9999px);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.025em;
+  transition: all 0.2s ease;
+  user-select: none;
+  cursor: pointer;
+}
+
+.workflow-pill-btn:active {
+  transform: scale(0.98);
+}

@@ -1,79 +1,45 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { TitikProvider } from './context/TitikContext';
-import { Navbar } from './components/Navbar';
-import { Footer } from './components/Footer';
-
-// Views
-import { LandingView } from './views/LandingView';
-import { ObservatoryView } from './views/ObservatoryView';
-import { BudgetView } from './views/BudgetView';
-import { FacilitiesView } from './views/FacilitiesView';
-import { FacilityDetailView } from './views/FacilityDetailView';
-import { DiscrepancyView } from './views/DiscrepancyView';
-import { ReportView } from './views/ReportView';
+import { AuthProvider } from './context/AuthContext';
+import { HomeView } from './views/HomeView';
+import { ExploreView } from './views/ExploreView';
+import { MapView } from './views/MapView';
+import { TrackReportView } from './views/TrackReportView';
+import { AdminView } from './views/AdminView';
+import { WorkflowView } from './views/WorkflowView';
 import { ReportDetailView } from './views/ReportDetailView';
-import { NotFoundView } from './views/NotFoundView';
+import { LoginView } from './views/LoginView';
+import { ReportModal } from './components/reporting/ReportModal';
+import { ReportDetailDrawer } from './components/reporting/ReportDetailDrawer';
+import { GlobalSearchModal } from './components/modals/GlobalSearchModal';
 
-// Modals & Overlays
-import { DetailDrawer } from './components/DetailDrawer';
-import { ReportModal } from './components/ReportModal';
-import { GlobalSearchModal } from './components/GlobalSearchModal';
-import { DataSourceModal } from './components/DataSourceModal';
-
-const AppLayout: React.FC = () => {
-  return (
-    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-[#111827] dark:bg-[#0B0F17] dark:text-[#F9FAFB] transition-colors duration-200">
-      {/* Top Daylight Editorial Navbar */}
-      <Navbar />
-
-      {/* Main Routed Page Content with clearance for floating navbar and mobile dock */}
-      <main className="flex-1 pt-16 sm:pt-20 lg:pt-24 pb-20 lg:pb-0">
-        <Routes>
-          <Route path="/" element={<LandingView />} />
-          <Route path="/peta" element={<ObservatoryView />} />
-          <Route path="/anggaran" element={<BudgetView />} />
-          <Route path="/fasilitas" element={<FacilitiesView />} />
-          <Route path="/fasilitas/:id" element={<FacilityDetailView />} />
-          <Route path="/analisis" element={<DiscrepancyView />} />
-          <Route path="/lapor" element={<ReportView />} />
-          <Route path="/lapor/:id" element={<ReportDetailView />} />
-          
-          {/* Legacy redirects */}
-          <Route path="/reports" element={<Navigate to="/lapor" replace />} />
-          <Route path="/kasus" element={<Navigate to="/lapor" replace />} />
-
-          {/* 404 Not Found fallback */}
-          <Route path="*" element={<NotFoundView />} />
-        </Routes>
-      </main>
-
-      {/* Slide-over Detail Drawer */}
-      <DetailDrawer />
-
-      {/* Quick Report Modal */}
-      <ReportModal />
-
-      {/* Global Cmd+K Instant Search Modal */}
-      <GlobalSearchModal />
-
-      {/* SIKD Data Provenance & Methodology Modal */}
-      <DataSourceModal />
-
-      {/* Daylight Editorial Footer */}
-      <Footer />
-    </div>
-  );
-};
-
-export function App() {
+export default function App() {
   return (
     <TitikProvider>
-      <BrowserRouter>
-        <AppLayout />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<HomeView />} />
+            <Route path="/login" element={<LoginView />} />
+            <Route path="/masuk" element={<Navigate to="/login" replace />} />
+            <Route path="/alur" element={<WorkflowView />} />
+            <Route path="/workflow" element={<Navigate to="/alur" replace />} />
+            <Route path="/report/:id" element={<ReportDetailView />} />
+            <Route path="/laporan/:id" element={<ReportDetailView />} />
+            <Route path="/explore" element={<ExploreView />} />
+            <Route path="/map" element={<MapView />} />
+            <Route path="/track" element={<TrackReportView />} />
+            <Route path="/admin" element={<AdminView />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+
+          {/* Global Overlays & Modals */}
+          <ReportModal />
+          <ReportDetailDrawer />
+          <GlobalSearchModal />
+        </BrowserRouter>
+      </AuthProvider>
     </TitikProvider>
   );
 }
-
-export default App;

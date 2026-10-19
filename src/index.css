@@ -1,35 +1,304 @@
 @import "tailwindcss";
 
-/* Enable class-based dark mode (.dark class on html/root) */
-@custom-variant dark (&:where(.dark, .dark *));
+@layer base {
+  :root {
+    /* Legacy aliases for backward compatibility */
+    --canvas: #F7F6F1;
+    --card: #FFFFFF;
+    --text-main: #20221D;
+    --text-muted: #686B65;
+    --brand-primary: #263F35;
+    --brand-muted: #E7EBDD;
+    --border-line: #E4E2DA;
 
-/* ========================================================================= */
-/* TITIK. SYSTEM STYLES MANIFEST                                            */
-/* All modular CSS files are organized in src/styles/ for easy management   */
-/* ========================================================================= */
+    /* Master TITIK Design Tokens */
+    --titik-canvas: #F7F6F1;
+    --titik-card: #FFFFFF;
+    --titik-border: #E4E2DA;
+    --titik-ink-primary: #20221D;
+    --titik-ink-secondary: #686B65;
+    --titik-forest: #263F35;
+    --titik-forest-hover: #1D3129;
+    --titik-forest-subtle: #E7EBDD;
+    --titik-forest-subtle-hover: #D8E0CC;
+    --titik-slash-angle: -35deg;
+    --titik-radius-pill: 9999px;
+    --titik-radius-card: 24px;
+    --titik-radius-card-lg: 32px;
+    --titik-radius-sheet-mobile: 36px;
 
-/* 1. Design Tokens & CSS Variables */
-@import "./styles/tokens.css";
+    /* Semantic Status Accents */
+    --titik-accent-crimson: #E11D48;
+    --titik-accent-amber: #D97706;
+    --titik-accent-cobalt: #2563EB;
+    --titik-accent-emerald: #059669;
+  }
 
-/* 2. Global Typography & Fonts */
-@import "./styles/typography.css";
+  body {
+    background-color: var(--titik-canvas);
+    color: var(--titik-ink-primary);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
 
-/* 3. Global Utilities, Shadows & Scrollbar */
-@import "./styles/utilities.css";
+/* Custom Utilities for TikTok-style scroll and feeds */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
 
-/* 4. Leaflet Map, Custom Pins & Popups */
-@import "./styles/leaflet.css";
+/* ==========================================================================
+   TITIK Master Geometric Hero & Ribbon Utilities
+   ========================================================================== */
 
-/* 5. Reusable Component Styles */
-@import "./styles/components/buttons.css";
-@import "./styles/components/cards.css";
-@import "./styles/components/modal.css";
-@import "./styles/components/navbar.css";
-@import "./styles/components/footer.css";
+.titik-hero-geometric {
+  background-color: var(--titik-forest);
+  color: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+}
 
-/* 6. View & Page Styles */
-@import "./styles/views/landing.css";
-@import "./styles/views/observatory.css";
-@import "./styles/views/facilities.css";
-@import "./styles/views/reports.css";
-@import "./styles/views/budget.css";
+.titik-slash-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.titik-ambient-glow-emerald {
+  position: absolute;
+  border-radius: var(--titik-radius-pill);
+  background-color: rgba(16, 185, 129, 0.15);
+  filter: blur(48px);
+}
+
+.titik-ambient-glow-sage {
+  position: absolute;
+  border-radius: var(--titik-radius-pill);
+  background-color: rgba(231, 235, 221, 0.10);
+  filter: blur(48px);
+}
+
+.titik-ribbon {
+  position: absolute;
+  transform: rotate(var(--titik-slash-angle));
+  transform-origin: center;
+}
+
+.titik-ribbon-1 {
+  top: -2.5rem;
+  right: -4rem;
+  width: 20rem;
+  height: 8rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: var(--titik-radius-card-lg);
+}
+
+.titik-ribbon-2 {
+  top: 25%;
+  right: -2rem;
+  width: 16rem;
+  height: 4rem;
+  background-color: rgba(255, 255, 255, 0.10);
+  border-radius: 1rem;
+}
+
+.titik-ribbon-3 {
+  top: 50%;
+  left: -5rem;
+  width: 24rem;
+  height: 6rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: var(--titik-radius-card-lg);
+}
+
+.titik-ribbon-4 {
+  bottom: 4rem;
+  left: -2.5rem;
+  width: 18rem;
+  height: 3rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+}
+
+.titik-slash-line {
+  position: absolute;
+  transform: rotate(var(--titik-slash-angle));
+  transform-origin: center;
+}
+
+.titik-slash-line-1 {
+  top: 3rem;
+  left: 33.333%;
+  width: 10rem;
+  height: 1.5px;
+  background-color: rgba(255, 255, 255, 0.20);
+}
+
+.titik-slash-line-2 {
+  bottom: 7rem;
+  right: 3rem;
+  width: 12rem;
+  height: 1.5px;
+  background-color: rgba(255, 255, 255, 0.20);
+}
+
+.titik-slash-line-3 {
+  top: 66.666%;
+  right: 25%;
+  width: 8rem;
+  height: 1px;
+  background-color: rgba(231, 235, 221, 0.30);
+}
+
+/* ==========================================================================
+   TITIK Pill Ergonomics & Base Component Classes
+   ========================================================================== */
+
+.titik-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--titik-radius-pill);
+  font-weight: 700;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  letter-spacing: 0.025em;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.titik-pill-btn:active {
+  transform: scale(0.99);
+}
+
+.titik-pill-btn-primary {
+  background-color: var(--titik-forest);
+  color: #FFFFFF;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+.titik-pill-btn-primary:hover {
+  background-color: var(--titik-forest-hover);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+.titik-pill-btn-secondary {
+  background-color: #FFFFFF;
+  color: var(--titik-forest);
+  border-color: var(--titik-border);
+}
+
+.titik-pill-btn-secondary:hover {
+  background-color: var(--titik-canvas);
+}
+
+.titik-pill-btn-subtle {
+  background-color: var(--titik-forest-subtle);
+  color: var(--titik-forest);
+}
+
+.titik-pill-btn-subtle:hover {
+  background-color: var(--titik-forest-subtle-hover);
+}
+
+.titik-pill-input {
+  width: 100%;
+  border-radius: var(--titik-radius-pill);
+  border: 1px solid var(--titik-border);
+  background-color: var(--titik-canvas);
+  color: var(--titik-ink-primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+}
+
+.titik-pill-input:focus {
+  background-color: #FFFFFF;
+  outline: none;
+  box-shadow: 0 0 0 1px var(--titik-forest);
+  border-color: var(--titik-forest);
+}
+
+.titik-pill-track {
+  display: flex;
+  align-items: center;
+  background-color: var(--titik-canvas);
+  padding: 0.25rem;
+  border-radius: var(--titik-radius-pill);
+  border: 1px solid var(--titik-border);
+}
+
+.titik-pill-tab {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--titik-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--titik-ink-secondary);
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.titik-pill-tab:hover {
+  color: var(--titik-ink-primary);
+}
+
+.titik-pill-tab.active {
+  background-color: var(--titik-forest);
+  color: #FFFFFF;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.titik-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--titik-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: var(--titik-forest-subtle);
+  color: var(--titik-forest);
+}
+
+/* Card & Responsive Surface Ergonomics */
+.titik-card-elevated {
+  background-color: var(--titik-card);
+  border: 1px solid var(--titik-border);
+  border-radius: var(--titik-radius-card);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.titik-card-elevated-lg {
+  background-color: var(--titik-card);
+  border: 1px solid var(--titik-border);
+  border-radius: var(--titik-radius-card-lg);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+.titik-sheet-mobile {
+  border-top-left-radius: var(--titik-radius-sheet-mobile);
+  border-top-right-radius: var(--titik-radius-sheet-mobile);
+}
+
+.titik-widescreen-container {
+  width: 100%;
+  max-width: 1680px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.titik-sheet-mobile-container {
+  border-top-left-radius: var(--titik-radius-sheet-mobile);
+  border-top-right-radius: var(--titik-radius-sheet-mobile);
+  margin-top: -1.5rem;
+  background-color: var(--titik-canvas);
+}

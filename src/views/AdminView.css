@@ -1,0 +1,134 @@
+/* ==========================================================================
+   TITIK. AdminView Dedicated Stylesheet
+   Design Spine: Deep Forest Green (#263F35), Geometric Angled Slashes (-35deg),
+   Soft Sage (#E7EBDD), Cream Canvas (#F7F6F1), Pill Ergonomics, Elevated Cards
+   ========================================================================== */
+
+/* Hero Banner with Geometric Ribbons & Angled Slashes (-35deg) */
+.admin-hero-banner {
+  background-color: var(--titik-forest, #263F35);
+  color: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--titik-radius-card-lg, 32px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+/* Dynamic Geometric Angled Slashes Container (-35deg) */
+.admin-slashes-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.admin-ambient-glow {
+  position: absolute;
+  top: -4rem;
+  right: -4rem;
+  width: 18rem;
+  height: 18rem;
+  border-radius: var(--titik-radius-pill, 9999px);
+  background-color: rgba(16, 185, 129, 0.15);
+  filter: blur(48px);
+}
+
+.admin-ribbon {
+  position: absolute;
+  transform: rotate(var(--titik-slash-angle, -35deg));
+  transform-origin: center;
+}
+
+.admin-ribbon-1 {
+  top: -2.5rem;
+  right: -3rem;
+  width: 16rem;
+  height: 6rem;
+  background-color: rgba(255, 255, 255, 0.06);
+  border-radius: 1.5rem;
+}
+
+.admin-ribbon-2 {
+  bottom: -2rem;
+  left: 25%;
+  width: 20rem;
+  height: 4rem;
+  background-color: rgba(255, 255, 255, 0.04);
+  border-radius: 1rem;
+}
+
+.admin-slash-line {
+  position: absolute;
+  transform: rotate(var(--titik-slash-angle, -35deg));
+  transform-origin: center;
+}
+
+.admin-slash-1 {
+  top: 2rem;
+  left: 45%;
+  width: 9rem;
+  height: 1.5px;
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.admin-slash-2 {
+  bottom: 1.5rem;
+  right: 25%;
+  width: 11rem;
+  height: 1px;
+  background-color: rgba(231, 235, 221, 0.25);
+}
+
+/* Pill Refresh Action Button */
+.admin-refresh-btn {
+  border-radius: var(--titik-radius-pill, 9999px);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.admin-refresh-btn:active {
+  transform: scale(0.97);
+}
+
+/* Metric Stat Cards (Elevated rounded-3xl) */
+.admin-metric-card {
+  border-radius: var(--titik-radius-card-lg, 32px);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.admin-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+}
+
+/* Triage Queue & Console Panels (Elevated rounded-3xl) */
+.admin-queue-card,
+.admin-console-card {
+  border-radius: var(--titik-radius-card-lg, 32px);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+}
+
+/* Review Notes Pill Input */
+.admin-note-input {
+  border-radius: var(--titik-radius-pill, 9999px);
+  transition: all 0.2s ease;
+}
+
+.admin-note-input:focus {
+  box-shadow: 0 0 0 2px rgba(38, 63, 53, 0.15);
+}
+
+/* State Transition Pill Buttons */
+.admin-transition-btn {
+  border-radius: var(--titik-radius-pill, 9999px);
+  transition: all 0.15s ease;
+  user-select: none;
+  cursor: pointer;
+  text-align: center;
+}
+
+.admin-transition-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}

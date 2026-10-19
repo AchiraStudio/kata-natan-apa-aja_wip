@@ -30,3 +30,13 @@ dist-ssr
 .temp
 supabase/.temp
 
+# Taste Skill working dir
+.taste-skill/
+
+/.agents
+ORIGINAL_REQUEST.md
+PROJECT.md
+TEST_INFRA.md
+TEST_READY.md
+DESIGN.md
+DESIGN.md

@@ -1,0 +1,170 @@
+/* ==========================================================================
+   TITIK. ReportDetailView Dedicated Stylesheet
+   Design Spine: Deep Forest Green (#263F35), Geometric Angled Slashes (-35deg),
+   Soft Sage (#E7EBDD), Cream Canvas (#F7F6F1), Pill Ergonomics, Elevated Cards
+   ========================================================================== */
+
+/* Header Hero Banner with Geometric Ribbons & Angled Slashes */
+.report-hero-banner {
+  background-color: var(--titik-forest, #263F35);
+  color: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--titik-radius-card-lg, 32px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+/* Dynamic Geometric Angled Slashes Container (-35deg) */
+.report-slashes-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.report-ambient-glow {
+  position: absolute;
+  top: -4rem;
+  right: -4rem;
+  width: 18rem;
+  height: 18rem;
+  border-radius: var(--titik-radius-pill, 9999px);
+  background-color: rgba(16, 185, 129, 0.15);
+  filter: blur(48px);
+}
+
+.report-ribbon {
+  position: absolute;
+  transform: rotate(var(--titik-slash-angle, -35deg));
+  transform-origin: center;
+}
+
+.report-ribbon-1 {
+  top: -2.5rem;
+  right: -3rem;
+  width: 16rem;
+  height: 6rem;
+  background-color: rgba(255, 255, 255, 0.06);
+  border-radius: 1.5rem;
+}
+
+.report-ribbon-2 {
+  bottom: -2rem;
+  left: 25%;
+  width: 20rem;
+  height: 4rem;
+  background-color: rgba(255, 255, 255, 0.04);
+  border-radius: 1rem;
+}
+
+.report-slash-line {
+  position: absolute;
+  transform: rotate(var(--titik-slash-angle, -35deg));
+  transform-origin: center;
+}
+
+.report-slash-1 {
+  top: 2rem;
+  left: 50%;
+  width: 9rem;
+  height: 1.5px;
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.report-slash-2 {
+  bottom: 1.5rem;
+  right: 20%;
+  width: 11rem;
+  height: 1px;
+  background-color: rgba(231, 235, 221, 0.25);
+}
+
+/* Leaflet Custom Marker Pin (Zero Raw Inline Styles in Leaflet) */
+.report-detail-pin-marker {
+  background-color: #DC2626;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--titik-radius-pill, 9999px);
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.report-detail-pin-marker:hover {
+  transform: scale(1.15);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+/* Leaflet Popup Typography & Spacing */
+.leaflet-popup-report {
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.leaflet-popup-report__title {
+  color: var(--titik-ink-primary, #20221D);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.leaflet-popup-report__address {
+  color: var(--titik-ink-secondary, #686B65);
+}
+
+/* APBD Budget Dynamic Progress Bars (CSS Custom Properties) */
+.budget-bar-realized {
+  height: 100%;
+  background-color: var(--titik-forest, #263F35);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  width: var(--budget-realized-pct, 0%);
+}
+
+.budget-bar-unspent {
+  height: 100%;
+  background-color: rgba(251, 191, 36, 0.6);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  width: var(--budget-unspent-pct, 0%);
+}
+
+/* Drawer Dynamic Budget Progress Bar */
+.drawer-budget-bar-fill {
+  height: 100%;
+  background-color: var(--titik-forest, #263F35);
+  border-radius: var(--titik-radius-pill, 9999px);
+  transition: width 0.3s ease;
+  width: var(--drawer-budget-pct, 0%);
+}
+
+/* Elevated Container Cards (rounded-3xl) */
+.report-card-elevated {
+  background-color: var(--titik-card, #FFFFFF);
+  border: 1px solid var(--titik-border, #E4E2DA);
+  border-radius: var(--titik-radius-card-lg, 32px);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+}
+
+/* Mobile Sliding Sheet Ergonomics */
+.report-mobile-sheet {
+  border-top-left-radius: var(--titik-radius-sheet-mobile, 36px);
+  border-top-right-radius: var(--titik-radius-sheet-mobile, 36px);
+}
+
+/* Pill Control Ergonomics */
+.report-pill-btn {
+  border-radius: var(--titik-radius-pill, 9999px);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.report-pill-btn:active {
+  transform: scale(0.98);
+}

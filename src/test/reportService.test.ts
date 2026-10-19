@@ -1,239 +1,121 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { 
-  validateCoordinates, 
-  generalizeCoordinates, 
-  calculateDistanceMeters 
-} from '../services/locationService';
-import { validateImageFile } from '../services/reportMediaService';
-import { 
-  generateFollowUpSecret, 
-  sha256Hash, 
-  submitCitizenReport,
-  findNearbySimilarReports
-} from '../services/reportService';
-import { PublicCivicReport } from '../types/database';
-import { supabase } from '../lib/supabase';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { MockDataAdapter } from '../services/adapters/mockAdapter';
 
-describe('Location Service', () => {
-  it('validates coordinates accurately within geographic boundaries', () => {
-    expect(validateCoordinates(-6.5971, 106.8060)).toBe(true);
-    expect(validateCoordinates(0, 0)).toBe(true);
-    expect(validateCoordinates(-90, 180)).toBe(true);
-    expect(validateCoordinates(90, -180)).toBe(true);
+describe('Report Service & State Machine Tests', () => {
+  let adapter: MockDataAdapter;
 
-    // Invalid coordinates
-    expect(validateCoordinates(91, 106)).toBe(false);
-    expect(validateCoordinates(-91, 106)).toBe(false);
-    expect(validateCoordinates(-6, 181)).toBe(false);
-    expect(validateCoordinates(-6, -181)).toBe(false);
-    expect(validateCoordinates(NaN, 106)).toBe(false);
-    expect(validateCoordinates(-6, NaN)).toBe(false);
+  beforeEach(() => {
+    adapter = new MockDataAdapter();
   });
 
-  it('generalizes coordinates to 3 decimal places for public privacy (~110m)', () => {
-    const [genLat, genLng] = generalizeCoordinates(-6.597184, 106.806042);
-    expect(genLat).toBe(-6.597);
-    expect(genLng).toBe(106.806);
+  it('generates valid public reference format and secret follow-up token on report submission', async () => {
+    const result = await adapter.submitReport({
+      title: 'Pipa Air Bocor Menggenangi Jalan',
+      description: 'Pipa distribusi air bersih pecah di depan pertokoan.',
+      category: 'Infrastruktur',
+      severity: 'high',
+      address: 'Jl. Sudirman No. 12',
+      latitude: -6.591,
+      longitude: 106.792,
+      mediaUrls: ['https://example.com/photo.jpg'],
+      reporterType: 'anonymous',
+    });
+
+    expect(result.report).toBeDefined();
+    // Reference should follow TIK-2026-XXXXXX
+    expect(result.publicReference).toMatch(/^TIK-2026-\d{6}$/);
+    // Token should be a 16-character grouped token (e.g. XXXX-XXXX-XXXX-XXXX)
+    expect(result.secretFollowUpToken).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+    expect(result.report.status).toBe('submitted');
+    expect(result.report.events.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('calculates Haversine distance correctly in meters', () => {
-    // Distance between identical points is 0
-    const d0 = calculateDistanceMeters(-6.5971, 106.8060, -6.5971, 106.8060);
-    expect(d0).toBe(0);
+  it('successfully verifies tracking using public reference and generated secret token', async () => {
+    const submitResult = await adapter.submitReport({
+      title: 'Lampu Jalan Mati Total',
+      description: 'Kawasan gelap saat malam hari.',
+      category: 'Infrastruktur',
+      severity: 'medium',
+      address: 'Jl. Pajajaran',
+      latitude: -6.602,
+      longitude: 106.804,
+      mediaUrls: [],
+      reporterType: 'anonymous',
+    });
 
-    // Distance between Bogor Station and Kebun Raya Bogor (~1.2 km)
-    const dBogor = calculateDistanceMeters(-6.5950, 106.7900, -6.5976, 106.7995);
-    expect(dBogor).toBeGreaterThan(1000);
-    expect(dBogor).toBeLessThan(1400);
-  });
-});
+    // Valid token check
+    const verified = await adapter.verifyReportTracking(
+      submitResult.publicReference,
+      submitResult.secretFollowUpToken
+    );
+    expect(verified).not.toBeNull();
+    expect(verified?.id).toBe(submitResult.report.id);
 
-describe('Report Media Service', () => {
-  it('accepts valid JPG, PNG, and WebP images within 10MB limit', () => {
-    const validJpg = new File(['dummy-bytes'], 'photo.jpg', { type: 'image/jpeg' });
-    const validPng = new File(['dummy-bytes'], 'photo.png', { type: 'image/png' });
-    const validWebp = new File(['dummy-bytes'], 'photo.webp', { type: 'image/webp' });
-
-    expect(validateImageFile(validJpg).valid).toBe(true);
-    expect(validateImageFile(validPng).valid).toBe(true);
-    expect(validateImageFile(validWebp).valid).toBe(true);
-  });
-
-  it('rejects unsupported file formats like GIF, PDF, or SVG', () => {
-    const gifFile = new File(['dummy-bytes'], 'anim.gif', { type: 'image/gif' });
-    const pdfFile = new File(['dummy-bytes'], 'doc.pdf', { type: 'application/pdf' });
-
-    const resGif = validateImageFile(gifFile);
-    expect(resGif.valid).toBe(false);
-    expect(resGif.error).toMatch(/tidak didukung/i);
-
-    const resPdf = validateImageFile(pdfFile);
-    expect(resPdf.valid).toBe(false);
-    expect(resPdf.error).toMatch(/tidak didukung/i);
+    // Invalid token check
+    const rejected = await adapter.verifyReportTracking(
+      submitResult.publicReference,
+      'WRONG-TOKEN-1234-5678'
+    );
+    expect(rejected).toBeNull();
   });
 
-  it('rejects files exceeding the 10MB size limit', () => {
-    // 11 MB dummy file
-    const oversizedFile = new File([''], 'huge.jpg', { type: 'image/jpeg' });
-    Object.defineProperty(oversizedFile, 'size', { value: 11 * 1024 * 1024 });
+  it('executes valid status state machine transitions and logs immutable audit events', async () => {
+    const submitResult = await adapter.submitReport({
+      title: 'Drainase Rusak',
+      description: 'Saluran air tersumbat.',
+      category: 'Infrastruktur',
+      severity: 'high',
+      address: 'Jl. Melati',
+      latitude: -6.595,
+      longitude: 106.79,
+      mediaUrls: [],
+      reporterType: 'verified_citizen',
+    });
 
-    const res = validateImageFile(oversizedFile);
-    expect(res.valid).toBe(false);
-    expect(res.error).toMatch(/melebihi batas maksimum 10 MB/i);
-  });
-});
+    const reportId = submitResult.report.id;
 
-describe('Report Service & Anonymity Protocol', () => {
-  it('generates a 64-character hexadecimal follow-up secret token', () => {
-    const secret = generateFollowUpSecret();
-    expect(typeof secret).toBe('string');
-    expect(secret).toHaveLength(64);
-    expect(/^[0-9a-f]{64}$/.test(secret)).toBe(true);
-  });
+    // Transition: submitted -> under_review
+    const step1 = await adapter.updateReportStatus(
+      reportId,
+      'under_review',
+      'Moderator TITIK',
+      'Memeriksa bukti foto dan kesesuaian koordinat.'
+    );
+    expect(step1.status).toBe('under_review');
+    expect(step1.events[step1.events.length - 1].eventType).toBe('UNDER_REVIEW');
 
-  it('computes SHA-256 hashes deterministically with Web Crypto API', async () => {
-    const token = 'test-token-value-12345';
-    const hash1 = await sha256Hash(token);
-    const hash2 = await sha256Hash(token);
+    // Transition: under_review -> forwarded_to_institution
+    const step2 = await adapter.updateReportStatus(
+      reportId,
+      'forwarded_to_institution',
+      'Admin TITIK',
+      'Diteruskan ke Dinas PUPR Kota Bogor.'
+    );
+    expect(step2.status).toBe('forwarded_to_institution');
+    expect(step2.events[step2.events.length - 1].eventType).toBe('FORWARDED_TO_INSTITUTION');
 
-    expect(hash1).toHaveLength(64);
-    expect(hash1).toBe(hash2);
-
-    const hashOther = await sha256Hash('different-token');
-    expect(hash1).not.toBe(hashOther);
-  });
-
-  it('validates report title and description length before submission', async () => {
-    await expect(submitCitizenReport({
-      title: 'abc', // too short (< 5 chars)
-      description: 'Laporan kerusakan jalan yang cukup panjang',
-      category: 'Infrastruktur Jalan',
-      severity: 'Sedang',
-      subdistrict: 'Bogor Tengah',
-      preciseCoordinates: [-6.5971, 106.8060],
-      isApproximate: false,
-      acquisitionMethod: 'map_pin',
-      evidenceFiles: [],
-      isAnonymous: true,
-    })).rejects.toThrow(/Judul laporan minimal 5 karakter/);
-
-    await expect(submitCitizenReport({
-      title: 'Jalan Rusak Berlubang Parah',
-      description: 'Pendek', // too short (< 10 chars)
-      category: 'Infrastruktur Jalan',
-      severity: 'Sedang',
-      subdistrict: 'Bogor Tengah',
-      preciseCoordinates: [-6.5971, 106.8060],
-      isApproximate: false,
-      acquisitionMethod: 'map_pin',
-      evidenceFiles: [],
-      isAnonymous: true,
-    })).rejects.toThrow(/Deskripsi laporan minimal 10 karakter/);
+    // Transition: forwarded_to_institution -> resolved
+    const step3 = await adapter.updateReportStatus(
+      reportId,
+      'resolved',
+      'Dinas PUPR',
+      'Perbaikan saluran selesai dikerjakan.'
+    );
+    expect(step3.status).toBe('resolved');
+    expect(step3.events[step3.events.length - 1].eventType).toBe('RESOLVED');
   });
 
-  it('rejects submission when coordinates are out of bounds', async () => {
-    await expect(submitCitizenReport({
-      title: 'Jalan Rusak Berlubang Parah',
-      description: 'Air meluap menggenangi jalan lingkungan setiap hujan.',
-      category: 'Infrastruktur Jalan',
-      severity: 'Sedang',
-      subdistrict: 'Bogor Tengah',
-      preciseCoordinates: [95.0000, 106.8060], // Invalid latitude > 90
-      isApproximate: false,
-      acquisitionMethod: 'map_pin',
-      evidenceFiles: [],
-      isAnonymous: true,
-    })).rejects.toThrow(/Koordinat lokasi tidak valid/);
-  });
+  it('increments and decrements "Saya terdampak juga" civic support count', async () => {
+    const reports = await adapter.getFeedPosts();
+    const targetReport = reports[0].relatedReport;
+    expect(targetReport).toBeDefined();
 
-  it('verifies strict error feedback when database RPC schema is pending migration', async () => {
-    if (supabase) {
-      const rpcSpy = vi.spyOn(supabase, 'rpc').mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Could not find the function public.submit_citizen_report in schema cache' } as any,
-      });
-
-      await expect(submitCitizenReport({
-        title: 'Tanggul Drainase Ambruk Dekat Pemukiman',
-        description: 'Air meluap menggenangi jalan lingkungan setinggi 30 cm setiap hujan lebat.',
-        category: 'Lingkungan & Drainase',
-        severity: 'Kritis',
-        subdistrict: 'Bogor Utara',
-        preciseCoordinates: [-6.5800, 106.8100],
-        isApproximate: false,
-        acquisitionMethod: 'gps',
-        evidenceFiles: [],
-        isAnonymous: true,
-      })).rejects.toThrow(/Gagal mengirim laporan ke database/);
-
-      rpcSpy.mockRestore();
+    if (targetReport) {
+      const initialCount = targetReport.supportCount;
+      const { supportCount, isSupported } = await adapter.toggleReportSupport(targetReport.id);
+      expect(isSupported).toBe(true);
+      expect(supportCount).toBe(initialCount + 1);
     }
   });
-
-  it('filters nearby similar reports within 600m in the same sector', () => {
-    const mockReports: PublicCivicReport[] = [
-      {
-        id: 'rep-1',
-        publicReference: 'TITIK-2026-0001',
-        title: 'Banjir Drainase',
-        description: 'Genangan saluran air',
-        category: 'Lingkungan & Drainase',
-        severity: 'Sedang',
-        observedAt: '2026-10-17',
-        status: 'published',
-        subdistrict: 'Bogor Tengah',
-        coordinates: [-6.5971, 106.8060],
-        isApproximateLocation: false,
-        locationMethod: 'gps',
-        approvedMedia: [],
-        events: [],
-        relations: [],
-        votesCount: 3,
-        hasUserVoted: false,
-        createdAt: '2026-10-17T00:00:00Z',
-      },
-      {
-        id: 'rep-2',
-        publicReference: 'TITIK-2026-0002',
-        title: 'Jalan Rusak Jauh',
-        description: 'Jalan berlubang',
-        category: 'Infrastruktur Jalan',
-        severity: 'Kritis',
-        observedAt: '2026-10-17',
-        status: 'published',
-        subdistrict: 'Bogor Barat',
-        coordinates: [-6.5500, 106.7500], // Far away
-        isApproximateLocation: false,
-        locationMethod: 'map_pin',
-        approvedMedia: [],
-        events: [],
-        relations: [],
-        votesCount: 1,
-        hasUserVoted: false,
-        createdAt: '2026-10-17T00:00:00Z',
-      },
-    ];
-
-    // Search near rep-1 in Lingkungan & Drainase
-    const near = findNearbySimilarReports(
-      mockReports,
-      -6.5973, // ~20 meters away
-      106.8061,
-      'Lingkungan & Drainase',
-      600
-    );
-
-    expect(near).toHaveLength(1);
-    expect(near[0].id).toBe('rep-1');
-
-    // Search in different sector
-    const wrongSector = findNearbySimilarReports(
-      mockReports,
-      -6.5973,
-      106.8061,
-      'Pendidikan',
-      600
-    );
-    expect(wrongSector).toHaveLength(0);
-  });
 });
+

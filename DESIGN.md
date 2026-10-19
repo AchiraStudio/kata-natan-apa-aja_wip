@@ -1,158 +1,155 @@
 ---
-name: TITIK. Daylight Editorial Design System
-version: 1.0.0
-description: "Civic-Tech, Geospatial & Data-Transparency design tokens for TITIK. (Transparansi Infrastruktur, Anggaran & Tindak Komunitas)"
+name: TITIK. Editorial Civic Design System
+version: 2.0.0
+description: "High-craft Civic-Tech, Geospatial & Data-Transparency design tokens for TITIK. (Transparansi Infrastruktur, Anggaran & Tindak Komunitas) powered by taste-skill anti-slop guidelines."
 colors:
-  canvas: "#F8F9FA"
-  canvas-subtle: "#F3F4F6"
-  surface: "#FFFFFF"
-  surface-hover: "#F9FAFB"
-  ink-primary: "#111827"
-  ink-secondary: "#4B5563"
-  ink-muted: "#6B7280"
-  border-hairline: "#E5E7EB"
-  border-subtle: "#D1D5DB"
-  cta-primary: "#111827"
-  cta-hover: "#1F2937"
-  accent-emerald: "#0D9488"
-  accent-emerald-bg: "#F0FDF4"
+  canvas-light: "#FAF9F6"
+  canvas-subtle-light: "#F3F2ED"
+  surface-light: "#FFFFFF"
+  surface-hover-light: "#F7F6F2"
+  canvas-dark: "#0A0E17"
+  canvas-subtle-dark: "#101622"
+  surface-dark: "#141C2B"
+  surface-hover-dark: "#1B2436"
+  ink-primary-light: "#0F172A"
+  ink-secondary-light: "#475569"
+  ink-muted-light: "#64748B"
+  ink-primary-dark: "#F8FAFC"
+  ink-secondary-dark: "#94A3B8"
+  ink-muted-dark: "#64748B"
+  border-hairline-light: "#E5E4DF"
+  border-subtle-light: "#D8D6CE"
+  border-hairline-dark: "#243042"
+  border-subtle-dark: "#334155"
+  cta-primary-light: "#0F172A"
+  cta-hover-light: "#1E293B"
+  cta-primary-dark: "#0D9488"
+  cta-hover-dark: "#0F766E"
+  accent-teal: "#0D9488"
+  accent-teal-subtle: "rgba(13, 148, 136, 0.12)"
   accent-amber: "#D97706"
-  accent-amber-bg: "#FFFBEB"
-  accent-crimson: "#DC2626"
-  accent-crimson-bg: "#FEF2F2"
+  accent-amber-subtle: "rgba(217, 119, 6, 0.12)"
+  accent-crimson: "#E11D48"
+  accent-crimson-subtle: "rgba(225, 29, 72, 0.12)"
   accent-cobalt: "#2563EB"
-  accent-cobalt-bg: "#EFF6FF"
+  accent-cobalt-subtle: "rgba(37, 99, 235, 0.12)"
 typography:
   display-hero:
-    fontFamily: "Plus Jakarta Sans, -apple-system, BlinkMacSystemFont, sans-serif"
-    fontSize: "52px"
-    fontWeight: "700"
-    lineHeight: "1.1"
+    fontFamily: "Poppins, -apple-system, sans-serif"
+    fontSize: "clamp(2rem, 4.5vw, 3.75rem)"
+    fontWeight: "800"
+    lineHeight: "1.08"
     letterSpacing: "-0.035em"
   h1:
-    fontFamily: "Plus Jakarta Sans, -apple-system, BlinkMacSystemFont, sans-serif"
-    fontSize: "36px"
+    fontFamily: "Poppins, -apple-system, sans-serif"
+    fontSize: "clamp(2rem, 3.5vw, 2.75rem)"
     fontWeight: "700"
-    lineHeight: "1.2"
+    lineHeight: "1.15"
     letterSpacing: "-0.03em"
   h2:
-    fontFamily: "Plus Jakarta Sans, -apple-system, BlinkMacSystemFont, sans-serif"
-    fontSize: "24px"
-    fontWeight: "600"
-    lineHeight: "1.25"
+    fontFamily: "Poppins, -apple-system, sans-serif"
+    fontSize: "clamp(1.5rem, 2.5vw, 2rem)"
+    fontWeight: "700"
+    lineHeight: "1.2"
     letterSpacing: "-0.025em"
   h3:
-    fontFamily: "Plus Jakarta Sans, -apple-system, BlinkMacSystemFont, sans-serif"
-    fontSize: "18px"
+    fontFamily: "Poppins, -apple-system, sans-serif"
+    fontSize: "1.25rem"
     fontWeight: "600"
     lineHeight: "1.3"
-    letterSpacing: "-0.02em"
+    letterSpacing: "-0.015em"
   body-lead:
-    fontFamily: "Plus Jakarta Sans, -apple-system, BlinkMacSystemFont, sans-serif"
-    fontSize: "17px"
+    fontFamily: "Poppins, -apple-system, sans-serif"
+    fontSize: "1.125rem"
+    fontWeight: "400"
+    lineHeight: "1.65"
+  body-default:
+    fontFamily: "Poppins, -apple-system, sans-serif"
+    fontSize: "0.875rem"
     fontWeight: "400"
     lineHeight: "1.6"
-    letterSpacing: "-0.01em"
-  body-default:
-    fontFamily: "Plus Jakarta Sans, -apple-system, BlinkMacSystemFont, sans-serif"
-    fontSize: "14px"
-    fontWeight: "400"
-    lineHeight: "1.5"
-    letterSpacing: "-0.005em"
   label-caps:
-    fontFamily: "Plus Jakarta Sans, -apple-system, BlinkMacSystemFont, sans-serif"
-    fontSize: "11px"
+    fontFamily: "JetBrains Mono, monospace"
+    fontSize: "0.6875rem"
     fontWeight: "600"
-    lineHeight: "1.4"
-    letterSpacing: "0.06em"
+    letterSpacing: "0.08em"
     textTransform: "uppercase"
   mono-data:
-    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace"
-    fontSize: "13px"
+    fontFamily: "JetBrains Mono, monospace"
+    fontSize: "0.8125rem"
     fontWeight: "500"
-    lineHeight: "1.4"
     fontVariantNumeric: "tabular-nums"
 rounded:
   sm: "6px"
   md: "10px"
-  lg: "14px"
-  xl: "18px"
+  lg: "16px"
+  xl: "22px"
   full: "9999px"
 spacing:
   xs: "4px"
   sm: "8px"
   md: "16px"
   lg: "24px"
-  xl: "32px"
-  xxl: "48px"
+  xl: "36px"
+  xxl: "56px"
 components:
   card:
-    backgroundColor: "{colors.surface}"
-    border: "1px solid {colors.border-hairline}"
+    backgroundColor: "{colors.surface-light}"
+    border: "1px solid {colors.border-hairline-light}"
     rounded: "{rounded.lg}"
-    boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.04)"
+    boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.03)"
   button-primary:
-    backgroundColor: "{colors.cta-primary}"
+    backgroundColor: "{colors.cta-primary-light}"
     textColor: "#FFFFFF"
     rounded: "{rounded.md}"
-    padding: "10px 18px"
+    padding: "12px 22px"
     letterSpacing: "-0.01em"
   button-outline:
     backgroundColor: "transparent"
-    border: "1px solid {colors.border-hairline}"
-    textColor: "{colors.ink-primary}"
+    border: "1px solid {colors.border-hairline-light}"
+    textColor: "{colors.ink-primary-light}"
     rounded: "{rounded.md}"
-    padding: "10px 18px"
+    padding: "12px 22px"
 ---
 
-# TITIK. Design Specification & Visual Direction
+# TITIK. Design Specification (v2.0 — Taste-Skill Overhaul)
 
-## Overview
-TITIK. is a high-trust Civic-Tech, Regional Public Services Observatory & Participatory Accountability platform for the **Multimedia In Action (MIA) 2026 - Web In Action (WIA)** competition under the theme *"Designing Digital Futures – Powering Public Transparency"*.
+## 1. Overview & Visual Philosophy
+TITIK. is a high-trust Civic-Tech, Regional Public Services Observatory & Participatory Budget Accountability platform for **Multimedia In Action (MIA) 2026 - Web In Action (WIA)**.
 
-The visual language follows a **daylight editorial aesthetic**: clean alabaster surfaces, tactile showcase cards, authoritative ink typography, and high-contrast accountability markers. It deliberately rejects dark-mode clichés, purple glows, and chaotic pill soup.
+The overhauled visual language merges **Investigative Civic Editorial (`editorial-report`)** with **Precision Instrument Telemetry (`quiet-instrument`)**:
+- **Tactile broadsheet canvas**: Natural alabaster paper (`#FAF9F6`) in daylight mode and deep obsidian slate (`#0A0E17`) in midnight mode.
+- **Dramatic typographic contrast**: Bold modernist grotesque sans paired with expressive editorial italics (`Instrument Serif`) and monospaced tabular data (`JetBrains Mono`).
+- **Anti-slop enforcement**: No generic 3-card feature templates with icons in circles; no violet/neon glows; no hollow significance inflation.
 
-## Colors
-- **Canvas Base (`#F8F9FA`):** An architectural alabaster canvas that evokes official public records and civic broadsheets without harsh white glare.
-- **Card Surface (`#FFFFFF`):** Crisp pure white card elevation for maximum optical contrast and readability.
-- **Ink Primary (`#111827`):** Authoritative deep charcoal ink for titles, body copy, and primary action anchors.
-- **Ink Secondary (`#4B5563`) & Ink Muted (`#6B7280`):** Muted slate tones for metadata, coordinates, agency tags, and timestamps.
-- **Semantic "Titik" Accents (Never Neon):**
-  - **Forest Emerald (`#0D9488` / `#15803D`):** Verified evidence, completed APBD public projects, and resolved community cases.
-  - **Warm Amber (`#D97706`):** Active procurement, committed contractual obligations, and in-progress public works.
-  - **Terracotta Crimson (`#DC2626`):** Unresolved citizen issues, urgent public hazards, and flagged budget-to-reality discrepancies.
-  - **Editorial Cobalt (`#2563EB`):** Public facility coordinates (Schools, Puskesmas, Drainage corridors, Road networks).
+## 2. Color System
+- **Daylight Canvas (`#FAF9F6`)**: Architectural warm paper ground that reduces eye strain and evokes official investigative reports.
+- **Midnight Canvas (`#0A0E17`)**: Deep obsidian dark ground with crisp slate cards (`#141C2B`).
+- **Primary Ink**: `#0F172A` (Daylight) / `#F8FAFC` (Midnight).
+- **Secondary Ink**: `#475569` (Daylight) / `#94A3B8` (Midnight).
+- **Semantic Accents (High-Contrast, Non-Neon)**:
+  - **Forest Teal (`#0D9488`)**: Verified civic evidence, resolved community issues, completed public works.
+  - **Signal Amber (`#D97706`)**: Committed APBD contracts, active procurement, in-progress civic actions.
+  - **Crimson Alert (`#E11D48`)**: Unresolved citizen defects, critical infrastructure hazards, budget discrepancies.
+  - **Civic Cobalt (`#2563EB`)**: Public facility geospatial coordinates (Schools, Health Centers, Primary Drainage).
 
-## Typography
-- **Primary Interface Type:** `Plus Jakarta Sans` with tight kerning (`-0.03em`) for high-legibility editorial headings and crisp interface text.
-- **Tabular Data & Currency:** `JetBrains Mono` / `tabular-nums` for all Indonesian Rupiah (Rp) figures, fiscal percentages, geographic coordinates, and public case IDs.
-- **Dot Motif:** The period (`.`) in **TITIK.** serves as the geometric anchor of the design system, reflecting geographic coordinates (`titik koordinat`) and uncompromising accountability.
+## 3. Typography Architecture
+1. **Headline Discipline**: Strict ban on mixed-family serif italics in headlines. Titles use a single, confident architectural grotesque sans (`Poppins`) with high-contrast semantic accents (e.g., `#0D9488` for positive punchlines, `#DC2626` for anomalies).
+2. **Restrained Scale**: Hero headlines are sized intentionally (`clamp(2rem, 4.5vw, 3.75rem)`) so that CTAs, search bars, and the financial ledger fit within the desktop viewport without excessive scrolling.
+3. **Data Ledger**: Monospaced tabular figures (`JetBrains Mono`) for all financial sums (Rp), fiscal percentages, coordinates, and case references (`TITIK-2026-XXXXX`).
+4. **Clean Hierarchy**: No floating eyebrow badges or capsule pills cluttering headings. Headlines and descriptions speak directly with intentional whitespace and clean typography.
 
-## Layout & Spacing
-- **Editorial Bento Grid:** 12-column grid structure with intentional visual hierarchy, structured showcase cards, and comfortable white space.
-- **Peta Titik Split-View:** 55% sticky geospatial map viewport on the left, paired with a 45% filterable public facility feed, 4-tier financial breakdown, and discrepancy radar on the right.
-- **5-Second Readability Rule:** Every card, chart bar, and audit trail must be immediately decipherable by an ordinary Indonesian citizen within 5 seconds.
+## 4. Layout & Grid Rules
+- **Structural 12-Column Grid**: Strict horizontal and vertical baselines with 1px solid hairline dividers (`#E5E4DF` light, `#243042` dark).
+- **Whitespace with Intent**: Sections breathe with 48px–80px spacing instead of separating everything with boxes or pills.
+- **Mobile First Rhythms**: Responsive collapse from desktop side-by-side bento layouts to stacked editorial narrative blocks without horizontal overflow.
 
-## Elevation & Depth
-- Flat matte daylight planes with minimal, whisper-light drop shadows (`box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04)`).
-- Borders use crisp 1px solid hairlines (`#E5E7EB`).
-
-## Shapes & Radii
-- Cards use medium radii (`14px` to `16px`).
-- Input controls and buttons use `8px` to `10px`.
-- Circular indicators (`•`) are strictly reserved for status dots and geographic pins, avoiding generic pill badge clutter.
-
-## Components
-- **Top Navigation Bar:** Sticky frosted alabaster with minimalist **TITIK.** logotype, clear nav links, and obsidian CTA (`+ Tandai Titik Masalah`).
-- **Tactile Showcase Cards:** Fanned/tilted presentation of pilot facilities (e.g., SDN 01 Menteng, Puskesmas Bogor Tengah, Drainase Jl. Pajajaran).
-- **4-Tier Financial Breakdown:** Approved Allocation (Pagu), Committed Contracts (Terikat Kontrak), Realized Spending (Realisasi), and Potentially Available (Sisa Pagu Belum Terikat) with mandatory methodology disclaimer.
-- **Discrepancy Detector:** High-visibility audit cards pairing budget execution percentages against verified citizen problem density.
-- **Lapor & Kawal Modal:** Smart reporting flow with auto-detected responsible Dinas, linked APBD budget items, duplicate consolidation ("Suara Prioritas"), and 6-step public audit trail.
-
-## Do's and Don'ts
-- **DO** format all currency in Indonesian Rupiah with clear abbreviations (`Rp 450 Jt`, `Rp 1,2 M`).
-- **DO** provide data source attribution (`Sumber: Simulasi SIKD / Satu Data Kota Bogor 2026`) and timestamp on every record.
-- **DON'T** use purple gradients, cyberpunk dark modes, or glowing neon buttons.
-- **DON'T** scatter chaotic pill tags everywhere; use clean typography, subtle dot indicators, and structured rows instead.
-- **DON'T** call uncommitted allocation "free money"; always use the official 4-tier budget taxonomy with explicit agency verification disclaimers.
-
+## 5. Strict Anti-Slop Banned Patterns
+- ❌ No eyebrow badges, pill badges, or decorative capsule tags cluttering headlines and cards.
+- ❌ No mixed-family serif italics in titles or headings (e.g. no Instrument Serif inserted into sans headlines).
+- ❌ No oversized headline scales that push CTAs below the initial desktop viewport fold.
+- ❌ No generic 3-column feature cards with colorful rounded icon circles.
+- ❌ No purple or cyberpunk gradient fills.
+- ❌ No artificial low-contrast gray text on gray backgrounds.
+- ❌ No decorative pill badge soup cluttering headings.
+- ❌ No simulated data without explicit source attribution (`Sumber: SIKD Kemendagri & Portal Satu Data 2026`).
