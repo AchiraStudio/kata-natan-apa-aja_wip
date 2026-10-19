@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Post } from '../../types/domain';
 import { useTitik } from '../../context/TitikContext';
+import { CommentsBottomSheet } from './CommentsBottomSheet';
 
 interface FeedCardProps {
   post: Post;
@@ -35,6 +36,22 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
   const [duration, setDuration] = useState(45);
   const [isFollowed, setIsFollowed] = useState(false);
   const [isSaved, setIsSaved] = useState(post.isSavedByMe ?? false);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
+
+  const MAX_CAPTION_CHARS = 80;
+  const isCaptionLong = (post.body || '').length > MAX_CAPTION_CHARS;
+  const truncatedCaption = isCaptionLong
+    ? post.body.slice(0, MAX_CAPTION_CHARS).replace(/\s+\S*$/, '')
+    : post.body;
+
+  // Reset overlays when swiping away from active card
+  useEffect(() => {
+    if (!isActive) {
+      setIsCommentsOpen(false);
+      setIsCaptionExpanded(false);
+    }
+  }, [isActive]);
 
   const media = post.media[0];
   const isVideo = media?.type === 'video';
@@ -191,16 +208,8 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
           )}
         </div>
 
-        {/* Aspect Ratio Badge & Data Contoh */}
+        {/* Top Right Action Button */}
         <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-black/50 backdrop-blur-md text-white/80 border border-white/20">
-            {aspectRatio.replace('/', ':')}
-          </span>
-          {post.isSampleData && (
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-black/60 backdrop-blur-md text-amber-300 border border-amber-400/30">
-              Data Contoh
-            </span>
-          )}
           <button
             type="button"
             className="p-1.5 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 transition-colors"
@@ -253,7 +262,11 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         <div className="flex flex-col items-center">
           <button
             type="button"
-            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/45 backdrop-blur-md text-white hover:bg-black/65 flex items-center justify-center transition-all active:scale-90"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsCommentsOpen(true);
+            }}
+            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/45 backdrop-blur-md text-white hover:bg-black/65 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
             title="Lihat komentar warga"
           >
             <MessageCircle className="w-5 h-5" />
@@ -299,10 +312,53 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
           <span className="text-xs text-white/70 font-mono">• {post.createdAt}</span>
         </div>
 
-        {/* Body Caption */}
-        <p className="text-xs text-white/95 leading-relaxed line-clamp-2 drop-shadow-md">
-          {post.body}
-        </p>
+        {/* Body Caption with Max Characters & Toggle on Press/Click */}
+        {isCaptionLong ? (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsCaptionExpanded(!isCaptionExpanded);
+            }}
+            className={`text-xs text-white/95 leading-relaxed drop-shadow-md cursor-pointer select-text transition-all duration-200 ${
+              isCaptionExpanded ? 'max-h-48 overflow-y-auto pr-1 no-scrollbar' : ''
+            }`}
+            title={isCaptionExpanded ? 'Klik untuk menciutkan' : 'Klik untuk melihat selengkapnya'}
+          >
+            {isCaptionExpanded ? (
+              <>
+                <span>{post.body}</span>{' '}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCaptionExpanded(false);
+                  }}
+                  className="inline font-bold text-white/70 hover:text-white underline underline-offset-2 ml-1 cursor-pointer transition-colors active:opacity-70"
+                >
+                  lebih sedikit
+                </button>
+              </>
+            ) : (
+              <>
+                <span>{truncatedCaption}...</span>{' '}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCaptionExpanded(true);
+                  }}
+                  className="inline font-bold text-white/90 hover:text-white underline underline-offset-2 ml-1 cursor-pointer transition-colors active:opacity-70"
+                >
+                  selengkapnya
+                </button>
+              </>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-white/95 leading-relaxed drop-shadow-md">
+            {post.body}
+          </p>
+        )}
 
         {/* Location Tag & Report Button */}
         <div className="flex flex-wrap items-center gap-2 pt-0.5">
@@ -352,6 +408,14 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
           </div>
         )}
       </div>
+
+      {/* 5. Mobile Pop-up & Desktop Comments Bottom Sheet */}
+      <CommentsBottomSheet
+        isOpen={isCommentsOpen}
+        onClose={() => setIsCommentsOpen(false)}
+        postId={post.id}
+        commentsCount={post.commentsCount}
+      />
     </div>
   );
 };

@@ -117,5 +117,27 @@ describe('Report Service & State Machine Tests', () => {
       expect(supportCount).toBe(initialCount + 1);
     }
   });
+
+  it('retrieves comments and successfully adds a new comment to a post', async () => {
+    const posts = await adapter.getFeedPosts();
+    const targetPost = posts[0];
+    const initialComments = await adapter.getComments(targetPost.id);
+    const initialCount = initialComments.length;
+
+    const newComment = await adapter.addComment(
+      targetPost.id,
+      'Budi Pratama',
+      'https://example.com/avatar.jpg',
+      'Kondisi jalanan ini sangat berbahaya saat banjir.'
+    );
+
+    expect(newComment).toBeDefined();
+    expect(newComment.authorName).toBe('Budi Pratama');
+    expect(newComment.body).toContain('Kondisi jalanan ini sangat berbahaya');
+
+    const updatedComments = await adapter.getComments(targetPost.id);
+    expect(updatedComments.length).toBe(initialCount + 1);
+    expect(updatedComments[0].id).toBe(newComment.id);
+  });
 });
 

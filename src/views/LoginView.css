@@ -270,8 +270,8 @@
 
 .login-brand-logo-frame {
   position: relative;
-  width: 6rem;
-  height: 7rem;
+  width: 5.5rem;
+  height: 5.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -279,20 +279,28 @@
 
 @media (min-width: 640px) {
   .login-brand-logo-frame {
-    width: 7rem;
-    height: 8rem;
+    width: 6.5rem;
+    height: 6.5rem;
   }
 }
 
-.login-brand-svg {
+.login-brand-logo-badge {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
-  transition: transform 0.5s ease;
+  border-radius: 1.5rem;
+  background-color: #FFFFFF;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.25);
+  padding: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
 }
 
-.login-brand-logo-frame:hover .login-brand-svg {
-  transform: scale(1.05);
+.login-brand-logo-frame:hover .login-brand-logo-badge {
+  transform: scale(1.06);
+  box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.35);
 }
 
 .login-brand-title {

@@ -18,6 +18,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
+import { TitikLogo } from '../components/common/TitikLogo';
 import { useAuth } from '../context/AuthContext';
 import {
   PRESET_PERSONAS,
@@ -121,7 +122,7 @@ export const LoginView: React.FC = () => {
 
   const handleSwitchToGeneratedAccount = (acc: UserProfile) => {
     switchProfile(acc);
-    setSuccessMessage(`Aktif sebagai ${acc.displayName} (${acc.district || 'Kota Bogor'})`);
+    setSuccessMessage(`Aktif sebagai ${acc.displayName} (${acc.district || 'Jabodetabek'})`);
     setIsGeneratorModalOpen(false);
     setTimeout(() => navigate('/'), 600);
   };
@@ -187,47 +188,24 @@ export const LoginView: React.FC = () => {
 
           {/* Top Brand Monogram Pill */}
           <div className="login-hero-header">
-            <span className="login-brand-tag">
-              Civic Social Platform
-            </span>
+            <div className="flex items-center gap-2">
+              <TitikLogo className="w-5 h-5 shrink-0" pinColor="#FFFFFF" innerColor="#263F35" dotColor="#34D399" />
+              <span className="login-brand-tag">
+                Civic Social Platform
+              </span>
+            </div>
             <span className="login-env-tag">
               {isSupabaseConfigured ? 'Supabase Auth' : 'Demo Mode'}
             </span>
           </div>
 
-          {/* Center Brand Identity (Geometric T mark & Logotype) */}
+          {/* Center Brand Identity (Official Titik Logo & Logotype) */}
           <div className="login-hero-body">
-            {/* Stylized White Geometric Logomark */}
+            {/* Official Titik Brand Logomark */}
             <div className="login-brand-logo-frame group">
-              <svg
-                viewBox="0 0 100 120"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="login-brand-svg group-hover:scale-105"
-              >
-                {/* Main Geometric Stem */}
-                <path
-                  d="M38 112L56 12H80L62 112H38Z"
-                  fill="white"
-                />
-                {/* Upper Angled Cap */}
-                <path
-                  d="M58 8L74 8L88 34L72 34L58 8Z"
-                  fill="white"
-                />
-                {/* Subtle Accent Triangle */}
-                <path
-                  d="M26 18L32 18L30 36L24 36L26 18Z"
-                  fill="white"
-                  fillOpacity="0.85"
-                />
-                {/* Lower Notch */}
-                <path
-                  d="M72 90L76 90L74 104L70 104L72 90Z"
-                  fill="white"
-                  fillOpacity="0.85"
-                />
-              </svg>
+              <div className="login-brand-logo-badge">
+                <TitikLogo className="w-full h-full" pinColor="#263F35" innerColor="#FFFFFF" dotColor="#34D399" />
+              </div>
             </div>
 
             {/* Brand Title */}
@@ -254,7 +232,7 @@ export const LoginView: React.FC = () => {
             </button>
 
             <p className="login-hero-subtext">
-              Ruang publik, suara bersama warga Kota Bogor.
+              Ruang publik, suara bersama warga Jabodetabek.
             </p>
           </div>
         </div>
@@ -267,9 +245,14 @@ export const LoginView: React.FC = () => {
             {/* Friendly Greeting & Mode Switcher */}
             <div className="login-form-header">
               <div className="login-form-title-row">
-                <h3 className="login-form-heading">
-                  hello!
-                </h3>
+                <div className="flex items-center gap-2.5">
+                  <div className="lg:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-[#263F35] shadow-xs shrink-0">
+                    <TitikLogo className="w-5 h-5" pinColor="#FFFFFF" innerColor="#263F35" dotColor="#34D399" />
+                  </div>
+                  <h3 className="login-form-heading">
+                    hello!
+                  </h3>
+                </div>
 
                 {/* Pill Mode Switcher (Login vs Sign Up) */}
                 <div className="login-mode-track">
@@ -305,7 +288,7 @@ export const LoginView: React.FC = () => {
               <p className="login-form-desc">
                 {authMode === 'login'
                   ? 'Masuk ke portal TITIK untuk memantau laporan dan anggaran.'
-                  : 'Daftarkan diri Anda untuk menjadi warga terverifikasi Kota Bogor.'}
+                  : 'Daftarkan diri Anda untuk menjadi warga terverifikasi Jabodetabek.'}
               </p>
             </div>
 
@@ -523,7 +506,7 @@ export const LoginView: React.FC = () => {
                     Generator Ribuan Akun Warga Simulasi
                   </h3>
                   <p className="login-modal-subtitle">
-                    Generate profil warga Kota Bogor untuk pengujian feed, komentar, dan pelaporan masal.
+                    Generate profil warga Jabodetabek untuk pengujian feed, komentar, dan pelaporan masal.
                   </p>
                 </div>
               </div>
@@ -592,7 +575,7 @@ export const LoginView: React.FC = () => {
                   type="text"
                   value={searchAccountQuery}
                   onChange={(e) => setSearchAccountQuery(e.target.value)}
-                  placeholder="Cari nama warga, kecamatan (Bogor Tengah, Timur, dll)..."
+                  placeholder="Cari nama warga, wilayah (Bogor, Depok, Bekasi, Tangerang, Jakarta)..."
                   className="login-modal-search-input"
                 />
               </div>

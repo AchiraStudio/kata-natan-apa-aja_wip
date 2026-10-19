@@ -26,7 +26,15 @@ interface TitikContextType {
   setSearchModalOpen: (open: boolean) => void;
   setLandingBannerOpen: (open: boolean) => void;
   toggleSupport: (reportId: string) => Promise<void>;
-  addComment: (postId: string, body: string) => Promise<void>;
+  addComment: (
+    postId: string,
+    body: string,
+    authorName?: string,
+    avatarUrl?: string
+  ) => Promise<{ id: string; authorName: string; avatarUrl: string; body: string; timeAgo: string; likes: number }>;
+  getComments: (
+    postId: string
+  ) => Promise<{ id: string; authorName: string; avatarUrl: string; body: string; timeAgo: string; likes: number }[]>;
   submitReport: (input: NewReportInput) => Promise<ReportSubmitResult>;
   updateReportStatus: (reportId: string, status: ReportStatus, description: string) => Promise<void>;
   refreshFeed: () => Promise<void>;
@@ -128,13 +136,25 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   };
 
-  const addComment = async (postId: string, body: string) => {
-    const authorName = 'Warga Anda';
-    const avatarUrl = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
-    await dataService.addComment(postId, authorName, avatarUrl, body);
+  const getComments = async (postId: string) => {
+    return dataService.getComments(postId);
+  };
+
+  const addComment = async (
+    postId: string,
+    body: string,
+    authorName?: string,
+    avatarUrl?: string
+  ) => {
+    const finalAuthor = authorName || 'Warga Anda';
+    const finalAvatar =
+      avatarUrl ||
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
+    const created = await dataService.addComment(postId, finalAuthor, finalAvatar, body);
     setPosts((prev) =>
       prev.map((p) => (p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p))
     );
+    return created;
   };
 
   const submitReport = async (input: NewReportInput) => {
@@ -187,6 +207,7 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setLandingBannerOpen,
         toggleSupport,
         addComment,
+        getComments,
         submitReport,
         updateReportStatus,
         refreshFeed,
