@@ -14,6 +14,25 @@ import { dataService } from '../services/dataService';
 import { Report } from '../types/domain';
 import './TrackReportView.css';
 
+const TRACKING_STEPS = [
+  { status: 'submitted', label: 'Laporan diterima', detail: 'Nomor laporan berhasil dicatat.' },
+  { status: 'under_review', label: 'Pemeriksaan awal', detail: 'Bukti dan lokasi sedang ditinjau.' },
+  { status: 'accepted_for_routing', label: 'Laporan disetujui', detail: 'Laporan siap diteruskan ke instansi.' },
+  { status: 'forwarded_to_institution', label: 'Dikirim ke instansi', detail: 'Instansi terkait menerima laporan.' },
+  { status: 'institution_responded', label: 'Instansi merespons', detail: 'Tindak lanjut sedang disiapkan.' },
+  { status: 'resolved', label: 'Penanganan selesai', detail: 'Laporan dinyatakan selesai.' },
+] as const;
+
+const STATUS_STEP_INDEX: Record<string, number> = {
+  submitted: 0,
+  under_review: 1,
+  needs_info: 1,
+  accepted_for_routing: 2,
+  forwarded_to_institution: 3,
+  institution_responded: 4,
+  resolved: 5,
+};
+
 export const TrackReportView: React.FC = () => {
   const [reference, setReference] = useState('');
   const [token, setToken] = useState('');
@@ -222,6 +241,48 @@ export const TrackReportView: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* Shipment-style progress timeline */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#686B65] mb-3 flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-[#263F35]" />
+                  <span>Progres Penanganan</span>
+                </h4>
+                {report.status === 'rejected' ? (
+                  <div className="p-3 rounded-2xl border border-rose-200 bg-rose-50 text-xs text-rose-800">
+                    Laporan belum dapat diproses. Buka riwayat di bawah untuk melihat alasan dari petugas.
+                  </div>
+                ) : (
+                  <div className="relative pl-6 space-y-4 border-l-2 border-[#E4E2DA] ml-2">
+                    {TRACKING_STEPS.map((step, index) => {
+                      const currentStep = STATUS_STEP_INDEX[report.status] ?? 0;
+                      const isComplete = index < currentStep;
+                      const isCurrent = index === currentStep;
+                      const event = report.events.filter((item) => item.newStatus === step.status).pop();
+
+                      return (
+                        <div key={step.status} className="relative">
+                          <span className={`absolute -left-[31px] top-0.5 w-3.5 h-3.5 rounded-full ring-4 ring-white ${
+                            isComplete || isCurrent ? 'bg-[#263F35]' : 'bg-[#D5D8D2]'
+                          }`} />
+                          <div className={`${isCurrent ? 'font-semibold text-[#20221D]' : isComplete ? 'text-[#263F35]' : 'text-[#686B65]'}`}>
+                            <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
+                              <span>{step.label}</span>
+                              {event && <span className="text-[10px] font-normal text-[#686B65]">{event.timestamp}</span>}
+                            </div>
+                            <p className="text-[11px] mt-0.5">{event?.description || step.detail}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {report.status === 'needs_info' && (
+                  <div className="mt-3 p-3 rounded-2xl border border-amber-200 bg-amber-50 text-xs text-amber-900">
+                    Petugas membutuhkan informasi tambahan. Lihat catatan terbaru pada riwayat tindak lanjut.
+                  </div>
+                )}
+              </div>
 
               {/* Audit Trail Timeline */}
               <div>

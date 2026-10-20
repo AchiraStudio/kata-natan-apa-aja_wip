@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Home, Compass, Plus, MapPin } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
+import { ThemeToggle } from '../common/ThemeToggle';
 
 export const BottomNav: React.FC = () => {
   const { openReportModal } = useTitik();
@@ -105,6 +106,8 @@ export const BottomNav: React.FC = () => {
         <MapPin className="w-5 h-5" />
         <span>Peta</span>
       </a>
+
+      <ThemeToggle className="w-9 h-9 border-white/20 bg-white/10 text-white hover:bg-white/20" />
 
       <a
         href="/login"

@@ -241,6 +241,37 @@ export const AdminView: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 bg-[#F7F6F1] border border-[#E4E2DA] rounded-2xl">
+                    <div className="text-[10px] uppercase font-bold text-[#686B65]">Estimasi Biaya</div>
+                    <div className="font-semibold text-[#20221D] mt-1">
+                      {selectedReport.estimatedCost
+                        ? `Rp ${selectedReport.estimatedCost.toLocaleString('id-ID')}`
+                        : 'Belum dicantumkan'}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-[#F7F6F1] border border-[#E4E2DA] rounded-2xl">
+                    <div className="text-[10px] uppercase font-bold text-[#686B65]">Dokumen Pendukung</div>
+                    {selectedReport.supportingDocuments?.length ? (
+                      <ul className="mt-1 space-y-1">
+                        {selectedReport.supportingDocuments.map((document, index) => (
+                          <li key={`${document.name}-${index}`}>
+                            <a
+                              href={document.dataUrl}
+                              download={document.name}
+                              className="text-[#263F35] underline underline-offset-2 break-all"
+                            >
+                              {document.name}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="font-medium text-[#20221D] mt-1">Tidak ada lampiran</div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Agency & APBD Connection */}
                 <div className="p-3.5 bg-[#F7F6F1] border border-[#E4E2DA] rounded-2xl text-xs flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -272,6 +303,15 @@ export const AdminView: React.FC = () => {
                     Aksi Transisi Status:
                   </span>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                    <button
+                      type="button"
+                      disabled={isUpdating}
+                      onClick={() => handleApplyTransition('under_review')}
+                      className="admin-transition-btn px-4 py-2 bg-amber-50 text-amber-800 border border-amber-200 rounded-full font-semibold hover:bg-amber-100 disabled:opacity-50 transition-all text-xs"
+                    >
+                      Mulai Review
+                    </button>
+
                     <button
                       type="button"
                       disabled={isUpdating}

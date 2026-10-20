@@ -84,8 +84,8 @@ export class SupabaseDataAdapter implements IDataAdapter {
     return this.fallbackMock.toggleReportSupport(reportId);
   }
 
-  async addComment(postId: string, authorName: string, avatarUrl: string, body: string) {
-    return this.fallbackMock.addComment(postId, authorName, avatarUrl, body);
+  async addComment(postId: string, authorName: string, avatarUrl: string, body: string, parentId?: string) {
+    return this.fallbackMock.addComment(postId, authorName, avatarUrl, body, parentId);
   }
 
   async getComments(postId: string) {

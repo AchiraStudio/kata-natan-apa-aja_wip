@@ -12,20 +12,28 @@ import {
   Upload,
 } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
+import { useAuth } from '../../context/AuthContext';
 import { NewReportInput, ReportSubmitResult } from '../../services/adapters/types';
+import { ReportAttachment } from '../../types/domain';
 
 export const ReportModal: React.FC = () => {
-  const { reportModalOpen, closeReportModal, submitReport } = useTitik();
+  const { reportModalOpen, closeReportModal, submitReport, facilities } = useTitik();
+  const { profile } = useAuth();
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Infrastruktur');
   const [severity, setSeverity] = useState<'low' | 'medium' | 'high' | 'critical'>('high');
-  const [address, setAddress] = useState('Jl. Pajajaran No. 45, Bogor Tengah');
+  const [address, setAddress] = useState('');
   const [latitude, setLatitude] = useState(-6.595038);
   const [longitude, setLongitude] = useState(106.790422);
-  const [facilityName, setFacilityName] = useState('Saluran Air & Trotoar');
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
+  const [facilityName, setFacilityName] = useState('');
+  const [estimatedCost, setEstimatedCost] = useState('');
+  const [supportingDocuments, setSupportingDocuments] = useState<ReportAttachment[]>([]);
+  const [documentError, setDocumentError] = useState('');
   const [reporterType, setReporterType] = useState<'anonymous' | 'verified_citizen'>('anonymous');
   const [reporterDisplayName, setReporterDisplayName] = useState('');
   const [mediaPreview, setMediaPreview] = useState<string>(
@@ -39,6 +47,62 @@ export const ReportModal: React.FC = () => {
   if (!reportModalOpen) return null;
 
   const categories = ['Infrastruktur', 'Lingkungan', 'Pendidikan', 'Kesehatan', 'Lainnya'];
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Perangkat ini tidak mendukung akses lokasi. Isi alamat secara manual.');
+      return;
+    }
+
+    setIsLocating(true);
+    setLocationError('');
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLatitude(coords.latitude);
+        setLongitude(coords.longitude);
+        setIsLocating(false);
+      },
+      () => {
+        setLocationError('Lokasi tidak dapat diakses. Periksa izin lokasi atau isi alamat manual.');
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  const handleSupportingDocuments = async (files: FileList | null) => {
+    if (!files) return;
+    setDocumentError('');
+    const selectedFiles = Array.from(files);
+    if (supportingDocuments.length + selectedFiles.length > 5) {
+      setDocumentError('Maksimal 5 dokumen pendukung.');
+      return;
+    }
+
+    const validFiles = selectedFiles.filter((file) => file.size <= 10 * 1024 * 1024);
+    if (validFiles.length !== selectedFiles.length) {
+      setDocumentError('Ukuran setiap dokumen maksimal 10 MB.');
+    }
+
+    const documents = await Promise.all(
+      validFiles.map(
+        (file) =>
+          new Promise<ReportAttachment>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              resolve({
+                name: file.name,
+                mimeType: file.type || 'application/octet-stream',
+                sizeBytes: file.size,
+                dataUrl: String(reader.result),
+              });
+            reader.onerror = () => reject(new Error(`Gagal membaca ${file.name}`));
+            reader.readAsDataURL(file);
+          })
+      )
+    );
+    setSupportingDocuments((current) => [...current, ...documents]);
+  };
 
   const handleNextStep1 = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +128,8 @@ export const ReportModal: React.FC = () => {
         latitude,
         longitude,
         facilityName: facilityName.trim() || undefined,
+        estimatedCost: estimatedCost ? Number(estimatedCost) : undefined,
+        supportingDocuments,
         reporterType,
         reporterDisplayName: reporterType === 'verified_citizen' ? reporterDisplayName : undefined,
         mediaUrls: [mediaPreview],
@@ -91,6 +157,12 @@ export const ReportModal: React.FC = () => {
     setStep(1);
     setTitle('');
     setDescription('');
+    setAddress('');
+    setFacilityName('');
+    setEstimatedCost('');
+    setSupportingDocuments([]);
+    setDocumentError('');
+    setLocationError('');
     setSubmissionResult(null);
     closeReportModal();
   };
@@ -171,6 +243,22 @@ export const ReportModal: React.FC = () => {
             </div>
 
             <div>
+              <label className="block text-xs font-bold text-[#20221D] mb-1">Estimasi Biaya (Opsional)</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-2.5 text-xs text-[#686B65]">Rp</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={estimatedCost}
+                  onChange={(e) => setEstimatedCost(e.target.value)}
+                  placeholder="Contoh: 25000000"
+                  className="w-full pl-9 pr-3.5 py-2.5 bg-[#F7F6F1] border border-[#E4E2DA] rounded-xl text-sm focus:outline-none focus:border-[#263F35]"
+                />
+              </div>
+            </div>
+
+            <div>
               <label className="block text-xs font-bold text-[#20221D] mb-1">Deskripsi Lengkap *</label>
               <textarea
                 required
@@ -214,6 +302,43 @@ export const ReportModal: React.FC = () => {
               </div>
             </div>
 
+            <div>
+              <label className="block text-xs font-bold text-[#20221D] mb-1">Dokumen Pendukung (Opsional)</label>
+              <label className="inline-flex items-center gap-2 px-3 py-2 bg-[#F7F6F1] border border-[#E4E2DA] hover:border-[#263F35] rounded-xl text-xs font-medium text-[#20221D] cursor-pointer transition-colors">
+                <Upload className="w-3.5 h-3.5 text-[#263F35]" />
+                <span>Unggah surat RT/RW atau proposal</span>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    void handleSupportingDocuments(e.target.files);
+                    e.currentTarget.value = '';
+                  }}
+                />
+              </label>
+              <p className="text-[10px] text-[#686B65] mt-1">PDF, DOC, DOCX, JPG, PNG. Maksimal 5 file, 10 MB per file.</p>
+              {documentError && <p className="text-[11px] text-rose-600 mt-1">{documentError}</p>}
+              {supportingDocuments.length > 0 && (
+                <ul className="mt-2 space-y-1.5">
+                  {supportingDocuments.map((document, index) => (
+                    <li key={`${document.name}-${index}`} className="flex items-center justify-between gap-2 text-[11px] text-[#20221D]">
+                      <span className="truncate">{document.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSupportingDocuments((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                        className="text-rose-600 hover:text-rose-700 shrink-0"
+                        aria-label={`Hapus ${document.name}`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             <div className="pt-3 border-t border-[#E4E2DA] flex justify-end">
               <button
                 type="submit"
@@ -230,8 +355,30 @@ export const ReportModal: React.FC = () => {
         {step === 2 && (
           <form onSubmit={handleNextStep2} className="space-y-4">
             <div>
+              <label className="block text-xs font-bold text-[#20221D] mb-1.5">Fasilitas Umum Terkait</label>
+              <select
+                value={facilityName}
+                onChange={(e) => {
+                  const selected = facilities.find((facility) => facility.name === e.target.value);
+                  setFacilityName(e.target.value);
+                  if (selected) {
+                    setAddress(selected.address);
+                    setLatitude(selected.latitude);
+                    setLongitude(selected.longitude);
+                  }
+                }}
+                className="w-full px-3.5 py-2.5 bg-[#F7F6F1] border border-[#E4E2DA] rounded-xl text-xs focus:outline-none focus:border-[#263F35]"
+              >
+                <option value="">Pilih fasilitas atau isi lokasi manual</option>
+                {facilities.map((facility) => (
+                  <option key={facility.id} value={facility.name}>{facility.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <label className="block text-xs font-bold text-[#20221D] mb-1">Alamat atau Patokan Spesifik *</label>
-              <input
+                <input
                 type="text"
                 required
                 value={address}
@@ -261,14 +408,11 @@ export const ReportModal: React.FC = () => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    // Slight jitter near Bogor center
-                    setLatitude(-6.595038 + (Math.random() - 0.5) * 0.005);
-                    setLongitude(106.790422 + (Math.random() - 0.5) * 0.005);
-                  }}
-                  className="text-[11px] text-[#263F35] font-semibold hover:underline"
+                  onClick={handleUseCurrentLocation}
+                  disabled={isLocating}
+                  className="text-[11px] text-[#263F35] font-semibold hover:underline disabled:opacity-60"
                 >
-                  Gunakan GPS Saya
+                  {isLocating ? 'Mencari GPS...' : 'Gunakan GPS Saya'}
                 </button>
               </div>
 
@@ -283,6 +427,7 @@ export const ReportModal: React.FC = () => {
               <p className="text-[10px] text-[#686B65]">
                 Koordinat presisi digunakan sistem untuk memetakan dinas penanggung jawab dan alokasi APBD terdekat.
               </p>
+              {locationError && <p className="text-[11px] text-rose-600">{locationError}</p>}
             </div>
 
             <div className="pt-3 border-t border-[#E4E2DA] flex items-center justify-between">
@@ -324,6 +469,17 @@ export const ReportModal: React.FC = () => {
               <div>
                 <span className="text-[10px] text-[#686B65] uppercase font-bold tracking-wider">Deskripsi</span>
                 <p className="text-[#20221D] line-clamp-3">{description}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span className="text-[10px] text-[#686B65] uppercase font-bold tracking-wider">Estimasi Biaya</span>
+                  <div className="text-[#20221D]">{estimatedCost ? `Rp ${Number(estimatedCost).toLocaleString('id-ID')}` : 'Belum dicantumkan'}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-[#686B65] uppercase font-bold tracking-wider">Dokumen Pendukung</span>
+                  <div className="text-[#20221D]">{supportingDocuments.length} file</div>
+                </div>
               </div>
             </div>
 
@@ -464,12 +620,14 @@ export const ReportModal: React.FC = () => {
               >
                 Kembali ke Beranda
               </button>
-              <a
-                href="/track"
-                className="px-4 py-2.5 bg-white border border-[#E4E2DA] text-[#20221D] rounded-xl text-xs font-semibold hover:bg-[#F7F6F1] transition-colors"
-              >
-                Buka Pelacakan
-              </a>
+              {profile.role === 'admin' && (
+                <a
+                  href="/track"
+                  className="px-4 py-2.5 bg-white border border-[#E4E2DA] text-[#20221D] rounded-xl text-xs font-semibold hover:bg-[#F7F6F1] transition-colors"
+                >
+                  Buka Pelacakan
+                </a>
+              )}
             </div>
           </div>
         )}

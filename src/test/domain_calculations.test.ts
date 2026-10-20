@@ -10,6 +10,45 @@ describe('Domain Calculations & State Logic (4-Tier Suite)', () => {
     adapter = new MockDataAdapter();
   });
 
+  describe('Comment replies', () => {
+    it('stores a reply under its parent comment instead of as a top-level comment', async () => {
+      const parent = await adapter.addComment('post-001', 'Parent', 'parent.png', 'Komentar utama');
+      const reply = await adapter.addComment('post-001', 'Reply', 'reply.png', 'Balasan', parent.id);
+      const comments = await adapter.getComments('post-001');
+
+      expect(reply.parentId).toBe(parent.id);
+      expect(comments.find((comment) => comment.id === reply.id)?.parentId).toBe(parent.id);
+    });
+  });
+
+  describe('Detailed report submission', () => {
+    it('keeps cost estimates and supporting documents with the submitted report', async () => {
+      const attachment = {
+        name: 'surat-rt.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 1024,
+        dataUrl: 'data:application/pdf;base64,dGVzdA==',
+      };
+      const result = await adapter.submitReport({
+        title: 'Lampu jalan padam',
+        description: 'Lampu tidak menyala selama satu minggu.',
+        category: 'Infrastruktur',
+        severity: 'medium',
+        address: 'Jl. Melati No. 1',
+        latitude: -6.595,
+        longitude: 106.79,
+        mediaUrls: [],
+        facilityName: 'PJU Jl. Melati',
+        estimatedCost: 25000000,
+        supportingDocuments: [attachment],
+        reporterType: 'verified_citizen',
+      });
+
+      expect(result.report.estimatedCost).toBe(25000000);
+      expect(result.report.supportingDocuments).toEqual([attachment]);
+    });
+  });
+
   // ===========================================================================
   // TIER 1: FEATURE COVERAGE (>=5 tests per feature)
   // ===========================================================================

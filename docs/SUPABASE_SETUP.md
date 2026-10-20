@@ -24,6 +24,13 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 > **Security Rule:**
 > Never place the Supabase `service_role` secret in frontend `.env` files or commit it to version control. The client app operates exclusively through the `anon` key, constrained by Row Level Security (RLS) policies and `SECURITY DEFINER` stored procedures.
 
+To start the frontend locally after configuring `.env`, install dependencies and run the Vite development server:
+
+```bash
+npm install
+npm run dev
+```
+
 ---
 
 ## 3. Database Migrations Execution

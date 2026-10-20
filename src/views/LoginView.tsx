@@ -13,12 +13,12 @@ import {
   Sparkles,
   Users,
   Shield,
-  Building2,
   Download,
   Search,
   X,
 } from 'lucide-react';
 import { TitikLogo } from '../components/common/TitikLogo';
+import { ThemeToggle } from '../components/common/ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 import {
   PRESET_PERSONAS,
@@ -72,7 +72,7 @@ export const LoginView: React.FC = () => {
       setIsSubmitting(false);
       if (res.success) {
         setSuccessMessage('Berhasil masuk! Mengalihkan ke beranda...');
-        setTimeout(() => navigate('/'), 700);
+        setTimeout(() => navigate(res.role === 'admin' ? '/admin' : '/'), 700);
       } else {
         setErrorMessage(res.error || 'Gagal masuk. Periksa kembali email dan kata sandi.');
       }
@@ -160,6 +160,9 @@ export const LoginView: React.FC = () => {
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Beranda Feed</span>
         </button>
+      </div>
+      <div className="absolute top-4 right-4 z-30">
+        <ThemeToggle />
       </div>
 
       {/* Responsive Dual-Screen Wrapper */}
@@ -332,10 +335,10 @@ export const LoginView: React.FC = () => {
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
-                  type="email"
+                  type={authMode === 'signup' ? 'email' : 'text'}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email"
+                  placeholder={authMode === 'signup' ? 'Email' : 'Username atau email'}
                   className="login-input-field"
                   required
                 />
@@ -425,19 +428,6 @@ export const LoginView: React.FC = () => {
                   </span>
                 </button>
 
-                {/* Persona 2: Admin PUPR */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickPersonaLogin('admin')}
-                  className="login-persona-btn login-persona-btn--admin group"
-                  title="Masuk sebagai Ir. Hendrawan (Admin Dinas PUPR)"
-                >
-                  <Building2 className="w-5 h-5" />
-                  <span className="login-persona-tooltip">
-                    Admin PUPR
-                  </span>
-                </button>
-
                 {/* Persona 3: Moderator */}
                 <button
                   type="button"
@@ -453,7 +443,7 @@ export const LoginView: React.FC = () => {
               </div>
 
               <p className="login-persona-caption">
-                Log in with your demo persona (Juri MIA 2026)
+                Demo admin: admin.pupr / adminpupr2026
               </p>
             </div>
           </div>

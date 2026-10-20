@@ -64,16 +64,16 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
     const desktopRatio = (() => {
       switch (normalized) {
         case '1/1':
-          return 'lg:aspect-square lg:max-h-[calc(100vh-6rem)] lg:w-full lg:max-w-[540px]';
+          return 'lg:aspect-square lg:max-h-[calc(100vh-5rem)] lg:w-full lg:max-w-[580px] xl:max-w-[640px]';
         case '3/4':
-          return 'lg:aspect-[3/4] lg:max-h-[calc(100vh-5rem)] lg:w-full lg:max-w-[500px]';
+          return 'lg:aspect-[3/4] lg:max-h-[calc(100vh-4.5rem)] lg:w-full lg:max-w-[520px] xl:max-w-[580px]';
         case '4/3':
-          return 'lg:aspect-[4/3] lg:max-h-[calc(100vh-6rem)] lg:w-full lg:max-w-[620px]';
+          return 'lg:aspect-[4/3] lg:max-h-[calc(100vh-5rem)] lg:w-full lg:max-w-[660px] xl:max-w-[740px]';
         case '16/9':
-          return 'lg:aspect-video lg:max-h-[calc(100vh-6rem)] lg:w-full lg:max-w-[700px]';
+          return 'lg:aspect-video lg:max-h-[calc(100vh-5rem)] lg:w-full lg:max-w-[760px] xl:max-w-[840px]';
         case '9/16':
         default:
-          return 'lg:aspect-[9/16] lg:max-h-[calc(100vh-5rem)] lg:min-h-[580px] lg:w-full lg:max-w-[440px]';
+          return 'lg:aspect-[9/16] lg:max-h-[calc(100vh-4.5rem)] lg:min-h-[520px] lg:w-full lg:max-w-[480px] xl:max-w-[530px] 2xl:max-w-[560px]';
       }
     })();
 

@@ -2,15 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Heart, Send, MessageSquare, Loader2 } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
+import { FeedComment } from '../../services/adapters/types';
 
-export interface CommentItem {
-  id: string;
-  authorName: string;
-  avatarUrl: string;
-  body: string;
-  timeAgo: string;
-  likes: number;
-}
+export type CommentItem = FeedComment;
 
 interface CommentsBottomSheetProps {
   isOpen: boolean;
@@ -33,6 +27,7 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [newCommentText, setNewCommentText] = useState('');
+  const [replyTarget, setReplyTarget] = useState<{ id: string; authorName: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [likedCommentIds, setLikedCommentIds] = useState<Set<string>>(new Set());
   const [likesDeltaMap, setLikesDeltaMap] = useState<Record<string, number>>({});
@@ -101,7 +96,7 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
       'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
 
     try {
-      const created = await addComment(postId, trimmed, authorName, avatarUrl);
+      const created = await addComment(postId, trimmed, authorName, avatarUrl, replyTarget?.id);
       if (created) {
         setComments((prev) => [created, ...prev]);
       } else {
@@ -113,11 +108,13 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
           body: trimmed,
           timeAgo: 'Baru saja',
           likes: 0,
+          ...(replyTarget ? { parentId: replyTarget.id } : {}),
         };
         setComments((prev) => [optimistic, ...prev]);
       }
 
       setNewCommentText('');
+      setReplyTarget(null);
       onCommentAdded?.();
 
       // Scroll to top of comments list smoothly
@@ -215,10 +212,11 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
               </p>
             </div>
           ) : (
-            comments.map((item) => {
+            comments.filter((item) => !item.parentId).map((item) => {
               const isLiked = likedCommentIds.has(item.id);
               const delta = likesDeltaMap[item.id] || 0;
               const currentLikes = Math.max(0, (item.likes || 0) + delta);
+              const replies = comments.filter((comment) => comment.parentId === item.id);
 
               return (
                 <div key={item.id} className="flex items-start gap-3 group">
@@ -244,12 +242,42 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
                     <div className="flex items-center gap-3 mt-1.5 text-[10px] text-white/50">
                       <button
                         type="button"
-                        onClick={() => setNewCommentText(`@${item.authorName} `)}
+                        onClick={() => {
+                          setReplyTarget({ id: item.id, authorName: item.authorName });
+                          inputRef.current?.focus();
+                        }}
                         className="text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer transition-colors"
                       >
                         Balas
                       </button>
                     </div>
+
+                    {replies.length > 0 && (
+                      <div className="mt-3 ml-1 pl-3 border-l border-white/15 space-y-3">
+                        {replies.map((reply) => (
+                          <div key={reply.id} className="flex items-start gap-2">
+                            <img
+                              src={reply.avatarUrl}
+                              alt={reply.authorName}
+                              className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-white/15"
+                            />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-[11px] text-white/90 truncate">
+                                  {reply.authorName}
+                                </span>
+                                <span className="text-[10px] text-white/45 font-mono shrink-0">
+                                  • {reply.timeAgo}
+                                </span>
+                              </div>
+                              <p className="text-xs text-white/80 leading-relaxed mt-0.5 whitespace-pre-wrap break-words">
+                                {reply.body}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <button
@@ -274,36 +302,51 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
         {/* Sticky Input Bar at Bottom */}
         <form
           onSubmit={handleSubmit}
-          className="p-3 sm:p-4 bg-[#111412]/95 backdrop-blur-md border-t border-white/10 flex items-center gap-2.5 shrink-0"
+          className="p-3 sm:p-4 bg-[#111412]/95 backdrop-blur-md border-t border-white/10 shrink-0"
         >
-          <img
-            src={
-              profile?.avatarUrl ||
-              'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'
-            }
-            alt={profile?.displayName || 'Profil Anda'}
-            className="w-8 h-8 rounded-full object-cover border border-white/20 shrink-0"
-          />
-          <input
-            ref={inputRef}
-            type="text"
-            value={newCommentText}
-            onChange={(e) => setNewCommentText(e.target.value)}
-            placeholder="Tulis tanggapan atau kesaksian Anda..."
-            className="flex-1 bg-white/10 border border-white/10 focus:border-emerald-400/60 focus:bg-white/15 rounded-full px-4 py-2 text-xs text-white placeholder-white/40 outline-none transition-all"
-          />
-          <button
-            type="submit"
-            disabled={!newCommentText.trim() || isSubmitting}
-            className="w-8 h-8 rounded-full bg-emerald-500 text-black flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-emerald-400 transition-all shrink-0 active:scale-95 cursor-pointer shadow-md"
-            title="Kirim komentar"
-          >
-            {isSubmitting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Send className="w-3.5 h-3.5" />
-            )}
-          </button>
+          {replyTarget && (
+            <div className="flex items-center justify-between mb-2 px-1 text-[11px] text-white/55">
+              <span>Balas ke <span className="text-emerald-300">@{replyTarget.authorName}</span></span>
+              <button
+                type="button"
+                onClick={() => setReplyTarget(null)}
+                className="text-white/60 hover:text-white cursor-pointer"
+                aria-label="Batalkan balasan"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          <div className="flex items-center gap-2.5">
+            <img
+              src={
+                profile?.avatarUrl ||
+                'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'
+              }
+              alt={profile?.displayName || 'Profil Anda'}
+              className="w-8 h-8 rounded-full object-cover border border-white/20 shrink-0"
+            />
+            <input
+              ref={inputRef}
+              type="text"
+              value={newCommentText}
+              onChange={(e) => setNewCommentText(e.target.value)}
+              placeholder={replyTarget ? `Balas ke @${replyTarget.authorName}...` : 'Tulis komentar...'}
+              className="flex-1 bg-white/10 border border-white/10 focus:border-emerald-400/60 focus:bg-white/15 rounded-full px-4 py-2 text-xs text-white placeholder-white/40 outline-none transition-all"
+            />
+            <button
+              type="submit"
+              disabled={!newCommentText.trim() || isSubmitting}
+              className="w-8 h-8 rounded-full bg-emerald-500 text-black flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-emerald-400 transition-all shrink-0 active:scale-95 cursor-pointer shadow-md"
+              title={replyTarget ? 'Kirim balasan' : 'Kirim komentar'}
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Send className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
         </form>
       </div>
     </div>

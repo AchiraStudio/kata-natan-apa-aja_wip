@@ -10,7 +10,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  signIn: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  signIn: (email: string, password?: string) => Promise<{ success: boolean; error?: string; role?: UserProfile['role'] }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   signInAsPersona: (key: 'citizen' | 'admin' | 'moderator' | 'anonymous') => void;
@@ -20,6 +20,22 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_ACTIVE_PROFILE = 'titik_active_profile_v1';
+const LOCAL_STORAGE_AUTHENTICATED = 'titik_authenticated_v1';
+
+function getStoredAuthentication(): boolean {
+  try {
+    const storedAuth = localStorage.getItem(LOCAL_STORAGE_AUTHENTICATED);
+    if (storedAuth !== null) return storedAuth === 'true';
+
+    const storedProfile = localStorage.getItem(LOCAL_STORAGE_ACTIVE_PROFILE);
+    if (!storedProfile) return false;
+
+    const parsed = JSON.parse(storedProfile) as Partial<UserProfile>;
+    return Boolean(parsed.id && parsed.username && parsed.role && parsed.username !== PRESET_PERSONAS.anonymous.username);
+  } catch {
+    return false;
+  }
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -37,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Default to verified citizen demo persona
     return PRESET_PERSONAS.citizen;
   });
+  const [isAuthenticated, setIsAuthenticated] = useState(getStoredAuthentication);
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
 
   // Initialize Supabase Auth Listener
@@ -48,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!isMounted) return;
         setSession(session);
         setUser(session?.user ?? null);
+        setIsAuthenticated(Boolean(session) || getStoredAuthentication());
         if (session?.user) {
           const userMeta = session.user.user_metadata || {};
           setProfile((prev) => ({
@@ -61,9 +79,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
       });
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        if (session) {
+          setIsAuthenticated(true);
+          localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
+        } else if (event === 'SIGNED_OUT') {
+          setIsAuthenticated(false);
+          localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'false');
+        } else {
+          setIsAuthenticated(getStoredAuthentication());
+        }
         if (session?.user) {
           const userMeta = session.user.user_metadata || {};
           const newProfile: UserProfile = {
@@ -94,28 +121,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const targetPersona = PRESET_PERSONAS[key] || PRESET_PERSONAS.citizen;
     setProfile(targetPersona);
     localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(targetPersona));
+    setIsAuthenticated(true);
+    localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
   }, []);
 
   // Switch Active Profile (Used by Mass Account Generator)
   const switchProfile = useCallback((newProfile: UserProfile) => {
     setProfile(newProfile);
     localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(newProfile));
+    setIsAuthenticated(true);
+    localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
   }, []);
 
   // Standard Email & Password Login
-  const signIn = async (email: string, password = 'password123'): Promise<{ success: boolean; error?: string }> => {
+  const signIn = async (
+    email: string,
+    password = 'password123'
+  ): Promise<{ success: boolean; error?: string; role?: UserProfile['role'] }> => {
     setIsLoading(true);
 
     // 1. Check if email matches any of the demo personas
-    const matchedPersona = Object.values(PRESET_PERSONAS).find(
-      (p) => p.email?.toLowerCase() === email.toLowerCase() || p.username.toLowerCase() === email.toLowerCase()
-    );
+    const normalizedLogin = email.trim().toLowerCase();
+    const matchedPersona = normalizedLogin === 'admin'
+      ? PRESET_PERSONAS.admin
+      : Object.values(PRESET_PERSONAS).find(
+          (persona) =>
+            persona.email?.toLowerCase() === normalizedLogin ||
+            persona.username.toLowerCase() === normalizedLogin
+        );
 
     if (matchedPersona) {
+      if (password !== matchedPersona.passwordHint) {
+        setIsLoading(false);
+        return { success: false, error: 'Username atau password demo tidak sesuai.' };
+      }
       setProfile(matchedPersona);
       localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(matchedPersona));
+      setIsAuthenticated(true);
+      localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
       setIsLoading(false);
-      return { success: true };
+      return { success: true, role: matchedPersona.role };
     }
 
     // 2. Try Supabase Auth if online
@@ -142,6 +187,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           setProfile(fallbackProfile);
           localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(fallbackProfile));
+          setIsAuthenticated(true);
+          localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
           setIsLoading(false);
           return { success: true };
         }
@@ -149,9 +196,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.session) {
           setSession(data.session);
           setUser(data.user);
+          setIsAuthenticated(true);
+          localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
         }
         setIsLoading(false);
-        return { success: true };
+        return { success: true, role: data.user.user_metadata?.role || 'citizen' };
       } catch (err: unknown) {
         setIsLoading(false);
         const errorMsg = err instanceof Error ? err.message : String(err);
@@ -173,8 +222,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     setProfile(offlineProfile);
     localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(offlineProfile));
+    setIsAuthenticated(true);
+    localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
     setIsLoading(false);
-    return { success: true };
+    return { success: true, role: offlineProfile.role };
   };
 
   // Sign Up / Registration
@@ -229,6 +280,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setProfile(newProfile);
     localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(newProfile));
+    setIsAuthenticated(true);
+    localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
     setIsLoading(false);
     return { success: true };
   };
@@ -244,8 +297,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setUser(null);
     setSession(null);
-    // Reset to anonymous citizen
-    signInAsPersona('anonymous');
+    setProfile(PRESET_PERSONAS.anonymous);
+    setIsAuthenticated(false);
+    localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(PRESET_PERSONAS.anonymous));
+    localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'false');
   };
 
   return (
@@ -255,7 +310,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profile,
         session,
         isLoading,
-        isAuthenticated: Boolean(profile && profile.role !== undefined),
+        isAuthenticated,
         signIn,
         signUp,
         signOut,

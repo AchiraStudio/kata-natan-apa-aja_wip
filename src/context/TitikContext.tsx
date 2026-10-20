@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { Post, Report, ReportStatus, Facility, BudgetSectorContext } from '../types/domain';
 import { dataService } from '../services/dataService';
-import { NewReportInput, ReportSubmitResult } from '../services/adapters/types';
+import { FeedComment, NewReportInput, ReportSubmitResult } from '../services/adapters/types';
 
 interface TitikContextType {
   posts: Post[];
@@ -30,11 +30,10 @@ interface TitikContextType {
     postId: string,
     body: string,
     authorName?: string,
-    avatarUrl?: string
-  ) => Promise<{ id: string; authorName: string; avatarUrl: string; body: string; timeAgo: string; likes: number }>;
-  getComments: (
-    postId: string
-  ) => Promise<{ id: string; authorName: string; avatarUrl: string; body: string; timeAgo: string; likes: number }[]>;
+    avatarUrl?: string,
+    parentId?: string
+  ) => Promise<FeedComment>;
+  getComments: (postId: string) => Promise<FeedComment[]>;
   submitReport: (input: NewReportInput) => Promise<ReportSubmitResult>;
   updateReportStatus: (reportId: string, status: ReportStatus, description: string) => Promise<void>;
   refreshFeed: () => Promise<void>;
@@ -144,13 +143,14 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     postId: string,
     body: string,
     authorName?: string,
-    avatarUrl?: string
+    avatarUrl?: string,
+    parentId?: string
   ) => {
     const finalAuthor = authorName || 'Warga Anda';
     const finalAvatar =
       avatarUrl ||
       'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
-    const created = await dataService.addComment(postId, finalAuthor, finalAvatar, body);
+    const created = await dataService.addComment(postId, finalAuthor, finalAvatar, body, parentId);
     setPosts((prev) =>
       prev.map((p) => (p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p))
     );

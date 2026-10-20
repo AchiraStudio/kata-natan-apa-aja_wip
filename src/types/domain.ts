@@ -72,6 +72,13 @@ export interface ReportLocation {
   isApproximate?: boolean;
 }
 
+export interface ReportAttachment {
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+  dataUrl: string;
+}
+
 export interface ReportEvent {
   id: string;
   reportId: string;
@@ -113,8 +120,10 @@ export interface Report {
   publicationStatus: PublicationStatus;
   location: ReportLocation;
   facilityName?: string;
+  estimatedCost?: number;
   responsibleAgency: string;
   mediaUrls: string[];
+  supportingDocuments?: ReportAttachment[];
   reporterType: 'anonymous' | 'verified_citizen';
   reporterDisplayName?: string;
   supportCount: number; // "Saya terdampak juga" civic support count

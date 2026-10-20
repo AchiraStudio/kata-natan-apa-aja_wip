@@ -13,7 +13,7 @@ import {
   Facility,
   BudgetSectorContext,
 } from '../../types/domain';
-import { IDataAdapter, NewReportInput, ReportSubmitResult } from './types';
+import { FeedComment, IDataAdapter, NewReportInput, ReportSubmitResult } from './types';
 
 // Simple client-safe hashing representation for mock/offline mode
 function simpleHash(token: string): string {
@@ -33,13 +33,37 @@ function generateSecretToken(): string {
   return `${chunk()}-${chunk()}-${chunk()}-${chunk()}`;
 }
 
+function loadStoredArray<T>(key: string, fallback: T[]): T[] {
+  try {
+    const stored = globalThis.localStorage?.getItem(key);
+    return stored ? (JSON.parse(stored) as T[]) : (JSON.parse(JSON.stringify(fallback)) as T[]);
+  } catch {
+    return JSON.parse(JSON.stringify(fallback)) as T[];
+  }
+}
+
+const MOCK_REPORTS_STORAGE_KEY = 'titik_mock_reports_v1';
+const MOCK_POSTS_STORAGE_KEY = 'titik_mock_posts_v1';
+
 export class MockDataAdapter implements IDataAdapter {
-  private reports: Report[] = [...MOCK_REPORTS];
-  private posts: Post[] = [...MOCK_POSTS];
-  private comments: Record<string, { id: string; authorName: string; avatarUrl: string; body: string; timeAgo: string; likes: number }[]> = { ...MOCK_COMMENTS };
+  private reports: Report[] = loadStoredArray(MOCK_REPORTS_STORAGE_KEY, MOCK_REPORTS);
+  private posts: Post[] = loadStoredArray(MOCK_POSTS_STORAGE_KEY, MOCK_POSTS);
+  private comments: Record<string, FeedComment[]> = { ...MOCK_COMMENTS };
   private facilities: Facility[] = [...MOCK_FACILITIES];
   private budgetSectors: BudgetSectorContext[] = Object.values(MOCK_BUDGET_SECTORS);
-  private referenceCounter = 126;
+  private referenceCounter = this.reports.reduce((nextReference, report) => {
+    const suffix = Number(report.publicReference.slice(-6));
+    return Number.isFinite(suffix) ? Math.max(nextReference, suffix + 1) : nextReference;
+  }, 126);
+
+  private persistReportsAndPosts(): void {
+    try {
+      localStorage.setItem(MOCK_REPORTS_STORAGE_KEY, JSON.stringify(this.reports));
+      localStorage.setItem(MOCK_POSTS_STORAGE_KEY, JSON.stringify(this.posts));
+    } catch (err) {
+      console.warn('Could not persist demo reports in this browser:', err);
+    }
+  }
 
   async getFeedPosts(tab: 'for_you' | 'following' | 'nearby' = 'for_you', category?: string): Promise<Post[]> {
     let result = [...this.posts];
@@ -119,8 +143,10 @@ export class MockDataAdapter implements IDataAdapter {
         province: 'Jawa Barat',
       },
       facilityName: input.facilityName || 'Fasilitas Wilayah Kota Bogor',
+      estimatedCost: input.estimatedCost,
       responsibleAgency: matchedSector.responsibleAgency,
       mediaUrls: input.mediaUrls.length > 0 ? input.mediaUrls : ['https://images.unsplash.com/photo-1541888946425-d0fbb1861593?q=80&w=1000&auto=format&fit=crop'],
+      supportingDocuments: input.supportingDocuments || [],
       reporterType: input.reporterType,
       reporterDisplayName: input.reporterType === 'anonymous' ? undefined : (input.reporterDisplayName || 'Warga Terverifikasi'),
       supportCount: 1,
@@ -178,6 +204,7 @@ export class MockDataAdapter implements IDataAdapter {
     };
 
     this.posts.unshift(newPost);
+    this.persistReportsAndPosts();
 
     return {
       report: newReport,
@@ -228,6 +255,7 @@ export class MockDataAdapter implements IDataAdapter {
       }
       return p;
     });
+    this.persistReportsAndPosts();
 
     return updated;
   }
@@ -252,6 +280,7 @@ export class MockDataAdapter implements IDataAdapter {
         p.supportCount = supportCount;
       }
     });
+    this.persistReportsAndPosts();
 
     return { supportCount, isSupported };
   }
@@ -260,8 +289,9 @@ export class MockDataAdapter implements IDataAdapter {
     postId: string,
     authorName: string,
     avatarUrl: string,
-    body: string
-  ): Promise<{ id: string; authorName: string; avatarUrl: string; body: string; timeAgo: string; likes: number }> {
+    body: string,
+    parentId?: string
+  ): Promise<FeedComment> {
     const newComment = {
       id: `c-${Date.now()}`,
       authorName,
@@ -269,6 +299,7 @@ export class MockDataAdapter implements IDataAdapter {
       body,
       timeAgo: 'Baru saja',
       likes: 0,
+      ...(parentId ? { parentId } : {}),
     };
 
     if (!this.comments[postId]) {
@@ -284,7 +315,7 @@ export class MockDataAdapter implements IDataAdapter {
     return newComment;
   }
 
-  async getComments(postId: string) {
+  async getComments(postId: string): Promise<FeedComment[]> {
     return this.comments[postId] || [];
   }
 

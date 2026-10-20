@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Search, Sparkles } from 'lucide-react';
+import React, { useEffect, useRef, useCallback } from 'react';
+import { Search, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { FeedCard } from './FeedCard';
 import { TitikLogo } from '../common/TitikLogo';
@@ -13,11 +13,45 @@ export const FeedContainer: React.FC = () => {
     setActivePostId,
     setSearchModalOpen,
   } = useTitik();
+
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const isScrollingRef = useRef(false);
 
-  // Setup IntersectionObserver to sync active card with right panel
+  // Gesture Lock Refs: prevents trackpad momentum from jumping multiple posts
+  const isLockedRef = useRef(false);
+  const wheelIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const accumulatedDeltaRef = useRef(0);
+  const activePostIndexRef = useRef(0);
+
+  // Keep active index ref in sync with active post
+  useEffect(() => {
+    const idx = posts.findIndex((p) => p.id === activePost?.id);
+    if (idx !== -1) {
+      activePostIndexRef.current = idx;
+    }
+  }, [posts, activePost?.id]);
+
+  // Smooth scroll to a target post index with pixel precision
+  const scrollToIndex = useCallback(
+    (targetIndex: number) => {
+      if (targetIndex < 0 || targetIndex >= posts.length) return;
+      const targetPost = posts[targetIndex];
+      if (!targetPost) return;
+
+      activePostIndexRef.current = targetIndex;
+      setActivePostId(targetPost.id);
+
+      const targetEl = cardRefs.current.get(targetPost.id);
+      const container = scrollContainerRef.current;
+      if (targetEl && container) {
+        const targetTop = targetEl.offsetTop;
+        container.scrollTo({ top: targetTop, behavior: 'smooth' });
+      }
+    },
+    [posts, setActivePostId]
+  );
+
+  // Setup IntersectionObserver to sync active card when user swipes on mobile touch
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -26,6 +60,10 @@ export const FeedContainer: React.FC = () => {
             const id = entry.target.getAttribute('data-post-id');
             if (id) {
               setActivePostId(id);
+              const idx = posts.findIndex((p) => p.id === id);
+              if (idx !== -1) {
+                activePostIndexRef.current = idx;
+              }
             }
           }
         });
@@ -34,90 +72,77 @@ export const FeedContainer: React.FC = () => {
     );
 
     cardRefs.current.forEach((el) => observer.observe(el));
-
     return () => observer.disconnect();
   }, [posts, setActivePostId]);
 
-  // Snappy Keyboard Navigation (ArrowUp & ArrowDown)
+  // Keyboard navigation: ArrowUp, ArrowDown, PageUp, PageDown
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown'].includes(e.key)) {
         e.preventDefault();
-        const currentIndex = posts.findIndex((p) => p.id === activePost?.id);
-        if (currentIndex === -1) return;
-
+        const currentIndex = activePostIndexRef.current;
         const isDown = e.key === 'ArrowDown' || e.key === 'PageDown';
         const nextIndex = isDown ? currentIndex + 1 : currentIndex - 1;
 
         if (nextIndex >= 0 && nextIndex < posts.length) {
-          const nextPost = posts[nextIndex];
-          const el = cardRefs.current.get(nextPost.id);
-          el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          setActivePostId(nextPost.id);
+          scrollToIndex(nextIndex);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [posts, activePost, setActivePostId]);
+  }, [posts, scrollToIndex]);
 
-  // Desktop Mouse Wheel & Trackpad Interceptor: Single-Post Snappy Transition (Zero Free Gliding)
+  // Desktop Mouse Wheel & Trackpad Interceptor: Single-Post Snappy Transition (Guaranteed Zero Runaway)
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    let wheelDeltaY = 0;
-    let wheelTimer: ReturnType<typeof setTimeout> | null = null;
-
     const handleWheel = (e: WheelEvent) => {
-      // Ignore tiny unintentional jitter
-      if (Math.abs(e.deltaY) < 12) return;
+      // Ignore horizontal trackpad gestures
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
 
-      // Prevent continuous un-snapped gliding
+      // Always prevent default to eliminate loose browser free gliding
       e.preventDefault();
 
-      if (isScrollingRef.current) return;
+      // Reset idle timer on every incoming event packet (absorbs trackpad deceleration curve)
+      if (wheelIdleTimerRef.current) {
+        clearTimeout(wheelIdleTimerRef.current);
+      }
 
-      wheelDeltaY += e.deltaY;
+      // Unlock 240ms after user stops physically scrolling
+      wheelIdleTimerRef.current = setTimeout(() => {
+        isLockedRef.current = false;
+        accumulatedDeltaRef.current = 0;
+      }, 240);
 
-      // Accumulator threshold to trigger snappy single-post transition
-      if (Math.abs(wheelDeltaY) < 28) {
-        if (wheelTimer) clearTimeout(wheelTimer);
-        wheelTimer = setTimeout(() => {
-          wheelDeltaY = 0;
-        }, 120);
+      // If a transition has already been triggered for this physical swipe, drop all inertial packets!
+      if (isLockedRef.current) {
         return;
       }
 
-      const currentIndex = posts.findIndex((p) => p.id === activePost?.id);
-      if (currentIndex === -1) return;
+      accumulatedDeltaRef.current += e.deltaY;
 
-      const direction = wheelDeltaY > 0 ? 1 : -1;
-      const targetIndex = currentIndex + direction;
+      // Require intentional flick threshold (24px)
+      if (Math.abs(accumulatedDeltaRef.current) >= 24) {
+        isLockedRef.current = true;
+        const direction = accumulatedDeltaRef.current > 0 ? 1 : -1;
+        const currentIndex = activePostIndexRef.current;
+        const targetIndex = Math.max(0, Math.min(posts.length - 1, currentIndex + direction));
 
-      if (targetIndex >= 0 && targetIndex < posts.length) {
-        isScrollingRef.current = true;
-        const targetPost = posts[targetIndex];
-        const el = cardRefs.current.get(targetPost.id);
-        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        setActivePostId(targetPost.id);
-
-        wheelDeltaY = 0;
-        setTimeout(() => {
-          isScrollingRef.current = false;
-        }, 420);
-      } else {
-        wheelDeltaY = 0;
+        if (targetIndex !== currentIndex) {
+          scrollToIndex(targetIndex);
+        }
       }
     };
 
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
       container.removeEventListener('wheel', handleWheel);
-      if (wheelTimer) clearTimeout(wheelTimer);
+      if (wheelIdleTimerRef.current) clearTimeout(wheelIdleTimerRef.current);
     };
-  }, [posts, activePost, setActivePostId]);
+  }, [posts, scrollToIndex]);
 
   const tabs = [
     { key: 'following', label: 'Mengikuti' },
@@ -125,10 +150,12 @@ export const FeedContainer: React.FC = () => {
     { key: 'nearby', label: 'Terdekat' },
   ] as const;
 
+  const currentActiveIndex = posts.findIndex((p) => p.id === activePost?.id);
+
   return (
-    <div className="relative w-full h-[100dvh] lg:h-screen flex flex-col items-center max-w-none lg:max-w-3xl mx-auto p-0 overflow-hidden">
-      {/* 1. TikTok-Style Centered Feed Tabs Header */}
-      <div className="absolute top-0 inset-x-0 z-30 pt-3 sm:pt-4 pb-2 px-4 flex items-center justify-between pointer-events-none lg:static lg:h-12 lg:shrink-0 lg:bg-[#F7F6F1] lg:pt-2 lg:pb-1 lg:border-b lg:border-[#E4E2DA]/60 lg:max-w-xl lg:pointer-events-auto">
+    <div className="relative w-full h-[100dvh] lg:h-screen flex flex-col items-center max-w-none lg:max-w-4xl xl:max-w-5xl mx-auto p-0 overflow-hidden">
+      {/* 1. Centered Feed Tabs Header */}
+      <div className="absolute top-0 inset-x-0 z-30 pt-3 sm:pt-4 pb-2 px-4 flex items-center justify-between pointer-events-none lg:static lg:h-12 lg:shrink-0 lg:bg-[#F7F6F1] lg:pt-2 lg:pb-1 lg:border-b lg:border-[#E4E2DA]/60 lg:max-w-2xl lg:pointer-events-auto">
         {/* Left: Mobile Brand Mark (SVG Titik Logo) */}
         <div className="lg:hidden pointer-events-auto flex items-center">
           <a
@@ -141,7 +168,7 @@ export const FeedContainer: React.FC = () => {
         </div>
 
         {/* Center: Centered Tabs (Mengikuti | Untuk Anda | Terdekat) */}
-        <div className="pointer-events-auto flex items-center justify-center gap-4 sm:gap-6 mx-auto">
+        <div className="pointer-events-auto flex items-center justify-center gap-5 sm:gap-7 mx-auto">
           {tabs.map((tab) => {
             const isActive = activeFeedTab === tab.key;
             return (
@@ -157,7 +184,7 @@ export const FeedContainer: React.FC = () => {
               >
                 <span>{tab.label}</span>
                 {isActive && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-emerald-400 lg:bg-[#20221D] rounded-full shadow-xs"></span>
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-emerald-400 lg:bg-[#20221D] rounded-full shadow-xs"></span>
                 )}
               </button>
             );
@@ -192,32 +219,52 @@ export const FeedContainer: React.FC = () => {
             </p>
           </div>
         ) : (
-          (() => {
-            const activeIndex = posts.findIndex((p) => p.id === activePost?.id);
-            return posts.map((post, index) => {
-              const isActive = activePost?.id === post.id;
-              const isNearActive = activeIndex === -1 || Math.abs(index - activeIndex) <= 1;
+          posts.map((post) => {
+            const isActive = activePost?.id === post.id;
+            const postIdx = posts.findIndex((p) => p.id === post.id);
+            const isNearActive = Math.abs(postIdx - currentActiveIndex) <= 1;
 
-              return (
-                <div
-                  key={post.id}
-                  data-post-id={post.id}
-                  ref={(el) => {
-                    if (el) cardRefs.current.set(post.id, el);
-                    else cardRefs.current.delete(post.id);
-                  }}
-                  className="home-feed-item snap-start snap-always w-full h-[100dvh] lg:h-[calc(100vh-3rem)] shrink-0 flex justify-center items-center py-0 lg:py-2"
-                >
-                  <FeedCard
-                    post={post}
-                    isActive={isActive}
-                    isNearActive={isNearActive}
-                  />
-                </div>
-              );
-            });
-          })()
+            return (
+              <div
+                key={post.id}
+                data-post-id={post.id}
+                ref={(el) => {
+                  if (el) cardRefs.current.set(post.id, el);
+                  else cardRefs.current.delete(post.id);
+                }}
+                className="home-feed-item snap-start snap-always w-full h-[100dvh] lg:h-[calc(100vh-3rem)] shrink-0 flex justify-center items-center py-0 lg:py-2"
+              >
+                <FeedCard
+                  post={post}
+                  isActive={isActive}
+                  isNearActive={isNearActive}
+                />
+              </div>
+            );
+          })
         )}
+      </div>
+
+      {/* 3. Desktop Floating Tactical Up/Down Navigation Chevrons */}
+      <div className="hidden lg:flex flex-col gap-2.5 absolute right-3 xl:right-6 top-1/2 -translate-y-1/2 z-30 pointer-events-auto">
+        <button
+          type="button"
+          disabled={currentActiveIndex <= 0}
+          onClick={() => scrollToIndex(currentActiveIndex - 1)}
+          className="p-3 rounded-full bg-white/90 backdrop-blur-md border border-[#E4E2DA] shadow-md text-[#263F35] hover:bg-white hover:border-[#263F35]/40 hover:scale-105 active:scale-95 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+          title="Laporan Sebelumnya (ArrowUp)"
+        >
+          <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+        </button>
+        <button
+          type="button"
+          disabled={currentActiveIndex >= posts.length - 1}
+          onClick={() => scrollToIndex(currentActiveIndex + 1)}
+          className="p-3 rounded-full bg-white/90 backdrop-blur-md border border-[#E4E2DA] shadow-md text-[#263F35] hover:bg-white hover:border-[#263F35]/40 hover:scale-105 active:scale-95 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+          title="Laporan Berikutnya (ArrowDown)"
+        >
+          <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+        </button>
       </div>
     </div>
   );
