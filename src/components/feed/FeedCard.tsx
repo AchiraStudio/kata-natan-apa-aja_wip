@@ -19,6 +19,7 @@ import {
 import { Post } from '../../types/domain';
 import { useTitik } from '../../context/TitikContext';
 import { CommentsBottomSheet } from './CommentsBottomSheet';
+import { formatEngagementMetric } from '../../utils/formatters';
 
 interface FeedCardProps {
   post: Post;
@@ -27,7 +28,7 @@ interface FeedCardProps {
 }
 
 export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive = true }) => {
-  const { toggleSupport } = useTitik();
+  const { toggleSupport, openReportDetail } = useTitik();
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -38,6 +39,13 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
   const [isSaved, setIsSaved] = useState(post.isSavedByMe ?? false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
+  const [commentsDelta, setCommentsDelta] = useState(0);
+  const [prevPostId, setPrevPostId] = useState(post.id);
+
+  if (post.id !== prevPostId) {
+    setPrevPostId(post.id);
+    setCommentsDelta(0);
+  }
 
   const MAX_CAPTION_CHARS = 80;
   const isCaptionLong = (post.body || '').length > MAX_CAPTION_CHARS;
@@ -67,6 +75,8 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
           return 'lg:aspect-square lg:max-h-[calc(100vh-5rem)] lg:w-full lg:max-w-[580px] xl:max-w-[640px]';
         case '3/4':
           return 'lg:aspect-[3/4] lg:max-h-[calc(100vh-4.5rem)] lg:w-full lg:max-w-[520px] xl:max-w-[580px]';
+        case '4/5':
+          return 'lg:aspect-[4/5] lg:max-h-[calc(100vh-4.5rem)] lg:w-full lg:max-w-[500px] xl:max-w-[540px]';
         case '4/3':
           return 'lg:aspect-[4/3] lg:max-h-[calc(100vh-5rem)] lg:w-full lg:max-w-[660px] xl:max-w-[740px]';
         case '16/9':
@@ -253,8 +263,8 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
           >
             <Heart className={`w-5 h-5 ${post.isSupportedByMe ? 'fill-current' : ''}`} />
           </button>
-          <span className="text-[11px] font-semibold mt-1 drop-shadow-md">
-            {post.supportCount > 999 ? `${(post.supportCount / 1000).toFixed(1)}K` : post.supportCount}
+          <span className="text-[11px] font-semibold mt-1 drop-shadow-md whitespace-nowrap tabular-nums select-none text-center">
+            {formatEngagementMetric(post.supportCount)}
           </span>
         </div>
 
@@ -271,7 +281,10 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
           >
             <MessageCircle className="w-5 h-5" />
           </button>
-          <span className="text-[11px] font-semibold mt-1 drop-shadow-md">{post.commentsCount}</span>
+          {/* Synchronized action bar metric: formatEngagementMetric(post.commentsCount) */}
+          <span className="text-[11px] font-semibold mt-1 drop-shadow-md whitespace-nowrap tabular-nums select-none text-center">
+            {formatEngagementMetric(post.commentsCount + commentsDelta)}
+          </span>
         </div>
 
         {/* Share Action */}
@@ -283,7 +296,9 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
           >
             <Share2 className="w-5 h-5" />
           </button>
-          <span className="text-[11px] font-semibold mt-1 drop-shadow-md">{post.sharesCount}</span>
+          <span className="text-[11px] font-semibold mt-1 drop-shadow-md whitespace-nowrap tabular-nums select-none text-center">
+            {formatEngagementMetric(post.sharesCount)}
+          </span>
         </div>
 
         {/* Bookmark / Save Action */}
@@ -298,7 +313,9 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
           >
             <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
           </button>
-          <span className="text-[11px] font-semibold mt-1 drop-shadow-md">{post.savesCount}</span>
+          <span className="text-[11px] font-semibold mt-1 drop-shadow-md whitespace-nowrap tabular-nums select-none text-center">
+            {formatEngagementMetric(post.savesCount)}
+          </span>
         </div>
       </div>
 
@@ -319,8 +336,9 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
               e.stopPropagation();
               setIsCaptionExpanded(!isCaptionExpanded);
             }}
+            data-scroll-isolated={isCaptionExpanded ? 'true' : undefined}
             className={`text-xs text-white/95 leading-relaxed drop-shadow-md cursor-pointer select-text transition-all duration-200 ${
-              isCaptionExpanded ? 'max-h-48 overflow-y-auto pr-1 no-scrollbar' : ''
+              isCaptionExpanded ? 'max-h-48 overflow-y-auto pr-1 no-scrollbar overscroll-y-contain touch-pan-y' : ''
             }`}
             title={isCaptionExpanded ? 'Klik untuk menciutkan' : 'Klik untuk melihat selengkapnya'}
           >
@@ -368,12 +386,18 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
           </div>
 
           {post.relatedReport && (
-            <a
-              href={`/report/${post.relatedReport.id}`}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (post.relatedReport) {
+                  openReportDetail(post.relatedReport);
+                }
+              }}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#263F35]/90 backdrop-blur-md text-[11px] font-medium text-white border border-[#E7EBDD]/30 hover:bg-[#263F35] transition-colors cursor-pointer"
             >
               <span>Lihat Laporan & APBD ({post.relatedReport.publicReference})</span>
-            </a>
+            </button>
           )}
         </div>
 
@@ -414,7 +438,8 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         isOpen={isCommentsOpen}
         onClose={() => setIsCommentsOpen(false)}
         postId={post.id}
-        commentsCount={post.commentsCount}
+        commentsCount={post.commentsCount + commentsDelta}
+        onCommentAdded={() => setCommentsDelta((prev) => prev + 1)}
       />
     </div>
   );

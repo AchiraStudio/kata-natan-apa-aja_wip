@@ -100,6 +100,11 @@ export const FeedContainer: React.FC = () => {
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
+      // Early return guard: ignore wheel events from scroll-isolated sub-containers (e.g. comments, caption expansions)
+      if ((e.target as HTMLElement | null)?.closest?.('[data-scroll-isolated="true"]')) {
+        return;
+      }
+
       // Ignore horizontal trackpad gestures
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
 

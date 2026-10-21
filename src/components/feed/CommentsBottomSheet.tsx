@@ -33,7 +33,23 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
   const [likesDeltaMap, setLikesDeltaMap] = useState<Record<string, number>>({});
 
   const commentsListRef = useRef<HTMLDivElement | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Native non-passive wheel isolation: stop propagation at the DOM level so FeedContainer never intercepts
+  useEffect(() => {
+    const sheetEl = sheetRef.current;
+    if (!sheetEl || !isOpen) return;
+
+    const stopWheel = (e: WheelEvent) => {
+      e.stopPropagation();
+    };
+
+    sheetEl.addEventListener('wheel', stopWheel, { passive: false });
+    return () => {
+      sheetEl.removeEventListener('wheel', stopWheel);
+    };
+  }, [isOpen]);
 
   // Load comments when sheet opens
   useEffect(() => {
@@ -129,22 +145,25 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
   };
 
   const toggleLike = (commentId: string) => {
+    const isCurrentlyLiked = likedCommentIds.has(commentId);
     setLikedCommentIds((prev) => {
       const next = new Set(prev);
-      const isCurrentlyLiked = next.has(commentId);
       if (isCurrentlyLiked) {
         next.delete(commentId);
-        setLikesDeltaMap((d) => ({ ...d, [commentId]: (d[commentId] || 0) - 1 }));
       } else {
         next.add(commentId);
-        setLikesDeltaMap((d) => ({ ...d, [commentId]: (d[commentId] || 0) + 1 }));
       }
       return next;
     });
+    setLikesDeltaMap((prev) => ({
+      ...prev,
+      [commentId]: (prev[commentId] || 0) + (isCurrentlyLiked ? -1 : 1),
+    }));
   };
 
   return (
     <div
+      data-scroll-isolated="true"
       onClick={(e) => {
         e.stopPropagation();
         onClose();
@@ -155,12 +174,14 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
     >
       {/* Bottom Sheet Container */}
       <div
+        ref={sheetRef}
+        data-scroll-isolated="true"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
-        className={`w-full max-h-[75%] h-[70%] bg-[#151916] border-t border-white/10 rounded-t-[28px] sm:rounded-t-3xl flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
+        className={`w-full max-h-[75%] h-[70%] bg-[#151916] border-t border-white/10 rounded-t-[28px] sm:rounded-t-3xl flex flex-col shadow-2xl overscroll-y-contain transition-transform duration-300 ease-out ${
           isOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
@@ -194,7 +215,8 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
         {/* Scrollable Comments List */}
         <div
           ref={commentsListRef}
-          className="flex-1 overflow-y-auto px-4 py-3 space-y-4 no-scrollbar"
+          data-scroll-isolated="true"
+          className="flex-1 overflow-y-auto px-4 py-3 space-y-4 no-scrollbar overscroll-y-contain touch-pan-y"
         >
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-white/40 space-y-2">
@@ -254,28 +276,49 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
 
                     {replies.length > 0 && (
                       <div className="mt-3 ml-1 pl-3 border-l border-white/15 space-y-3">
-                        {replies.map((reply) => (
-                          <div key={reply.id} className="flex items-start gap-2">
-                            <img
-                              src={reply.avatarUrl}
-                              alt={reply.authorName}
-                              className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-white/15"
-                            />
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-semibold text-[11px] text-white/90 truncate">
-                                  {reply.authorName}
-                                </span>
-                                <span className="text-[10px] text-white/45 font-mono shrink-0">
-                                  • {reply.timeAgo}
-                                </span>
+                        {replies.map((reply) => {
+                          const isReplyLiked = likedCommentIds.has(reply.id);
+                          const replyDelta = likesDeltaMap[reply.id] || 0;
+                          const currentReplyLikes = Math.max(0, (reply.likes || 0) + replyDelta);
+
+                          return (
+                            <div key={reply.id} className="flex items-start gap-2 justify-between">
+                              <div className="flex items-start gap-2 min-w-0 flex-1">
+                                <img
+                                  src={reply.avatarUrl}
+                                  alt={reply.authorName}
+                                  className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-white/15"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-semibold text-[11px] text-white/90 truncate">
+                                      {reply.authorName}
+                                    </span>
+                                    <span className="text-[10px] text-white/45 font-mono shrink-0">
+                                      • {reply.timeAgo}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-white/80 leading-relaxed mt-0.5 whitespace-pre-wrap break-words">
+                                    {reply.body}
+                                  </p>
+                                </div>
                               </div>
-                              <p className="text-xs text-white/80 leading-relaxed mt-0.5 whitespace-pre-wrap break-words">
-                                {reply.body}
-                              </p>
+                              <button
+                                type="button"
+                                onClick={() => toggleLike(reply.id)}
+                                className="flex flex-col items-center gap-0.5 p-1 text-white/50 hover:text-white transition-colors cursor-pointer shrink-0 active:scale-90"
+                                title={isReplyLiked ? 'Batal suka' : 'Suka balasan'}
+                              >
+                                <Heart
+                                  className={`w-3.5 h-3.5 transition-colors ${
+                                    isReplyLiked ? 'fill-red-500 text-red-500' : ''
+                                  }`}
+                                />
+                                <span className="text-[9px] font-mono">{currentReplyLikes}</span>
+                              </button>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>

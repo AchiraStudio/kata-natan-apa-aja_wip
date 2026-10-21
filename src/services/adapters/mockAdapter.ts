@@ -42,8 +42,8 @@ function loadStoredArray<T>(key: string, fallback: T[]): T[] {
   }
 }
 
-const MOCK_REPORTS_STORAGE_KEY = 'titik_mock_reports_v1';
-const MOCK_POSTS_STORAGE_KEY = 'titik_mock_posts_v1';
+const MOCK_REPORTS_STORAGE_KEY = 'titik_mock_reports_v2';
+const MOCK_POSTS_STORAGE_KEY = 'titik_mock_posts_v2';
 
 export class MockDataAdapter implements IDataAdapter {
   private reports: Report[] = loadStoredArray(MOCK_REPORTS_STORAGE_KEY, MOCK_REPORTS);
