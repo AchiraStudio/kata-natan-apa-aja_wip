@@ -34,6 +34,7 @@ import { dataService } from '../services/dataService';
 import { useTitik } from '../context/TitikContext';
 import { Report } from '../types/domain';
 
+import { createCivicTileLayer } from '../utils/mapTiles';
 import './ReportDetailView.css';
 
 interface Testimony {
@@ -128,13 +129,8 @@ export const ReportDetailView: React.FC = () => {
         zoomControl: true,
       });
 
-      // High-performance CARTO Voyager tiles
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20,
-      }).addTo(map);
+      // High-performance clean civic cartography tiles with automatic fallback
+      createCivicTileLayer(L).addTo(map);
 
       // Custom high-contrast marker pin
       const customPin = L.divIcon({
