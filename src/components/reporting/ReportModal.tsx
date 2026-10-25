@@ -169,26 +169,26 @@ export const ReportModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white border border-[#E4E2DA] rounded-3xl shadow-2xl p-6 overflow-hidden my-8">
+      <div className="relative w-full max-w-lg bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl shadow-2xl p-6 overflow-hidden my-8">
         {/* Close Button */}
         <button
           type="button"
           onClick={resetForm}
-          className="absolute top-5 right-5 p-2 rounded-full text-[#686B65] hover:text-[#20221D] hover:bg-[#F7F6F1] transition-colors"
+          className="absolute top-5 right-5 p-2 rounded-full text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
         <div className="mb-6">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E7EBDD] text-[#263F35] text-xs font-semibold mb-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#263F35] dark:text-[#34D399] text-xs font-semibold mb-2">
             <Shield className="w-3.5 h-3.5" />
             <span>Formulir Laporan Publik</span>
           </div>
-          <h3 className="text-xl font-bold text-[#20221D]">
+          <h3 className="text-xl font-bold text-[#20221D] dark:text-[#F3F6F4]">
             {step === 4 ? 'Laporan Terkirim!' : 'Laporkan Masalah Infrastruktur'}
           </h3>
-          <p className="text-xs text-[#686B65] mt-1">
+          <p className="text-xs text-[#686B65] dark:text-[#9EACA3] mt-1">
             {step === 1 && 'Langkah 1/3: Rincian masalah dan bukti visual foto/video.'}
             {step === 2 && 'Langkah 2/3: Titik koordinat dan alamat spesifik.'}
             {step === 3 && 'Langkah 3/3: Tinjau dan konfirmasi pengiriman.'}

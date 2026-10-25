@@ -33,7 +33,7 @@ import { BottomNav } from '../components/layout/BottomNav';
 import { dataService } from '../services/dataService';
 import { useTitik } from '../context/TitikContext';
 import { Report } from '../types/domain';
-import { MOCK_COMMENTS } from '../data/mockCivicData';
+
 import './ReportDetailView.css';
 
 interface Testimony {
@@ -80,22 +80,28 @@ export const ReportDetailView: React.FC = () => {
             setSelectedPhotoIndex(0);
             setLoading(false);
 
-            // Load initial community testimonies
+            // Load initial community testimonies dynamically from dataService (Supabase/fallback)
             if (res) {
-              const matchedComments =
-                res.id === 'rep-001'
-                  ? MOCK_COMMENTS['post-001'] || []
+              const matchedPostId = res.id.startsWith('rep-kn-')
+                ? res.id.replace('rep-', '')
+                : res.id === 'rep-001'
+                  ? 'post-001'
                   : res.id === 'rep-002'
-                    ? MOCK_COMMENTS['post-002'] || []
+                    ? 'post-002'
                     : res.id === 'rep-003'
-                      ? MOCK_COMMENTS['post-003'] || []
-                      : [];
-              setTestimonies(
-                matchedComments.map((c) => ({
-                  ...c,
-                  isLiked: false,
-                }))
-              );
+                      ? 'post-003'
+                      : res.id;
+
+              dataService.getComments(matchedPostId).then((comments) => {
+                if (isMounted) {
+                  setTestimonies(
+                    (comments || []).map((c) => ({
+                      ...c,
+                      isLiked: false,
+                    }))
+                  );
+                }
+              });
             }
           }
         })
@@ -235,28 +241,47 @@ export const ReportDetailView: React.FC = () => {
     );
   };
 
-  const handleSubmitTestimony = (e: React.FormEvent) => {
+  const handleSubmitTestimony = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!testimonyText.trim()) return;
+    if (!testimonyText.trim() || !report) return;
 
     setIsSubmittingTestimony(true);
-    const newTestimony: Testimony = {
-      id: `testimony-${Date.now()}`,
-      authorName: authorNameInput.trim() || 'Warga Sekitar',
-      avatarUrl:
-        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-      body: testimonyText.trim(),
-      timeAgo: 'Baru saja',
-      likes: 0,
-      isLiked: false,
-    };
+    const author = authorNameInput.trim() || 'Warga Sekitar';
+    const avatar =
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
+    const body = testimonyText.trim();
 
-    setTimeout(() => {
-      setTestimonies((prev) => [newTestimony, ...prev]);
+    const matchedPostId = report.id.startsWith('rep-kn-')
+      ? report.id.replace('rep-', '')
+      : report.id === 'rep-001'
+        ? 'post-001'
+        : report.id === 'rep-002'
+          ? 'post-002'
+          : report.id === 'rep-003'
+            ? 'post-003'
+            : report.id;
+
+    try {
+      const created = await dataService.addComment(matchedPostId, author, avatar, body);
+      setTestimonies((prev) => [
+        {
+          ...(created || {
+            id: `testimony-${Date.now()}`,
+            authorName: author,
+            avatarUrl: avatar,
+            body,
+            timeAgo: 'Baru saja',
+            likes: 0,
+          }),
+          isLiked: false,
+        },
+        ...prev,
+      ]);
       setTestimonyText('');
       setAuthorNameInput('');
+    } finally {
       setIsSubmittingTestimony(false);
-    }, 300);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -315,7 +340,7 @@ export const ReportDetailView: React.FC = () => {
 
   if (!report) {
     return (
-      <div className="h-screen w-full bg-[#F7F6F1] flex flex-col lg:flex-row overflow-hidden">
+      <div className="h-screen w-full max-w-[1680px] mx-auto bg-[#F7F6F1] dark:bg-[#0C100E] flex flex-col lg:flex-row overflow-hidden">
         <Sidebar />
         <main className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
           <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
@@ -348,24 +373,22 @@ export const ReportDetailView: React.FC = () => {
   const unspentPercent = budget ? (100 - budget.executionRatePercent).toFixed(1) : '0';
 
   return (
-    <div className="h-screen w-full bg-[#F7F6F1] flex flex-col lg:flex-row overflow-hidden selection:bg-[#263F35] selection:text-white">
+    <div className="h-screen w-full max-w-[1680px] mx-auto bg-[#F7F6F1] dark:bg-[#0C100E] flex flex-col lg:flex-row overflow-hidden selection:bg-[#263F35] dark:selection:bg-[#10B981] selection:text-white dark:selection:text-[#0A1610]">
       {/* 1. Mobile Header (Hidden in Print) */}
-      <header className="lg:hidden h-14 bg-[#F7F6F1] border-b border-[#E4E2DA] px-4 flex items-center justify-between shrink-0 z-20 print:hidden">
+      <header className="lg:hidden h-14 bg-[#F7F6F1] dark:bg-[#131916] border-b border-[#E4E2DA] dark:border-[#26352E] px-4 flex items-center justify-between shrink-0 z-20 print:hidden">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="report-pill-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#E4E2DA] text-xs font-semibold text-[#20221D] hover:text-[#263F35] cursor-pointer"
+          className="report-pill-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] text-xs font-semibold text-[#20221D] dark:text-[#F3F6F4] hover:text-[#263F35] dark:hover:text-[#34D399] cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Kembali</span>
         </button>
-        <span className="font-mono text-xs font-bold text-[#686B65] px-2.5 py-1 rounded-full bg-white border border-[#E4E2DA]">{report.publicReference}</span>
+        <span className="font-mono text-xs font-bold text-[#686B65] dark:text-[#9EACA3] px-2.5 py-1 rounded-full bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E]">{report.publicReference}</span>
       </header>
 
       {/* 2. Global Navigation Sidebar (Hidden in Print) */}
-      <div className="print:hidden">
-        <Sidebar />
-      </div>
+      <Sidebar />
 
       {/* 3. Main Full-Widescreen Dossier Document Container */}
       <main className="flex-1 h-screen overflow-y-auto no-scrollbar w-full min-w-0 pb-28 lg:pb-16">

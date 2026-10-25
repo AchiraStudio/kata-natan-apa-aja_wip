@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Compass,
   Search,
@@ -14,6 +15,7 @@ import { useTitik } from '../context/TitikContext';
 import './ExploreView.css';
 
 export const ExploreView: React.FC = () => {
+  const navigate = useNavigate();
   const { facilities, posts, openReportModal } = useTitik();
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,24 +38,31 @@ export const ExploreView: React.FC = () => {
   });
 
   return (
-    <div className="h-screen w-full bg-[#F7F6F1] flex flex-col lg:flex-row overflow-hidden selection:bg-[#263F35] selection:text-white">
+    <div className="h-screen w-full max-w-[1680px] mx-auto bg-[#F7F6F1] dark:bg-[#0C100E] flex flex-col lg:flex-row overflow-hidden selection:bg-[#263F35] dark:selection:bg-[#10B981] selection:text-white dark:selection:text-[#0A1610]">
       {/* Mobile Top Header */}
-      <header className="lg:hidden h-14 bg-[#F7F6F1] border-b border-[#E4E2DA] px-4 flex items-center justify-between shrink-0 z-20">
-        <a href="/" className="inline-flex items-center gap-1.5 text-xl font-black tracking-tight text-[#20221D]">
+      <header className="lg:hidden h-14 bg-[#F7F6F1] dark:bg-[#131916] border-b border-[#E4E2DA] dark:border-[#26352E] px-4 flex items-center justify-between shrink-0 z-20">
+        <a
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate('/');
+          }}
+          className="inline-flex items-center gap-1.5 text-xl font-black tracking-tight text-[#20221D] dark:text-[#F3F6F4]"
+        >
           <span>TITIK</span>
-          <span className="w-2 h-2 rounded-full bg-[#263F35]"></span>
+          <span className="w-2 h-2 rounded-full bg-[#263F35] dark:bg-[#10B981]"></span>
         </a>
         <div className="flex items-center gap-2">
           <img
             src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
             alt="Avatar"
-            className="w-7 h-7 rounded-full object-cover border border-[#E4E2DA]"
+            className="w-7 h-7 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E]"
           />
         </div>
       </header>
 
       {/* Left Navigation Hub */}
-      <Sidebar currentPath="/explore" />
+      <Sidebar />
 
       {/* Main Content Area */}
       <main className="flex-1 h-screen overflow-y-auto no-scrollbar p-4 lg:p-8 w-full max-w-6xl space-y-6 pb-24 lg:pb-12 min-w-0">
@@ -84,7 +93,7 @@ export const ExploreView: React.FC = () => {
             <button
               type="button"
               onClick={openReportModal}
-              className="explore-pill-btn relative z-10 px-5 py-3 rounded-full bg-[#263F35] hover:bg-[#1D3129] text-white border border-white/30 hover:border-white/60 text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-2"
+              className="explore-pill-btn relative z-10 px-5 py-3 rounded-full bg-[#263F35] dark:bg-[#10B981] hover:bg-[#1D3129] dark:hover:bg-[#34D399] text-white dark:text-[#0A1610] border border-white/30 hover:border-white/60 text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-2"
             >
               <span>+ Laporkan Masalah</span>
             </button>
@@ -93,13 +102,13 @@ export const ExploreView: React.FC = () => {
           {/* Search & Category Filter Pills */}
           <div className="space-y-3">
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-4 top-3.5 text-[#686B65]" />
+              <Search className="w-4 h-4 absolute left-4 top-3.5 text-[#686B65] dark:text-[#9EACA3]" />
               <input
                 type="text"
                 placeholder="Cari nama fasilitas, jalan, atau dinas penanggung jawab..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="explore-search-input w-full pl-11 pr-4 py-3 bg-white border border-[#E4E2DA] rounded-full text-xs text-[#20221D] focus:outline-none focus:border-[#263F35] focus:ring-1 focus:ring-[#263F35] shadow-xs transition-all"
+                className="explore-search-input w-full pl-11 pr-4 py-3 bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-full text-xs text-[#20221D] dark:text-[#F3F6F4] placeholder-[#686B65] dark:placeholder-[#6C7D73] focus:outline-none focus:border-[#263F35] dark:focus:border-[#10B981] shadow-xs transition-all"
               />
             </div>
 
@@ -114,8 +123,8 @@ export const ExploreView: React.FC = () => {
                     onClick={() => setSelectedCategory(c.name)}
                     className={`explore-category-pill flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
                       isSelected
-                        ? 'bg-[#263F35] text-white font-semibold shadow-xs'
-                        : 'bg-white border border-[#E4E2DA] text-[#686B65] hover:text-[#20221D] hover:border-[#263F35]/30'
+                        ? 'bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] font-semibold shadow-xs'
+                        : 'bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:border-[#263F35]/30 dark:hover:border-[#10B981]/40'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -128,7 +137,7 @@ export const ExploreView: React.FC = () => {
 
           {/* Facilities Cards Grid */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#686B65] mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#686B65] dark:text-[#9EACA3] mb-3">
               Fasilitas Terdaftar ({filteredFacilities.length})
             </h3>
 
@@ -136,29 +145,29 @@ export const ExploreView: React.FC = () => {
               {filteredFacilities.map((f) => (
                 <div
                   key={f.id}
-                  className="explore-facility-card bg-white border border-[#E4E2DA] rounded-3xl p-5 shadow-xs hover:border-[#263F35]/40 transition-all flex flex-col justify-between space-y-3.5"
+                  className="explore-facility-card bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-5 shadow-xs hover:border-[#263F35]/40 dark:hover:border-[#10B981]/40 transition-all flex flex-col justify-between space-y-3.5"
                 >
                   <div>
                     <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="px-2.5 py-0.5 rounded-full bg-[#E7EBDD] text-[#263F35] font-semibold">
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#263F35] dark:text-[#34D399] font-semibold">
                         {f.category}
                       </span>
-                      <span className="text-[#686B65] font-mono">
+                      <span className="text-[#686B65] dark:text-[#9EACA3] font-mono">
                         {f.latitude.toFixed(4)}, {f.longitude.toFixed(4)}
                       </span>
                     </div>
-                    <h4 className="text-sm font-bold text-[#20221D]">{f.name}</h4>
-                    <div className="flex items-center gap-1.5 text-xs text-[#686B65] mt-1">
+                    <h4 className="text-sm font-bold text-[#20221D] dark:text-[#F3F6F4]">{f.name}</h4>
+                    <div className="flex items-center gap-1.5 text-xs text-[#686B65] dark:text-[#9EACA3] mt-1">
                       <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0" />
                       <span className="truncate">{f.address}</span>
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-[#E4E2DA]/60 flex items-center justify-between text-xs">
-                    <span className="text-[#686B65] text-[11px] truncate">
+                  <div className="pt-2 border-t border-[#E4E2DA]/60 dark:border-[#26352E] flex items-center justify-between text-xs">
+                    <span className="text-[#686B65] dark:text-[#9EACA3] text-[11px] truncate">
                       Dinas: {f.responsibleAgency}
                     </span>
-                    <span className="font-semibold text-[#263F35] text-[11px] shrink-0">
+                    <span className="font-semibold text-[#263F35] dark:text-[#34D399] text-[11px] shrink-0">
                       {f.activeReportsCount} Laporan Aktif
                     </span>
                   </div>
@@ -169,7 +178,7 @@ export const ExploreView: React.FC = () => {
 
           {/* Recent Reports in this Category */}
           <div className="pt-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#686B65] mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#686B65] dark:text-[#9EACA3] mb-3">
               Laporan Komunitas Terbaru
             </h3>
 
@@ -181,7 +190,7 @@ export const ExploreView: React.FC = () => {
                   <a
                     key={p.id}
                     href={`/report/${r.id}`}
-                    className="explore-incident-card bg-white border border-[#E4E2DA] rounded-3xl overflow-hidden shadow-xs hover:border-[#263F35] transition-all cursor-pointer flex flex-col justify-between"
+                    className="explore-incident-card bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl overflow-hidden shadow-xs hover:border-[#263F35] dark:hover:border-[#10B981] transition-all cursor-pointer flex flex-col justify-between"
                   >
                     <img
                       src={r.mediaUrls[0]}
@@ -190,15 +199,15 @@ export const ExploreView: React.FC = () => {
                     />
                     <div className="p-4 space-y-2">
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-mono font-bold text-[#686B65]">
+                        <span className="font-mono font-bold text-[#686B65] dark:text-[#9EACA3]">
                           {r.publicReference}
                         </span>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-[#92400E]">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-950/60 text-[#92400E] dark:text-amber-300 border border-amber-200 dark:border-amber-800/80">
                           {r.status.replace('_', ' ')}
                         </span>
                       </div>
-                      <h4 className="font-bold text-xs text-[#20221D] line-clamp-1">{r.title}</h4>
-                      <p className="text-[11px] text-[#686B65] line-clamp-2">{r.description}</p>
+                      <h4 className="font-bold text-xs text-[#20221D] dark:text-[#F3F6F4] line-clamp-1">{r.title}</h4>
+                      <p className="text-[11px] text-[#686B65] dark:text-[#9EACA3] line-clamp-2">{r.description}</p>
                     </div>
                   </a>
                 );

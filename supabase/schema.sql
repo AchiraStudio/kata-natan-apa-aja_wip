@@ -60,3 +60,38 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+
+
+-- =============================================================================
+-- 3. Comments Table (Threaded Citizen Testimonies & Social Discussion)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.comments (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL,
+  author_name TEXT NOT NULL,
+  avatar_url TEXT,
+  body TEXT NOT NULL,
+  parent_id TEXT REFERENCES public.comments(id) ON DELETE CASCADE,
+  likes INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read access to comments
+CREATE POLICY "Public can view comments" 
+  ON public.comments FOR SELECT USING (true);
+
+-- Allow public/authenticated insert of citizen comments
+CREATE POLICY "Public can insert comments" 
+  ON public.comments FOR INSERT WITH CHECK (true);
+
+-- Allow updating comment likes
+CREATE POLICY "Public can update comment likes" 
+  ON public.comments FOR UPDATE USING (true);
+
+-- Performance Indexes
+CREATE INDEX IF NOT EXISTS idx_comments_post_id ON public.comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON public.comments(parent_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created_at ON public.comments(created_at DESC);

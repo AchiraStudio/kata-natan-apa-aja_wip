@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Compass, Plus, MapPin } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../common/ThemeToggle';
 
 export const BottomNav: React.FC = () => {
-  const { openReportModal } = useTitik();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { openReportModal, setActiveFeedTab } = useTitik();
   const { profile } = useAuth();
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollTop = useRef(0);
@@ -57,7 +60,7 @@ export const BottomNav: React.FC = () => {
     };
   }, []);
 
-  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const currentPath = location.pathname;
 
   return (
     <nav
@@ -69,6 +72,12 @@ export const BottomNav: React.FC = () => {
     >
       <a
         href="/"
+        onClick={(e) => {
+          e.preventDefault();
+          setActiveFeedTab('for_you');
+          if (location.pathname !== '/') navigate('/');
+          else window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
         className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
           currentPath === '/' ? 'text-emerald-400 font-bold' : 'text-white/70 hover:text-white'
         }`}
@@ -79,6 +88,10 @@ export const BottomNav: React.FC = () => {
 
       <a
         href="/explore"
+        onClick={(e) => {
+          e.preventDefault();
+          if (location.pathname !== '/explore') navigate('/explore');
+        }}
         className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
           currentPath === '/explore' ? 'text-emerald-400 font-bold' : 'text-white/70 hover:text-white'
         }`}
@@ -99,6 +112,10 @@ export const BottomNav: React.FC = () => {
 
       <a
         href="/map"
+        onClick={(e) => {
+          e.preventDefault();
+          if (location.pathname !== '/map') navigate('/map');
+        }}
         className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
           currentPath === '/map' ? 'text-emerald-400 font-bold' : 'text-white/70 hover:text-white'
         }`}
@@ -111,6 +128,10 @@ export const BottomNav: React.FC = () => {
 
       <a
         href="/login"
+        onClick={(e) => {
+          e.preventDefault();
+          if (location.pathname !== '/login') navigate('/login');
+        }}
         className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
           currentPath === '/login' ? 'text-emerald-400 font-bold' : 'text-white/70 hover:text-white'
         }`}

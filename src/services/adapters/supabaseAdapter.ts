@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { IDataAdapter, NewReportInput, ReportSubmitResult } from './types';
+import { IDataAdapter, NewReportInput, ReportSubmitResult, FeedComment } from './types';
+import { formatIndonesianTimeAgo } from '../../utils/timeAgo';
 import { MockDataAdapter } from './mockAdapter';
 import { Post, Report, ReportStatus, Facility, BudgetSectorContext } from '../../types/domain';
 
@@ -84,12 +85,91 @@ export class SupabaseDataAdapter implements IDataAdapter {
     return this.fallbackMock.toggleReportSupport(reportId);
   }
 
-  async addComment(postId: string, authorName: string, avatarUrl: string, body: string, parentId?: string) {
-    return this.fallbackMock.addComment(postId, authorName, avatarUrl, body, parentId);
+  async addComment(
+    postId: string,
+    authorName: string,
+    avatarUrl: string,
+    body: string,
+    parentId?: string
+  ): Promise<FeedComment> {
+    if (!this.client) {
+      return this.fallbackMock.addComment(postId, authorName, avatarUrl, body, parentId);
+    }
+
+    const newId = `c-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const nowIso = new Date().toISOString();
+
+    try {
+      const { data, error } = await this.client
+        .from('comments')
+        .insert({
+          id: newId,
+          post_id: postId,
+          author_name: authorName,
+          avatar_url: avatarUrl,
+          body,
+          parent_id: parentId || null,
+          likes: 0,
+          created_at: nowIso,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        // Keep fallback mock in sync so optimistic local state remains coherent
+        await this.fallbackMock.addComment(postId, authorName, avatarUrl, body, parentId);
+
+        return {
+          id: data.id,
+          authorName: data.author_name,
+          avatarUrl: data.avatar_url,
+          body: data.body,
+          timeAgo: 'Baru saja',
+          likes: data.likes || 0,
+          parentId: data.parent_id || undefined,
+        };
+      }
+
+      console.warn('Supabase comment insert returned error, falling back to local mock adapter:', error);
+      return this.fallbackMock.addComment(postId, authorName, avatarUrl, body, parentId);
+    } catch (err) {
+      console.warn('Supabase comment insert failed, falling back to local mock adapter:', err);
+      return this.fallbackMock.addComment(postId, authorName, avatarUrl, body, parentId);
+    }
   }
 
-  async getComments(postId: string) {
-    return this.fallbackMock.getComments(postId);
+  async getComments(postId: string): Promise<FeedComment[]> {
+    if (!this.client) {
+      return this.fallbackMock.getComments(postId);
+    }
+
+    try {
+      const { data, error } = await this.client
+        .from('comments')
+        .select('*')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        // Fall back to mock comments if table has not been seeded or returned empty
+        return this.fallbackMock.getComments(postId);
+      }
+
+      return data.map((row: any) => ({
+        id: row.id,
+        authorName: row.author_name,
+        avatarUrl:
+          row.avatar_url ||
+          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        body: row.body,
+        timeAgo: formatIndonesianTimeAgo(row.created_at),
+        likes: typeof row.likes === 'number' ? row.likes : 0,
+        parentId: row.parent_id || undefined,
+      }));
+    } catch (err) {
+      console.warn('Failed to query comments from Supabase, falling back to local:', err);
+      return this.fallbackMock.getComments(postId);
+    }
   }
 
   async getFacilities(query?: string, category?: string): Promise<Facility[]> {
@@ -100,4 +180,3 @@ export class SupabaseDataAdapter implements IDataAdapter {
     return this.fallbackMock.getBudgetSectors();
   }
 }
-

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import { MapPin, ArrowRight } from 'lucide-react';
 import { Sidebar } from '../components/layout/Sidebar';
@@ -8,6 +9,7 @@ import { Report, Facility } from '../types/domain';
 import './MapView.css';
 
 export const MapView: React.FC = () => {
+  const navigate = useNavigate();
   const { posts, facilities, openReportModal } = useTitik();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -21,7 +23,14 @@ export const MapView: React.FC = () => {
 
   // Initialize Leaflet Map Instance
   useEffect(() => {
-    if (!mapContainerRef.current || mapInstanceRef.current) return;
+    if (!mapContainerRef.current) return;
+    if (mapInstanceRef.current) return;
+
+    // Guard against Leaflet container reuse in React SPA transitions
+    const container = mapContainerRef.current as HTMLElement & { _leaflet_id?: number | null };
+    if (container._leaflet_id) {
+      delete container._leaflet_id;
+    }
 
     // Center of Kota Bogor
     const map = L.map(mapContainerRef.current, {
@@ -41,8 +50,10 @@ export const MapView: React.FC = () => {
     mapInstanceRef.current = map;
 
     return () => {
-      map.remove();
-      mapInstanceRef.current = null;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
     };
   }, []);
 
@@ -95,24 +106,31 @@ export const MapView: React.FC = () => {
   }, [reports, facilities, filterType]);
 
   return (
-    <div className="h-screen w-full bg-[#F7F6F1] flex flex-col lg:flex-row overflow-hidden selection:bg-[#263F35] selection:text-white">
+    <div className="h-screen w-full max-w-[1680px] mx-auto bg-[#F7F6F1] dark:bg-[#0C100E] flex flex-col lg:flex-row overflow-hidden selection:bg-[#263F35] dark:selection:bg-[#10B981] selection:text-white dark:selection:text-[#0A1610]">
       {/* Mobile Top Header */}
-      <header className="lg:hidden h-14 bg-[#F7F6F1] border-b border-[#E4E2DA] px-4 flex items-center justify-between shrink-0 z-20">
-        <a href="/" className="inline-flex items-center gap-1.5 text-xl font-black tracking-tight text-[#20221D]">
+      <header className="lg:hidden h-14 bg-[#F7F6F1] dark:bg-[#131916] border-b border-[#E4E2DA] dark:border-[#26352E] px-4 flex items-center justify-between shrink-0 z-20">
+        <a
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate('/');
+          }}
+          className="inline-flex items-center gap-1.5 text-xl font-black tracking-tight text-[#20221D] dark:text-[#F3F6F4]"
+        >
           <span>TITIK</span>
-          <span className="w-2 h-2 rounded-full bg-[#263F35]"></span>
+          <span className="w-2 h-2 rounded-full bg-[#263F35] dark:bg-[#10B981]"></span>
         </a>
         <div className="flex items-center gap-2">
           <img
             src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
             alt="Avatar"
-            className="w-7 h-7 rounded-full object-cover border border-[#E4E2DA]"
+            className="w-7 h-7 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E]"
           />
         </div>
       </header>
 
       {/* Left Navigation Hub */}
-      <Sidebar currentPath="/map" />
+      <Sidebar />
 
       {/* Main Full-Height Geospatial Map Viewport */}
       <main className="flex-1 h-screen overflow-hidden p-4 lg:p-6 w-full flex flex-col space-y-4 pb-20 lg:pb-6 min-w-0">
@@ -176,30 +194,30 @@ export const MapView: React.FC = () => {
           </div>
 
           {/* Map Viewport & Overlay Inspector */}
-          <div className="map-viewport-card relative flex-1 min-h-[500px] w-full rounded-3xl overflow-hidden border border-[#E4E2DA] shadow-xs">
+          <div className="map-viewport-card relative flex-1 min-h-[500px] w-full rounded-3xl overflow-hidden border border-[#E4E2DA] dark:border-[#26352E] shadow-xs">
             <div ref={mapContainerRef} className="absolute inset-0 z-0"></div>
 
             {/* Entity Detail Overlay Drawer */}
             {selectedEntity && (
-              <div className="map-entity-sheet absolute bottom-0 left-0 right-0 sm:bottom-4 sm:left-auto sm:right-4 sm:w-96 z-10 bg-white/95 backdrop-blur-md border border-[#E4E2DA] rounded-t-[36px] sm:rounded-3xl p-5 shadow-xl space-y-3.5 animate-fade-in">
+              <div className="map-entity-sheet absolute bottom-0 left-0 right-0 sm:bottom-4 sm:left-auto sm:right-4 sm:w-96 z-10 bg-white/95 dark:bg-[#1A221E]/95 backdrop-blur-md border border-[#E4E2DA] dark:border-[#26352E] rounded-t-[36px] sm:rounded-3xl p-5 shadow-xl space-y-3.5 animate-fade-in">
                 {selectedEntity.type === 'report' ? (
                   <>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-mono font-bold text-[#686B65]">
+                      <span className="font-mono font-bold text-[#686B65] dark:text-[#9EACA3]">
                         {selectedEntity.data.publicReference}
                       </span>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-[#92400E]">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-950/60 text-[#92400E] dark:text-amber-300 border border-amber-200 dark:border-amber-800/80">
                         {selectedEntity.data.status.replace('_', ' ')}
                       </span>
                     </div>
-                    <h3 className="font-bold text-sm text-[#20221D]">{selectedEntity.data.title}</h3>
-                    <p className="text-xs text-[#686B65] line-clamp-2">
+                    <h3 className="font-bold text-sm text-[#20221D] dark:text-[#F3F6F4]">{selectedEntity.data.title}</h3>
+                    <p className="text-xs text-[#686B65] dark:text-[#9EACA3] line-clamp-2">
                       {selectedEntity.data.description}
                     </p>
                     <div className="pt-2 flex items-center justify-between">
                       <a
                         href={`/report/${selectedEntity.data.id}`}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-[#263F35] hover:underline"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-[#263F35] dark:text-[#34D399] hover:underline"
                       >
                         <span>Lihat Laporan & APBD</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -207,7 +225,7 @@ export const MapView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setSelectedEntity(null)}
-                        className="px-3 py-1 rounded-full border border-[#E4E2DA] text-xs font-semibold text-[#686B65] hover:text-[#20221D] transition-colors cursor-pointer"
+                        className="px-3 py-1 rounded-full border border-[#E4E2DA] dark:border-[#26352E] text-xs font-semibold text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-colors cursor-pointer"
                       >
                         Tutup
                       </button>
@@ -216,27 +234,27 @@ export const MapView: React.FC = () => {
                 ) : (
                   <>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="px-2.5 py-0.5 rounded-full bg-[#E7EBDD] text-[#263F35] font-semibold">
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#263F35] dark:text-[#34D399] font-semibold">
                         {selectedEntity.data.category}
                       </span>
-                      <span className="text-xs text-[#686B65]">
+                      <span className="text-xs text-[#686B65] dark:text-[#9EACA3]">
                         {selectedEntity.data.activeReportsCount} Laporan
                       </span>
                     </div>
-                    <h3 className="font-bold text-sm text-[#20221D]">{selectedEntity.data.name}</h3>
-                    <p className="text-xs text-[#686B65]">{selectedEntity.data.address}</p>
+                    <h3 className="font-bold text-sm text-[#20221D] dark:text-[#F3F6F4]">{selectedEntity.data.name}</h3>
+                    <p className="text-xs text-[#686B65] dark:text-[#9EACA3]">{selectedEntity.data.address}</p>
                     <div className="pt-2 flex items-center justify-between">
                       <button
                         type="button"
                         onClick={openReportModal}
-                        className="px-4 py-2 bg-[#263F35] hover:bg-[#1D3129] text-white rounded-full text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                        className="px-4 py-2 bg-[#263F35] dark:bg-[#10B981] hover:bg-[#1D3129] dark:hover:bg-[#34D399] text-white dark:text-[#0A1610] rounded-full text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                       >
                         + Laporkan Fasilitas Ini
                       </button>
                       <button
                         type="button"
                         onClick={() => setSelectedEntity(null)}
-                        className="px-3 py-1 rounded-full border border-[#E4E2DA] text-xs font-semibold text-[#686B65] hover:text-[#20221D] transition-colors cursor-pointer"
+                        className="px-3 py-1 rounded-full border border-[#E4E2DA] dark:border-[#26352E] text-xs font-semibold text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-colors cursor-pointer"
                       >
                         Tutup
                       </button>

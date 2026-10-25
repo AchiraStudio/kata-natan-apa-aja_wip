@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint src",
     "test": "vitest run",
+    "seed:comments": "npx vite-node scripts/seedSupabaseComments.ts",
     "preview": "vite preview --host"
   },
   "dependencies": {

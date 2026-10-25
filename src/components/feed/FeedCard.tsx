@@ -242,7 +242,9 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
             type="button"
             onClick={() => setIsFollowed(!isFollowed)}
             className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center text-white transition-transform active:scale-90 ${
-              isFollowed ? 'bg-[#263F35]' : 'bg-[#263F35] hover:bg-[#1f332b]'
+              isFollowed
+                ? 'bg-[#263F35] dark:bg-[#10B981] dark:text-[#0A1610]'
+                : 'bg-[#263F35] dark:bg-[#10B981] dark:text-[#0A1610] hover:bg-[#1f332b] dark:hover:bg-[#34D399]'
             }`}
           >
             {isFollowed ? <Check className="w-3 h-3 stroke-[3]" /> : <Plus className="w-3 h-3 stroke-[3]" />}
@@ -394,7 +396,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
                   openReportDetail(post.relatedReport);
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#263F35]/90 backdrop-blur-md text-[11px] font-medium text-white border border-[#E7EBDD]/30 hover:bg-[#263F35] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#263F35]/90 dark:bg-[#10B981]/90 dark:text-[#0A1610] dark:font-semibold backdrop-blur-md text-[11px] font-medium text-white border border-[#E7EBDD]/30 dark:border-[#10B981]/50 hover:bg-[#263F35] dark:hover:bg-[#34D399] transition-colors cursor-pointer"
             >
               <span>Lihat Laporan & APBD ({post.relatedReport.publicReference})</span>
             </button>

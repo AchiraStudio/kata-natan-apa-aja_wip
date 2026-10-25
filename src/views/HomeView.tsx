@@ -7,7 +7,7 @@ import './HomeView.css';
 
 export const HomeView: React.FC = () => {
   return (
-    <div className="home-portal-root h-screen w-full max-w-[1680px] mx-auto bg-[#F7F6F1] flex flex-col lg:flex-row overflow-hidden selection:bg-[#263F35] selection:text-white">
+    <div className="home-portal-root h-screen w-full max-w-[1680px] mx-auto bg-[#F7F6F1] dark:bg-[#0C100E] flex flex-col lg:flex-row overflow-hidden selection:bg-[#263F35] dark:selection:bg-[#10B981] selection:text-white dark:selection:text-[#0A1610]">
       {/* 1. Left Persistent Navigation Hub with Integrated Search & Citizen Profile */}
       <Sidebar currentPath="/" />
 

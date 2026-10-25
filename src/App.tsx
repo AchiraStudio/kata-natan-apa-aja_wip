@@ -54,7 +54,7 @@ export default function App() {
               <Route path="/laporan/:id" element={<ReportDetailView />} />
               <Route path="/explore" element={<AuthenticatedRoute><ExploreView /></AuthenticatedRoute>} />
               <Route path="/map" element={<AuthenticatedRoute><MapView /></AuthenticatedRoute>} />
-              <Route path="/track" element={<AdminOnlyRoute><TrackReportView /></AdminOnlyRoute>} />
+              <Route path="/track" element={<AuthenticatedRoute><TrackReportView /></AuthenticatedRoute>} />
               <Route path="/admin" element={<AdminOnlyRoute><AdminView /></AdminOnlyRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
