@@ -1,8 +1,10 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 import { MOCK_COMMENTS } from '../src/data/mockCivicData';
+import { FeedComment } from '../src/services/adapters/types';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,11 +24,11 @@ function generateCommentTimestamps() {
   const now = Date.now();
 
   // First pass: assign timestamps to top-level comments
-  for (const [postId, comments] of Object.entries(MOCK_COMMENTS)) {
-    const topLevel = comments.filter((c) => !c.parentId);
+  for (const comments of Object.values(MOCK_COMMENTS) as FeedComment[][]) {
+    const topLevel = comments.filter((c: FeedComment) => !c.parentId);
     const totalTop = topLevel.length;
 
-    topLevel.forEach((c, idx) => {
+    topLevel.forEach((c: FeedComment, idx: number) => {
       // Distribute timestamps from 30 hours ago down to 15 minutes ago
       // idx 0 is most recent or oldest depending on ordering
       const hoursAgo = Math.max(0.25, (totalTop - idx) * 1.5 + (Math.random() * 0.8 - 0.4));
@@ -36,8 +38,8 @@ function generateCommentTimestamps() {
     });
 
     // Second pass: assign timestamps to replies (must be after parent)
-    const replies = comments.filter((c) => c.parentId);
-    replies.forEach((r, rIdx) => {
+    const replies = comments.filter((c: FeedComment) => c.parentId);
+    replies.forEach((r: FeedComment, rIdx: number) => {
       const parentMs = parentTimeMap[r.parentId!] || (now - 2 * 60 * 60 * 1000);
       // Reply happens 5 to 45 minutes after the parent comment
       const jitterMs = Math.floor((5 + rIdx * 8 + Math.random() * 12) * 60 * 1000);
@@ -113,7 +115,7 @@ CREATE POLICY "Public can update comment likes"
     created_at: string;
   }> = [];
 
-  for (const [postId, comments] of Object.entries(MOCK_COMMENTS)) {
+  for (const [postId, comments] of Object.entries(MOCK_COMMENTS) as [string, FeedComment[]][]) {
     for (const c of comments) {
       const createdAt = timestamps[c.id] || new Date().toISOString();
       const parentIdSql = c.parentId ? `'${sqlEscape(c.parentId)}'` : 'NULL';
