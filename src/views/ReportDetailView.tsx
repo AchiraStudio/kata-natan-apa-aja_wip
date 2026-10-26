@@ -35,6 +35,7 @@ import { useTitik } from '../context/TitikContext';
 import { Report } from '../types/domain';
 
 import { createCivicTileLayer } from '../utils/mapTiles';
+import { getReportMediaType } from '../utils/reportEvidence';
 import './ReportDetailView.css';
 
 interface Testimony {
@@ -363,6 +364,7 @@ export const ReportDetailView: React.FC = () => {
   const statusInfo = getStatusBadge(report.status);
   const StatusIcon = statusInfo.icon;
   const currentPhotoUrl = report.mediaUrls[selectedPhotoIndex] || report.mediaUrls[0];
+  const currentMediaType = getReportMediaType(currentPhotoUrl);
 
   // Financial calculations
   const unspentBudget = budget ? budget.paguAllocation - budget.realizedSpending : 0;
@@ -556,7 +558,7 @@ export const ReportDetailView: React.FC = () => {
                       }`}
                     >
                       <Camera className="w-3.5 h-3.5 text-[#263F35]" />
-                      <span>Foto Bukti Lapangan ({report.mediaUrls.length})</span>
+                      <span>Bukti Foto & Video ({report.mediaUrls.length})</span>
                     </button>
                     <button
                       type="button"
@@ -572,7 +574,7 @@ export const ReportDetailView: React.FC = () => {
                     </button>
                   </div>
 
-                  {activeMediaTab === 'photos' && (
+                  {activeMediaTab === 'photos' && currentMediaType === 'image' && (
                     <button
                       type="button"
                       onClick={() => setIsLightboxOpen(true)}
@@ -584,29 +586,39 @@ export const ReportDetailView: React.FC = () => {
                   )}
                 </div>
 
-                {/* TAB 1: Photo Evidence Viewer */}
+                {/* TAB 1: Photo and video evidence viewer */}
                 {activeMediaTab === 'photos' && (
                   <div className="space-y-3">
                     <div className="relative rounded-xl overflow-hidden border border-[#E4E2DA] bg-neutral-900 aspect-[16/10] sm:aspect-[16/9] flex items-center justify-center group shadow-inner">
-                      <img
-                        src={currentPhotoUrl}
-                        alt={`${report.title} - Bukti Lapangan`}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.01] cursor-zoom-in"
-                        onClick={() => setIsLightboxOpen(true)}
-                      />
+                      {currentMediaType === 'video' ? (
+                        <video
+                          src={currentPhotoUrl}
+                          controls
+                          playsInline
+                          className="w-full h-full object-contain"
+                          aria-label={`${report.title} - Video Bukti Lapangan`}
+                        />
+                      ) : (
+                        <img
+                          src={currentPhotoUrl}
+                          alt={`${report.title} - Bukti Lapangan`}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.01] cursor-zoom-in"
+                          onClick={() => setIsLightboxOpen(true)}
+                        />
+                      )}
 
-                      {/* Photo In-Frame Badge Overlays */}
+                      {/* Evidence badge overlay */}
                       <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md text-white text-[11px] font-mono flex items-center gap-1.5">
                         <BadgeCheck className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Verifikasi Metadata Kamera & GPS</span>
+                        <span>Bukti media laporan warga</span>
                       </div>
 
                       <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md text-white text-[11px] font-mono">
-                        Bukti {selectedPhotoIndex + 1} dari {report.mediaUrls.length}
+                        {currentMediaType === 'video' ? 'Video' : 'Foto'} {selectedPhotoIndex + 1} dari {report.mediaUrls.length}
                       </div>
                     </div>
 
-                    {/* Multiple Photos Thumbnail Strip */}
+                    {/* Evidence thumbnail strip */}
                     {report.mediaUrls.length > 1 && (
                       <div className="flex gap-2.5 pt-1 overflow-x-auto no-scrollbar">
                         {report.mediaUrls.map((url, idx) => (
@@ -620,11 +632,11 @@ export const ReportDetailView: React.FC = () => {
                                 : 'border-[#E4E2DA] opacity-70 hover:opacity-100'
                             }`}
                           >
-                            <img
-                              src={url}
-                              alt={`Thumbnail ${idx + 1}`}
-                              className="w-full h-full object-cover"
-                            />
+                            {getReportMediaType(url) === 'video' ? (
+                              <video src={url} aria-label={`Video bukti ${idx + 1}`} className="w-full h-full object-cover" />
+                            ) : (
+                              <img src={url} alt={`Foto bukti ${idx + 1}`} className="w-full h-full object-cover" />
+                            )}
                           </button>
                         ))}
                       </div>

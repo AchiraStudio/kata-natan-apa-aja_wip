@@ -5,6 +5,7 @@ import {
   Compass,
   MapPin,
   Bookmark,
+  FileText,
   Plus,
   Droplets,
   Milestone,
@@ -30,7 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
   const location = useLocation();
   const currentPath = propPath || location.pathname;
 
-  const { profile } = useAuth();
+  const { profile, isAuthenticated } = useAuth();
   const {
     openReportModal,
     selectedCategory,
@@ -84,6 +85,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
         // Reserved for saved bookmark collection
       },
     },
+    ...(isAuthenticated
+      ? [{
+          label: 'Laporan Saya',
+          icon: FileText,
+          href: '/laporan-saya',
+          active: currentPath === '/laporan-saya',
+          onClick: () => {
+            if (location.pathname !== '/laporan-saya') navigate('/laporan-saya');
+          },
+        }]
+      : []),
   ];
 
   // Repurposed Civic Radar (Active civic monitoring filters)

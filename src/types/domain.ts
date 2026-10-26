@@ -113,6 +113,7 @@ export interface BudgetSectorContext {
 export interface Report {
   id: string;
   publicReference: string; // e.g. "TIK-2026-000123"
+  reporterUserId?: string;
   secretFollowUpTokenHash?: string; // Hashed tracking secret
   title: string;
   description: string;
@@ -167,4 +168,3 @@ export interface Facility {
   activeReportsCount: number;
   resolvedReportsCount: number;
 }
-

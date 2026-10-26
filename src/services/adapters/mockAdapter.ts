@@ -14,6 +14,8 @@ import {
   BudgetSectorContext,
 } from '../../types/domain';
 import { FeedComment, IDataAdapter, NewReportInput, ReportSubmitResult } from './types';
+import { getReportMediaType } from '../../utils/reportEvidence';
+import { loadPersistedReports, savePersistedReports } from '../reportPersistence';
 
 // Simple client-safe hashing representation for mock/offline mode
 function simpleHash(token: string): string {
@@ -48,24 +50,58 @@ const MOCK_POSTS_STORAGE_KEY = 'titik_mock_posts_v2';
 export class MockDataAdapter implements IDataAdapter {
   private reports: Report[] = loadStoredArray(MOCK_REPORTS_STORAGE_KEY, MOCK_REPORTS);
   private posts: Post[] = loadStoredArray(MOCK_POSTS_STORAGE_KEY, MOCK_POSTS);
+  private submittedPostIds = new Set(
+    this.posts.filter((post) => !MOCK_POSTS.some((seedPost) => seedPost.id === post.id)).map((post) => post.id)
+  );
+  private submittedReportIds = new Set(
+    this.reports.filter((report) => !MOCK_REPORTS.some((seedReport) => seedReport.id === report.id)).map((report) => report.id)
+  );
+  private persistenceLoad: Promise<void> | null = null;
   private comments: Record<string, FeedComment[]> = { ...MOCK_COMMENTS };
   private facilities: Facility[] = [...MOCK_FACILITIES];
   private budgetSectors: BudgetSectorContext[] = Object.values(MOCK_BUDGET_SECTORS);
-  private referenceCounter = this.reports.reduce((nextReference, report) => {
-    const suffix = Number(report.publicReference.slice(-6));
-    return Number.isFinite(suffix) ? Math.max(nextReference, suffix + 1) : nextReference;
-  }, 126);
+  private referenceCounter = this.getNextReferenceCounter();
 
-  private persistReportsAndPosts(): void {
-    try {
-      localStorage.setItem(MOCK_REPORTS_STORAGE_KEY, JSON.stringify(this.reports));
-      localStorage.setItem(MOCK_POSTS_STORAGE_KEY, JSON.stringify(this.posts));
-    } catch (err) {
-      console.warn('Could not persist demo reports in this browser:', err);
+  private getNextReferenceCounter(): number {
+    return this.reports.reduce((nextReference, report) => {
+      const suffix = Number(report.publicReference.slice(-6));
+      return Number.isFinite(suffix) ? Math.max(nextReference, suffix + 1) : nextReference;
+    }, 126);
+  }
+
+  private async ensurePersistedReportsLoaded(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    if (!this.persistenceLoad) {
+      this.persistenceLoad = loadPersistedReports()
+        .then((persisted) => {
+          if (!persisted) return;
+          const existingReportIds = new Set(this.reports.map((report) => report.id));
+          const existingPostIds = new Set(this.posts.map((post) => post.id));
+          const addedReports = persisted.reports.filter((report) => !existingReportIds.has(report.id));
+          const addedPosts = persisted.posts.filter((post) => !existingPostIds.has(post.id));
+          this.reports = [...addedReports, ...this.reports];
+          this.posts = [...addedPosts, ...this.posts];
+          addedReports.forEach((report) => this.submittedReportIds.add(report.id));
+          addedPosts.forEach((post) => this.submittedPostIds.add(post.id));
+          this.referenceCounter = this.getNextReferenceCounter();
+        })
+        .catch((error: unknown) => {
+          this.persistenceLoad = null;
+          throw error;
+        });
     }
+    await this.persistenceLoad;
+  }
+
+  private async persistReportsAndPosts(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    const reports = this.reports.filter((report) => this.submittedReportIds.has(report.id));
+    const posts = this.posts.filter((post) => this.submittedPostIds.has(post.id));
+    await savePersistedReports(reports, posts);
   }
 
   async getFeedPosts(tab: 'for_you' | 'following' | 'nearby' = 'for_you', category?: string): Promise<Post[]> {
+    await this.ensurePersistedReportsLoaded();
     let result = [...this.posts];
 
     if (category && category !== 'Semua') {
@@ -90,7 +126,29 @@ export class MockDataAdapter implements IDataAdapter {
     });
   }
 
+  async getSubmittedFeedPosts(
+    tab: 'for_you' | 'following' | 'nearby' = 'for_you',
+    category?: string
+  ): Promise<Post[]> {
+    await this.ensurePersistedReportsLoaded();
+    return this.posts.filter((post) => {
+      if (!this.submittedPostIds.has(post.id)) return false;
+      if (category && category !== 'Semua' && post.relatedReport?.category.toLowerCase() !== category.toLowerCase()) {
+        return false;
+      }
+      return tab !== 'following' || post.author.username === 'sariwulan';
+    });
+  }
+
+  async getMyReports(reporterUserId: string): Promise<Report[]> {
+    await this.ensurePersistedReportsLoaded();
+    return this.reports
+      .filter((report) => report.reporterUserId === reporterUserId)
+      .map((report) => ({ ...report }));
+  }
+
   async getReportByReference(reference: string): Promise<Report | null> {
+    await this.ensurePersistedReportsLoaded();
     const term = reference.trim().toLowerCase();
     const report = this.reports.find(
       (r) => r.publicReference.toLowerCase() === term || r.id.toLowerCase() === term
@@ -99,6 +157,7 @@ export class MockDataAdapter implements IDataAdapter {
   }
 
   async verifyReportTracking(reference: string, token: string): Promise<Report | null> {
+    await this.ensurePersistedReportsLoaded();
     const report = await this.getReportByReference(reference);
     if (!report || !report.secretFollowUpTokenHash) {
       return null;
@@ -112,6 +171,7 @@ export class MockDataAdapter implements IDataAdapter {
   }
 
   async submitReport(input: NewReportInput): Promise<ReportSubmitResult> {
+    await this.ensurePersistedReportsLoaded();
     const nextRefId = `TIK-2026-${String(this.referenceCounter++).padStart(6, '0')}`;
     const rawSecretToken = generateSecretToken();
     const tokenHash = simpleHash(rawSecretToken);
@@ -127,6 +187,7 @@ export class MockDataAdapter implements IDataAdapter {
     const newReport: Report = {
       id: `rep-${Date.now()}`,
       publicReference: nextRefId,
+      reporterUserId: input.reporterUserId,
       secretFollowUpTokenHash: tokenHash,
       title: input.title,
       description: input.description,
@@ -170,6 +231,7 @@ export class MockDataAdapter implements IDataAdapter {
     };
 
     this.reports.unshift(newReport);
+    this.submittedReportIds.add(newReport.id);
 
     // Also create a linked community post in the feed
     const newPost: Post = {
@@ -183,14 +245,12 @@ export class MockDataAdapter implements IDataAdapter {
       },
       body: input.description.length > 140 ? `${input.description.slice(0, 140)}...` : input.description,
       postType: 'citizen_report',
-      media: [
-        {
-          id: `med-${Date.now()}`,
-          type: 'image',
-          url: newReport.mediaUrls[0],
-          aspectRatio: '9/16',
-        },
-      ],
+      media: newReport.mediaUrls.map((url, index) => ({
+        id: `med-${Date.now()}-${index}`,
+        type: getReportMediaType(url),
+        url,
+        aspectRatio: '9/16',
+      })),
       locationTag: input.address,
       relatedReportId: newReport.id,
       relatedReport: newReport,
@@ -204,7 +264,8 @@ export class MockDataAdapter implements IDataAdapter {
     };
 
     this.posts.unshift(newPost);
-    this.persistReportsAndPosts();
+    this.submittedPostIds.add(newPost.id);
+    await this.persistReportsAndPosts();
 
     return {
       report: newReport,
@@ -219,6 +280,7 @@ export class MockDataAdapter implements IDataAdapter {
     actorName: string,
     description: string
   ): Promise<Report> {
+    await this.ensurePersistedReportsLoaded();
     const reportIndex = this.reports.findIndex((r) => r.id === reportId);
     if (reportIndex === -1) {
       throw new Error(`Report with ID ${reportId} not found.`);
@@ -255,12 +317,13 @@ export class MockDataAdapter implements IDataAdapter {
       }
       return p;
     });
-    this.persistReportsAndPosts();
+    await this.persistReportsAndPosts();
 
     return updated;
   }
 
   async toggleReportSupport(reportId: string): Promise<{ supportCount: number; isSupported: boolean }> {
+    await this.ensurePersistedReportsLoaded();
     const report = this.reports.find((r) => r.id === reportId);
     if (!report) {
       throw new Error('Report not found');
@@ -280,7 +343,7 @@ export class MockDataAdapter implements IDataAdapter {
         p.supportCount = supportCount;
       }
     });
-    this.persistReportsAndPosts();
+    await this.persistReportsAndPosts();
 
     return { supportCount, isSupported };
   }
@@ -337,4 +400,3 @@ export class MockDataAdapter implements IDataAdapter {
     return [...this.budgetSectors];
   }
 }
-

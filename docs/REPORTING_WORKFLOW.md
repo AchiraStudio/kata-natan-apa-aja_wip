@@ -13,9 +13,9 @@ TITIK. enables ordinary citizens to report public infrastructure defects and ser
 ### The Central Civic Journey
 
 ```
-Citizen Observation 
+Citizen Observation
       ↓
-Genuine Evidence (Client-side EXIF Sanitization)
+Photo + Video Evidence (Explicit AI Metadata Marker Screening)
       ↓
 Explicit Location (User-Initiated GPS / Map Pin)
       ↓
@@ -41,11 +41,11 @@ Citizen Follow-up via Capability Secret Token
 - The plain secret remains solely with the citizen (saved in browser local storage and displayed for manual backup).
 - To inspect private draft or review status before publication, the citizen provides the token. The database procedure `get_report_by_follow_up_token()` validates the hash via `SECURITY DEFINER` without granting arbitrary table read permissions.
 
-### 2.2 Genuine Physical Evidence & Privacy Protection
-- Random Unsplash presets and stock photography are strictly eliminated.
-- Uploaded files are restricted to JPEG, PNG, and WebP formats up to 10MB each.
-- **Client-Side EXIF Stripping**: Files are re-rendered through an HTML5 canvas element before upload. This removes hidden camera serial numbers, device signatures, and embedded GPS metadata, ensuring all spatial data originates from the citizen's conscious selection.
-- All uploads land in the private quarantine bucket `report-evidence-private`. Only approved media is moved to `report-evidence-public`.
+### 2.2 Physical Evidence & AI Metadata Screening
+- The report form requires at least one JPEG, PNG, or WebP photo and one MP4, WebM, or MOV video, each up to 10MB.
+- The client and submission endpoint reject files whose readable metadata explicitly names a known generative AI tool.
+- Metadata checks cannot establish that media is genuine: metadata can be removed or changed, and generated media may contain no AI marker. Human evidence review remains necessary.
+- In the configured Supabase workflow, uploads land in the private quarantine bucket `report-evidence-private`; only approved media is made public.
 
 ### 2.3 Spatial Precision vs Public Privacy
 - Coordinates are captured through user-initiated HTML5 Geolocation (`navigator.geolocation`) or intentional map pin placement.
@@ -73,7 +73,9 @@ Both `/lapor` and the quick-report modal use `ReportWorkflowForm.tsx`:
 - Title (min 5 characters) and description (min 10 characters).
 - Sector classification (Pendidikan, Kesehatan, Lingkungan & Drainase, Infrastruktur Jalan, etc.).
 - Severity assessment (Rendah, Sedang, Kritis).
-- Real camera snapshot or file upload with instant client-side thumbnail rendering.
+- The report form offers a clearly labeled simulated example to help citizens describe an observed issue; example details must be replaced with firsthand facts.
+- At least one real photo (JPEG, PNG, or WebP) and one real video (MP4, WebM, or MOV), each up to 10 MB, are required before submission.
+- The client and submission endpoint reject files whose readable metadata explicitly names a known generative AI tool. This is only a metadata-marker check, not a reliable authenticity detector; files without such markers may still be generated or manipulated and require human review.
 
 ### Step 2: Location & Spatial Calibration
 - User-initiated GPS geolocation button with accuracy indicator.
@@ -91,6 +93,8 @@ Both `/lapor` and the quick-report modal use `ReportWorkflowForm.tsx`:
 ## 4. Navigation & Interface Architecture (`/lapor`)
 
 The civic reporting center at `/lapor` is organized into three distinct workflows:
+
+- **Laporan Saya (`/laporan-saya`)**: Authenticated users can view only reports whose `reporterUserId` matches their active account. Each report shows its latest status and the admin action history, including the note, actor, and timestamp. In demo/offline mode, status changes and their audit events are stored with the report in that browser's IndexedDB.
 
 1. **Daftar Kasus Warga (`ALL_REPORTS`)**:
    - Searchable, filterable directory of all published citizen observations.
@@ -119,7 +123,6 @@ The civic reporting center at `/lapor` is organized into three distinct workflow
 ## 5. Truthful Fallback Mode
 
 When `VITE_SUPABASE_URL` is omitted or unconfigured:
-- The submission form displays an explicit configuration warning rather than pretending that data was persisted remotely.
-- The public list transparently loads verified baseline records with clear indicators.
-- No false guarantees are made to the citizen regarding governmental receipt without verifiable audit log records.
-
+- Submitted demo reports and evidence are persisted in browser IndexedDB, with media stored as blobs to avoid the small `localStorage` quota.
+- This fallback is limited to the same browser profile and device; clearing site data removes local submissions, and it does not publish them to other users.
+- A successful local submission means browser storage completed, not that a government agency received or verified the report.

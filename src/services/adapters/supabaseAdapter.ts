@@ -37,7 +37,10 @@ export class SupabaseDataAdapter implements IDataAdapter {
       if (error || !data || data.length === 0) {
         return this.fallbackMock.getFeedPosts(tab, category);
       }
-      return data as unknown as Post[];
+      const submittedPosts = await this.fallbackMock.getSubmittedFeedPosts(tab, category);
+      const remotePosts = data as unknown as Post[];
+      const remotePostIds = new Set(remotePosts.map((post) => post.id));
+      return [...submittedPosts.filter((post) => !remotePostIds.has(post.id)), ...remotePosts];
     } catch {
       return this.fallbackMock.getFeedPosts(tab, category);
     }
@@ -63,12 +66,15 @@ export class SupabaseDataAdapter implements IDataAdapter {
     }
   }
 
+  async getMyReports(reporterUserId: string): Promise<Report[]> {
+    return this.fallbackMock.getMyReports(reporterUserId);
+  }
+
   async verifyReportTracking(reference: string, token: string): Promise<Report | null> {
     return this.fallbackMock.verifyReportTracking(reference, token);
   }
 
   async submitReport(input: NewReportInput): Promise<ReportSubmitResult> {
-    // For reliable demo and local offline presentation, fallback handles full state
     return this.fallbackMock.submitReport(input);
   }
 

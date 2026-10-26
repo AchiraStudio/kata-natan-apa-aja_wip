@@ -79,6 +79,9 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         setIsLoading(false);
       }
+    }).catch((error: unknown) => {
+      console.error('Failed to load feed:', error);
+      if (isMounted) setIsLoading(false);
     });
     return () => {
       isMounted = false;
@@ -159,9 +162,18 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const submitReport = async (input: NewReportInput) => {
     const result = await dataService.submitReport(input);
-    await refreshFeed();
-    if (result.report) {
-      setActivePostIdState(posts[0]?.id || '');
+    const [submittedPost] = await dataService.getFeedPosts('for_you', 'Semua');
+    setActiveFeedTab('for_you');
+    setSelectedCategory('Semua');
+
+    if (submittedPost?.relatedReportId === result.report.id) {
+      setPosts((currentPosts) => [
+        submittedPost,
+        ...currentPosts.filter((post) => post.id !== submittedPost.id),
+      ]);
+      setActivePostIdState(submittedPost.id);
+    } else {
+      await refreshFeed();
     }
     return result;
   };

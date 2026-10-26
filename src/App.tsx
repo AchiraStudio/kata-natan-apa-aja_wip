@@ -10,6 +10,7 @@ import { AdminView } from './views/AdminView';
 import { WorkflowView } from './views/WorkflowView';
 import { ReportDetailView } from './views/ReportDetailView';
 import { LoginView } from './views/LoginView';
+import { MyReportsView } from './views/MyReportsView';
 import { ReportModal } from './components/reporting/ReportModal';
 import { ReportDetailDrawer } from './components/reporting/ReportDetailDrawer';
 import { GlobalSearchModal } from './components/modals/GlobalSearchModal';
@@ -55,6 +56,7 @@ export default function App() {
               <Route path="/explore" element={<AuthenticatedRoute><ExploreView /></AuthenticatedRoute>} />
               <Route path="/map" element={<AuthenticatedRoute><MapView /></AuthenticatedRoute>} />
               <Route path="/track" element={<AuthenticatedRoute><TrackReportView /></AuthenticatedRoute>} />
+              <Route path="/laporan-saya" element={<AuthenticatedRoute><MyReportsView /></AuthenticatedRoute>} />
               <Route path="/admin" element={<AdminOnlyRoute><AdminView /></AdminOnlyRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

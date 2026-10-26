@@ -22,6 +22,17 @@ export const FeedContainer: React.FC = () => {
   const wheelIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const accumulatedDeltaRef = useRef(0);
   const activePostIndexRef = useRef(0);
+  const firstPostIdRef = useRef(posts[0]?.id);
+
+  useEffect(() => {
+    const firstPostId = posts[0]?.id;
+    if (firstPostId && firstPostIdRef.current && firstPostId !== firstPostIdRef.current) {
+      scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+      activePostIndexRef.current = 0;
+      setActivePostId(firstPostId);
+    }
+    firstPostIdRef.current = firstPostId;
+  }, [posts, setActivePostId]);
 
   // Keep active index ref in sync with active post
   useEffect(() => {

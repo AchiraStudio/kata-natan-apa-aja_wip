@@ -10,15 +10,23 @@ import {
   ArrowLeft,
   Shield,
   Upload,
+  ChevronDown,
+  BookOpen,
 } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
 import { NewReportInput, ReportSubmitResult } from '../../services/adapters/types';
 import { ReportAttachment } from '../../types/domain';
+import { hasExplicitAIGenerationMarker, hasRequiredReportEvidence } from '../../utils/reportEvidence';
+
+interface SelectedEvidence {
+  fileName: string;
+  dataUrl: string;
+}
 
 export const ReportModal: React.FC = () => {
   const { reportModalOpen, closeReportModal, submitReport, facilities } = useTitik();
-  const { profile } = useAuth();
+  const { profile, isAuthenticated } = useAuth();
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [title, setTitle] = useState('');
@@ -36,17 +44,58 @@ export const ReportModal: React.FC = () => {
   const [documentError, setDocumentError] = useState('');
   const [reporterType, setReporterType] = useState<'anonymous' | 'verified_citizen'>('anonymous');
   const [reporterDisplayName, setReporterDisplayName] = useState('');
-  const [mediaPreview, setMediaPreview] = useState<string>(
-    'https://images.unsplash.com/photo-1541888946425-d0fbb1861593?q=80&w=800&auto=format&fit=crop'
-  );
+  const [photoEvidence, setPhotoEvidence] = useState<SelectedEvidence | null>(null);
+  const [videoEvidence, setVideoEvidence] = useState<SelectedEvidence | null>(null);
+  const [evidenceError, setEvidenceError] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionResult, setSubmissionResult] = useState<ReportSubmitResult | null>(null);
+  const [submissionError, setSubmissionError] = useState('');
   const [tokenCopied, setTokenCopied] = useState(false);
+  const [showReportExample, setShowReportExample] = useState(false);
 
   if (!reportModalOpen) return null;
 
   const categories = ['Infrastruktur', 'Lingkungan', 'Pendidikan', 'Kesehatan', 'Lainnya'];
+
+  const handleEvidenceFile = async (kind: 'photo' | 'video', file?: File) => {
+    if (!file) return;
+
+    const allowedTypes = kind === 'photo'
+      ? ['image/jpeg', 'image/png', 'image/webp']
+      : ['video/mp4', 'video/webm', 'video/quicktime'];
+    if (!allowedTypes.includes(file.type)) {
+      setEvidenceError(kind === 'photo'
+        ? 'Foto harus berformat JPG, PNG, atau WebP.'
+        : 'Video harus berformat MP4, WebM, atau MOV.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setEvidenceError('Ukuran setiap foto dan video maksimal 10 MB.');
+      return;
+    }
+
+    try {
+      if (hasExplicitAIGenerationMarker(new Uint8Array(await file.arrayBuffer()))) {
+        setEvidenceError('Berkas memiliki penanda eksplisit alat generatif AI pada metadata dan tidak dapat digunakan sebagai bukti.');
+        return;
+      }
+
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error(`Gagal membaca ${file.name}`));
+        reader.readAsDataURL(file);
+      });
+      const evidence = { fileName: file.name, dataUrl };
+      if (kind === 'photo') setPhotoEvidence(evidence);
+      else setVideoEvidence(evidence);
+      setEvidenceError('');
+    } catch (error) {
+      console.error('Failed to read report evidence:', error);
+      setEvidenceError(`Berkas ${file.name} tidak dapat dibaca. Coba pilih berkas lain.`);
+    }
+  };
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -107,6 +156,10 @@ export const ReportModal: React.FC = () => {
   const handleNextStep1 = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
+    if (!hasRequiredReportEvidence([photoEvidence?.dataUrl ?? '', videoEvidence?.dataUrl ?? ''])) {
+      setEvidenceError('Foto dan video bukti wajib diunggah sebelum melanjutkan.');
+      return;
+    }
     setStep(2);
   };
 
@@ -117,7 +170,13 @@ export const ReportModal: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    if (!photoEvidence || !videoEvidence || !hasRequiredReportEvidence([photoEvidence.dataUrl, videoEvidence.dataUrl])) {
+      setEvidenceError('Foto dan video bukti wajib diunggah sebelum mengirim laporan.');
+      setStep(1);
+      return;
+    }
     setIsSubmitting(true);
+    setSubmissionError('');
     try {
       const input: NewReportInput = {
         title: title.trim(),
@@ -127,19 +186,25 @@ export const ReportModal: React.FC = () => {
         address: address.trim(),
         latitude,
         longitude,
+        reporterUserId: isAuthenticated ? profile.id : undefined,
         facilityName: facilityName.trim() || undefined,
         estimatedCost: estimatedCost ? Number(estimatedCost) : undefined,
         supportingDocuments,
         reporterType,
         reporterDisplayName: reporterType === 'verified_citizen' ? reporterDisplayName : undefined,
-        mediaUrls: [mediaPreview],
+        mediaUrls: [photoEvidence.dataUrl, videoEvidence.dataUrl],
       };
 
       const result = await submitReport(input);
       setSubmissionResult(result);
       setStep(4);
-    } catch (err) {
-      console.error('Failed to submit report:', err);
+    } catch (error) {
+      console.error('Failed to submit report:', error);
+      setSubmissionError(
+        error instanceof Error
+          ? `Laporan belum berhasil disimpan: ${error.message}`
+          : 'Laporan belum berhasil disimpan. Silakan coba lagi.'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -163,7 +228,11 @@ export const ReportModal: React.FC = () => {
     setSupportingDocuments([]);
     setDocumentError('');
     setLocationError('');
+    setPhotoEvidence(null);
+    setVideoEvidence(null);
+    setEvidenceError('');
     setSubmissionResult(null);
+    setShowReportExample(false);
     closeReportModal();
   };
 
@@ -199,6 +268,46 @@ export const ReportModal: React.FC = () => {
         {/* STEP 1: Details & Evidence */}
         {step === 1 && (
           <form onSubmit={handleNextStep1} className="space-y-4">
+            <div className="rounded-2xl border border-[#D9DEC9] bg-[#F7F8F2]">
+              <button
+                type="button"
+                aria-expanded={showReportExample}
+                aria-controls="report-example"
+                onClick={() => setShowReportExample((visible) => !visible)}
+                className="flex w-full items-center justify-between gap-3 p-3 text-left"
+              >
+                <span className="flex items-center gap-2 text-xs font-semibold text-[#263F35]">
+                  <BookOpen className="h-4 w-4 shrink-0" />
+                  Lihat contoh laporan yang baik (simulasi)
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 text-[#686B65] transition-transform ${showReportExample ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {showReportExample && (
+                <div id="report-example" className="space-y-2 border-t border-[#D9DEC9] px-3 pb-3 pt-2.5 text-[11px] text-[#41443D]">
+                  <div>
+                    <span className="font-semibold">Judul:</span> Lubang di trotoar dekat Halte Taman Kencana
+                  </div>
+                  <div>
+                    <span className="font-semibold">Kategori & urgensi:</span> Infrastruktur • Tinggi
+                  </div>
+                  <div>
+                    <span className="font-semibold">Lokasi:</span> Jl. Pajajaran, sekitar 20 meter di utara Halte Taman Kencana, Bogor
+                  </div>
+                  <p>
+                    <span className="font-semibold">Deskripsi:</span> Pada Senin, 19 Oktober 2026 sekitar pukul 07.30, terlihat lubang berdiameter kira-kira 30 cm di jalur pejalan kaki. Lubang berada dekat tiang lampu dan sudah ada sejak beberapa hari terakhir. Pejalan kaki harus turun ke badan jalan untuk menghindarinya, terutama saat trotoar ramai. Mohon diperiksa dan diperbaiki agar tidak membahayakan pengguna jalan.
+                  </p>
+                  <p>
+                    <span className="font-semibold">Bukti yang disarankan:</span> Foto asli dari lokasi yang memperlihatkan kondisi sekitar dan detail kerusakan.
+                  </p>
+                  <p className="font-medium text-amber-800">
+                    Semua detail di atas hanya data simulasi. Ganti dengan fakta yang Anda lihat sendiri dan jangan kirim contoh ini sebagai laporan nyata.
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="block text-xs font-bold text-[#20221D] mb-1">Judul Laporan *</label>
               <input
@@ -270,36 +379,71 @@ export const ReportModal: React.FC = () => {
               ></textarea>
             </div>
 
-            {/* Photo Evidence Picker Simulation */}
-            <div>
-              <label className="block text-xs font-bold text-[#20221D] mb-1">Bukti Foto / Video *</label>
-              <div className="flex items-center gap-3">
-                <img
-                  src={mediaPreview}
-                  alt="Preview"
-                  className="w-20 h-20 rounded-xl object-cover border border-[#E4E2DA] shrink-0"
-                />
-                <div className="flex-1">
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-[#20221D] mb-1">Foto Bukti Lapangan *</label>
+                <div className="flex items-center gap-3">
+                  {photoEvidence && (
+                    <img
+                      src={photoEvidence.dataUrl}
+                      alt="Pratinjau foto bukti"
+                      className="w-20 h-20 rounded-xl object-cover border border-[#E4E2DA] shrink-0"
+                    />
+                  )}
                   <label className="inline-flex items-center gap-2 px-3 py-2 bg-[#F7F6F1] border border-[#E4E2DA] hover:border-[#263F35] rounded-xl text-xs font-medium text-[#20221D] cursor-pointer transition-colors">
                     <Upload className="w-3.5 h-3.5 text-[#263F35]" />
-                    <span>Pilih Foto Bukti</span>
+                    <span>{photoEvidence ? 'Ganti Foto' : 'Pilih Foto'}</span>
                     <input
                       type="file"
-                      accept="image/*,video/*"
+                      accept="image/jpeg,image/png,image/webp"
                       className="hidden"
+                      aria-required="true"
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setMediaPreview(URL.createObjectURL(file));
-                        }
+                        void handleEvidenceFile('photo', e.target.files?.[0]);
+                        e.currentTarget.value = '';
                       }}
                     />
                   </label>
-                  <p className="text-[10px] text-[#686B65] mt-1">
-                    Format: JPG, PNG, MP4. Maks 10MB.
-                  </p>
+                  {photoEvidence && <span className="text-[10px] text-[#686B65] truncate">{photoEvidence.fileName}</span>}
                 </div>
+                <p className="text-[10px] text-[#686B65] mt-1">JPG, PNG, atau WebP. Maksimal 10 MB.</p>
               </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#20221D] mb-1">Video Bukti Lapangan *</label>
+                <div className="flex items-center gap-3">
+                  {videoEvidence && (
+                    <video
+                      src={videoEvidence.dataUrl}
+                      controls
+                      playsInline
+                      aria-label="Pratinjau video bukti"
+                      className="w-32 h-20 rounded-xl object-cover border border-[#E4E2DA] shrink-0"
+                    />
+                  )}
+                  <label className="inline-flex items-center gap-2 px-3 py-2 bg-[#F7F6F1] border border-[#E4E2DA] hover:border-[#263F35] rounded-xl text-xs font-medium text-[#20221D] cursor-pointer transition-colors">
+                    <Upload className="w-3.5 h-3.5 text-[#263F35]" />
+                    <span>{videoEvidence ? 'Ganti Video' : 'Pilih Video'}</span>
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/quicktime"
+                      className="hidden"
+                      aria-required="true"
+                      onChange={(e) => {
+                        void handleEvidenceFile('video', e.target.files?.[0]);
+                        e.currentTarget.value = '';
+                      }}
+                    />
+                  </label>
+                  {videoEvidence && <span className="text-[10px] text-[#686B65] truncate">{videoEvidence.fileName}</span>}
+                </div>
+                <p className="text-[10px] text-[#686B65] mt-1">MP4, WebM, atau MOV. Maksimal 10 MB.</p>
+              </div>
+
+              <p className="text-[10px] text-[#686B65]">
+                Unggah dokumentasi asli yang Anda ambil sendiri. Pemeriksaan otomatis hanya dapat menolak metadata yang secara eksplisit menyebut alat generatif AI; pemeriksaan ini tidak dapat memastikan keaslian berkas.
+              </p>
+              {evidenceError && <p role="alert" className="text-[11px] text-rose-600">{evidenceError}</p>}
             </div>
 
             <div>
@@ -471,6 +615,11 @@ export const ReportModal: React.FC = () => {
                 <p className="text-[#20221D] line-clamp-3">{description}</p>
               </div>
 
+              <div>
+                <span className="text-[10px] text-[#686B65] uppercase font-bold tracking-wider">Bukti Lapangan</span>
+                <div className="text-[#20221D]">{photoEvidence?.fileName} • {videoEvidence?.fileName}</div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <span className="text-[10px] text-[#686B65] uppercase font-bold tracking-wider">Estimasi Biaya</span>
@@ -550,6 +699,7 @@ export const ReportModal: React.FC = () => {
                 )}
               </button>
             </div>
+            {submissionError && <p role="alert" className="text-xs text-rose-600">{submissionError}</p>}
           </div>
         )}
 
@@ -563,7 +713,7 @@ export const ReportModal: React.FC = () => {
             <div>
               <h4 className="text-base font-bold text-[#20221D]">Laporan Berhasil Dicatat!</h4>
               <p className="text-xs text-[#686B65] mt-1 max-w-sm mx-auto">
-                Laporan Anda telah masuk ke antrean validasi publik dan diterbitkan ke feed sosial TITIK.
+                Laporan beserta bukti foto dan video telah tercatat. Penayangan publik mengikuti proses validasi bukti.
               </p>
             </div>
 

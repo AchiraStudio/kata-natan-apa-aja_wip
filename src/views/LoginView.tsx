@@ -443,7 +443,7 @@ export const LoginView: React.FC = () => {
               </div>
 
               <p className="login-persona-caption">
-                Demo admin: admin.pupr / adminpupr2026
+                Akun warga: sahabatbogor / titik2026 • Demo admin: admin.pupr / adminpupr2026
               </p>
             </div>
           </div>

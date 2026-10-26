@@ -496,6 +496,36 @@ describe('Milestone 4: CommentsBottomSheet & Event Isolation Verification Suite'
       expect(html).toContain(expectedFormatted);
     });
 
+    it('renders a one-second video seek slider using the video duration metadata', () => {
+      const post = {
+        ...MOCK_POSTS_KN[0],
+        media: [{
+          id: 'video-seek-test',
+          type: 'video' as const,
+          url: 'https://example.com/report.mp4',
+          aspectRatio: '9/16' as const,
+        }],
+      };
+      const mockContext = createMockContext();
+
+      const html = renderToStaticMarkup(
+        <TitikContext.Provider value={mockContext}>
+          <FeedCard post={post} isActive={true} />
+        </TitikContext.Provider>
+      );
+
+      expect(html).toContain('type="range"');
+      expect(html).toContain('step="1"');
+      expect(html).toContain('aria-label="Geser untuk memilih durasi video"');
+      expect(html).toContain('disabled=""');
+      expect(html).toContain('00:00 / 00:00');
+
+      const feedCardPath = path.resolve(__dirname, '../components/feed/FeedCard.tsx');
+      const content = fs.readFileSync(feedCardPath, 'utf-8');
+      expect(content).toContain('onLoadedMetadata={handleLoadedMetadata}');
+      expect(content).toContain('videoRef.current.currentTime = nextTime');
+    });
+
     it('verifies commentsDelta increments action bar display without layout shift', () => {
       const post = MOCK_POSTS_KN[0];
       const initialCount = post.commentsCount; // 3400

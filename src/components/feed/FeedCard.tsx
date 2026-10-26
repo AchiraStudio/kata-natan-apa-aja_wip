@@ -15,6 +15,8 @@ import {
   Check,
   Megaphone,
   MessageSquare,
+  Image as ImageIcon,
+  Video as VideoIcon,
 } from 'lucide-react';
 import { Post } from '../../types/domain';
 import { useTitik } from '../../context/TitikContext';
@@ -33,18 +35,20 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  const [currentTime, setCurrentTime] = useState(12);
-  const [duration, setDuration] = useState(45);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [isFollowed, setIsFollowed] = useState(false);
   const [isSaved, setIsSaved] = useState(post.isSavedByMe ?? false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [commentsDelta, setCommentsDelta] = useState(0);
   const [prevPostId, setPrevPostId] = useState(post.id);
 
   if (post.id !== prevPostId) {
     setPrevPostId(post.id);
     setCommentsDelta(0);
+    setActiveMediaIndex(0);
   }
 
   const MAX_CAPTION_CHARS = 80;
@@ -61,7 +65,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
     }
   }, [isActive]);
 
-  const media = post.media[0];
+  const media = post.media[activeMediaIndex] || post.media[0];
   const isVideo = media?.type === 'video';
   const aspectRatio = media?.aspectRatio || '9/16';
   const isNonVertical = !['9/16', '9:16'].includes(aspectRatio);
@@ -119,10 +123,21 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      setCurrentTime(Math.floor(videoRef.current.currentTime));
-      if (videoRef.current.duration) {
-        setDuration(Math.floor(videoRef.current.duration));
-      }
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current && Number.isFinite(videoRef.current.duration)) {
+      setDuration(videoRef.current.duration);
+    }
+  };
+
+  const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextTime = Number(event.currentTarget.value);
+    setCurrentTime(nextTime);
+    if (videoRef.current) {
+      videoRef.current.currentTime = nextTime;
     }
   };
 
@@ -178,6 +193,8 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleLoadedMetadata}
+                onDurationChange={handleLoadedMetadata}
                 className={`transition-all duration-300 ${
                   isNonVertical
                     ? 'object-contain max-h-[72%] max-w-[95%] lg:max-h-full lg:max-w-full lg:object-cover my-auto rounded-2xl lg:rounded-none shadow-2xl border border-white/10 lg:border-none'
@@ -332,6 +349,31 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         </div>
 
         {/* Body Caption with Max Characters & Toggle on Press/Click */}
+        {post.media.length > 1 && (
+          <div className="flex items-center gap-2">
+            {post.media.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setActiveMediaIndex(index);
+                  setIsPlaying(false);
+                }}
+                aria-pressed={activeMediaIndex === index}
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors ${
+                  activeMediaIndex === index
+                    ? 'border-white bg-white/25 text-white'
+                    : 'border-white/30 bg-black/30 text-white/75 hover:bg-black/50'
+                }`}
+              >
+                {item.type === 'video' ? <VideoIcon className="h-3 w-3" /> : <ImageIcon className="h-3 w-3" />}
+                {item.type === 'video' ? 'Video' : 'Foto'}
+              </button>
+            ))}
+          </div>
+        )}
+
         {isCaptionLong ? (
           <div
             onClick={(e) => {
@@ -405,31 +447,46 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
 
         {/* Video Playback Bar if video */}
         {isVideo && (
-          <div className="pt-2 flex items-center justify-between text-xs text-white/90">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={togglePlay}
-                className="hover:text-white transition-colors"
-              >
-                {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-              </button>
-              <span className="font-mono text-[11px]">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
-            </div>
+          <div className="pt-2 space-y-1.5 text-xs text-white/90">
+            <input
+              type="range"
+              min={0}
+              max={Math.max(1, Math.floor(duration))}
+              step={1}
+              value={Math.min(Math.floor(currentTime), Math.max(1, Math.floor(duration)))}
+              onChange={handleSeek}
+              onClick={(event) => event.stopPropagation()}
+              disabled={!Number.isFinite(duration) || duration <= 0}
+              aria-label="Geser untuk memilih durasi video"
+              aria-valuetext={`${formatTime(currentTime)} dari ${formatTime(duration)}`}
+              className="h-1.5 w-full cursor-pointer touch-pan-x appearance-none rounded-full bg-white/35 accent-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={togglePlay}
+                  className="hover:text-white transition-colors"
+                >
+                  {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                </button>
+                <span className="font-mono text-[11px]">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </span>
+              </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={toggleMute}
-                className="hover:text-white transition-colors"
-              >
-                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              </button>
-              <button type="button" className="hover:text-white transition-colors">
-                <Maximize2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  className="hover:text-white transition-colors"
+                >
+                  {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                </button>
+                <button type="button" className="hover:text-white transition-colors">
+                  <Maximize2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         )}

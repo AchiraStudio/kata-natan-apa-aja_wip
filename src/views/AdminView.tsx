@@ -11,6 +11,7 @@ import { Sidebar } from '../components/layout/Sidebar';
 import { BottomNav } from '../components/layout/BottomNav';
 import { useTitik } from '../context/TitikContext';
 import { Report, ReportStatus, ReportEvent } from '../types/domain';
+import { getReportMediaType } from '../utils/reportEvidence';
 import './AdminView.css';
 
 export const AdminView: React.FC = () => {
@@ -26,17 +27,20 @@ export const AdminView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [actionNote, setActionNote] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-
-  const selectedReport = reports.find((r) => r.id === selectedReportId) || reports[0];
+  const [actionError, setActionError] = useState('');
+  const [actionSuccess, setActionSuccess] = useState('');
 
   const filteredReports = reports.filter((r) => {
     if (statusFilter === 'all') return true;
     return r.status === statusFilter;
   });
+  const selectedReport = filteredReports.find((r) => r.id === selectedReportId) || filteredReports[0];
 
   const handleApplyTransition = async (targetStatus: ReportStatus) => {
     if (!selectedReport || isUpdating) return;
     setIsUpdating(true);
+    setActionError('');
+    setActionSuccess('');
     try {
       const defaultDesc: Record<ReportStatus, string> = {
         submitted: 'Status dikembalikan ke antrean penerimaan.',
@@ -57,7 +61,10 @@ export const AdminView: React.FC = () => {
 
       await updateReportStatus(selectedReport.id, targetStatus, defaultDesc[targetStatus]);
       setActionNote('');
-      await refreshFeed();
+      setActionSuccess(`Status laporan ${selectedReport.publicReference} berhasil diperbarui.`);
+    } catch (error) {
+      console.error('Failed to update report status:', error);
+      setActionError(error instanceof Error ? error.message : 'Status laporan gagal diperbarui. Silakan coba lagi.');
     } finally {
       setIsUpdating(false);
     }
@@ -233,12 +240,26 @@ export const AdminView: React.FC = () => {
                 </div>
 
                 {/* Evidence Thumbnail & Details */}
-                <div className="flex items-start gap-4">
-                  <img
-                    src={selectedReport.mediaUrls[0]}
-                    alt={selectedReport.title}
-                    className="w-24 h-24 rounded-2xl object-cover border border-[#E4E2DA] dark:border-[#26352E] shrink-0"
-                  />
+                <div className="flex items-start gap-3">
+                  {selectedReport.mediaUrls.map((url, index) => (
+                    getReportMediaType(url) === 'video' ? (
+                      <video
+                        key={`${selectedReport.id}-evidence-${index}`}
+                        src={url}
+                        controls
+                        playsInline
+                        aria-label={`Video bukti ${index + 1} ${selectedReport.title}`}
+                        className="w-24 h-24 rounded-2xl object-cover border border-[#E4E2DA] dark:border-[#26352E] shrink-0"
+                      />
+                    ) : (
+                      <img
+                        key={`${selectedReport.id}-evidence-${index}`}
+                        src={url}
+                        alt={`Foto bukti ${index + 1} ${selectedReport.title}`}
+                        className="w-24 h-24 rounded-2xl object-cover border border-[#E4E2DA] dark:border-[#26352E] shrink-0"
+                      />
+                    )
+                  ))}
                   <div className="text-xs space-y-1.5">
                     <p className="text-[#20221D] dark:text-[#F3F6F4] leading-relaxed bg-[#F7F6F1] dark:bg-[#131916] p-3 rounded-2xl border border-[#E4E2DA] dark:border-[#26352E]">
                       {selectedReport.description}
@@ -305,6 +326,17 @@ export const AdminView: React.FC = () => {
                     className="admin-note-input w-full px-4 py-2.5 bg-[#F7F6F1] dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] rounded-full text-xs text-[#20221D] dark:text-[#F3F6F4] placeholder-[#686B65] dark:placeholder-[#6C7D73] focus:outline-none focus:border-[#263F35] dark:focus:border-[#10B981] shadow-xs"
                   />
                 </div>
+
+                {actionError && (
+                  <p role="alert" className="text-xs text-rose-700 dark:text-rose-300">
+                    {actionError}
+                  </p>
+                )}
+                {actionSuccess && (
+                  <p role="status" className="text-xs text-emerald-700 dark:text-emerald-300">
+                    {actionSuccess}
+                  </p>
+                )}
 
                 {/* State Machine Transition Action Buttons */}
                 <div className="pt-2 border-t border-[#E4E2DA] dark:border-[#26352E] space-y-2">

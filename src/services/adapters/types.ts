@@ -9,6 +9,7 @@ export interface NewReportInput {
   latitude: number;
   longitude: number;
   mediaUrls: string[];
+  reporterUserId?: string;
   facilityName?: string;
   estimatedCost?: number;
   supportingDocuments?: ReportAttachment[];
@@ -34,6 +35,7 @@ export interface FeedComment {
 
 export interface IDataAdapter {
   getFeedPosts(tab?: 'for_you' | 'following' | 'nearby', category?: string): Promise<Post[]>;
+  getMyReports(reporterUserId: string): Promise<Report[]>;
   getReportByReference(reference: string): Promise<Report | null>;
   verifyReportTracking(reference: string, token: string): Promise<Report | null>;
   submitReport(input: NewReportInput): Promise<ReportSubmitResult>;
@@ -49,4 +51,3 @@ export interface IDataAdapter {
   getFacilities(query?: string, category?: string): Promise<Facility[]>;
   getBudgetSectors(): Promise<BudgetSectorContext[]>;
 }
-
