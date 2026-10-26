@@ -6,6 +6,7 @@ import {
   Building,
   MapPin,
   RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { BottomNav } from '../components/layout/BottomNav';
@@ -16,7 +17,7 @@ import './AdminView.css';
 
 export const AdminView: React.FC = () => {
   const navigate = useNavigate();
-  const { posts, updateReportStatus, refreshFeed } = useTitik();
+  const { posts, updateReportStatus, deleteReport, refreshFeed } = useTitik();
 
   // Collect reports from feed
   const reports: Report[] = posts
@@ -38,6 +39,11 @@ export const AdminView: React.FC = () => {
 
   const handleApplyTransition = async (targetStatus: ReportStatus) => {
     if (!selectedReport || isUpdating) return;
+    if (targetStatus === 'rejected' && !actionNote.trim()) {
+      setActionError('Tuliskan saran perbaikan yang jelas sebelum menolak laporan.');
+      setActionSuccess('');
+      return;
+    }
     setIsUpdating(true);
     setActionError('');
     setActionSuccess('');
@@ -65,6 +71,30 @@ export const AdminView: React.FC = () => {
     } catch (error) {
       console.error('Failed to update report status:', error);
       setActionError(error instanceof Error ? error.message : 'Status laporan gagal diperbarui. Silakan coba lagi.');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteReport = async () => {
+    if (!selectedReport || isUpdating) return;
+    const confirmed = window.confirm(
+      `Hapus permanen laporan ${selectedReport.publicReference} (“${selectedReport.title}”)? Laporan tidak akan bisa dipulihkan.`
+    );
+    if (!confirmed) return;
+
+    setIsUpdating(true);
+    setActionError('');
+    setActionSuccess('');
+    try {
+      const reference = selectedReport.publicReference;
+      await deleteReport(selectedReport.id);
+      setSelectedReportId('');
+      setActionNote('');
+      setActionSuccess(`Laporan ${reference} berhasil dihapus.`);
+    } catch (error) {
+      console.error('Failed to delete report:', error);
+      setActionError(error instanceof Error ? error.message : 'Laporan gagal dihapus. Silakan coba lagi.');
     } finally {
       setIsUpdating(false);
     }
@@ -316,14 +346,14 @@ export const AdminView: React.FC = () => {
                 {/* Action Note Input */}
                 <div>
                   <label className="block text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] mb-1.5">
-                    Catatan Audit & Penanganan (Dicatat Permanen)
+                    Saran Perbaikan untuk Pelapor
                   </label>
-                  <input
-                    type="text"
+                  <textarea
+                    rows={3}
                     value={actionNote}
                     onChange={(e) => setActionNote(e.target.value)}
-                    placeholder="Tuliskan alasan penolakan, catatan nomor berkas, atau jadwal survei dinas..."
-                    className="admin-note-input w-full px-4 py-2.5 bg-[#F7F6F1] dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] rounded-full text-xs text-[#20221D] dark:text-[#F3F6F4] placeholder-[#686B65] dark:placeholder-[#6C7D73] focus:outline-none focus:border-[#263F35] dark:focus:border-[#10B981] shadow-xs"
+                    placeholder="Jelaskan bukti atau informasi yang kurang dan cara memperbaikinya. Warga akan melihat catatan ini jika laporan ditolak atau perlu informasi."
+                    className="admin-note-input w-full px-4 py-3 bg-[#F7F6F1] dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] rounded-2xl text-xs text-[#20221D] dark:text-[#F3F6F4] placeholder-[#686B65] dark:placeholder-[#6C7D73] focus:outline-none focus:border-[#263F35] dark:focus:border-[#10B981] shadow-xs resize-y"
                   />
                 </div>
 
@@ -405,6 +435,18 @@ export const AdminView: React.FC = () => {
                       className="admin-transition-btn px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-neutral-700 rounded-full font-semibold hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-50 transition-all text-xs"
                     >
                       Tolak Laporan
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isUpdating}
+                      onClick={handleDeleteReport}
+                      className="admin-transition-btn px-4 py-2 bg-rose-700 dark:bg-rose-800 text-white border border-rose-800 dark:border-rose-700 rounded-full font-semibold hover:bg-rose-800 dark:hover:bg-rose-700 disabled:opacity-50 transition-all text-xs"
+                    >
+                      <span className="inline-flex items-center justify-center gap-1.5">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Hapus Permanen
+                      </span>
                     </button>
                   </div>
                 </div>

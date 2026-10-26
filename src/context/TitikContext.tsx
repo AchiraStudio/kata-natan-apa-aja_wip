@@ -35,6 +35,7 @@ interface TitikContextType {
   ) => Promise<FeedComment>;
   getComments: (postId: string) => Promise<FeedComment[]>;
   submitReport: (input: NewReportInput) => Promise<ReportSubmitResult>;
+  deleteReport: (reportId: string) => Promise<void>;
   updateReportStatus: (reportId: string, status: ReportStatus, description: string) => Promise<void>;
   refreshFeed: () => Promise<void>;
 }
@@ -193,6 +194,15 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const deleteReport = async (reportId: string) => {
+    await dataService.deleteReport(reportId);
+    setPosts((prev) => prev.filter((post) => post.relatedReportId !== reportId));
+    if (selectedReport?.id === reportId) {
+      setSelectedReport(null);
+      setReportDetailOpen(false);
+    }
+  };
+
   return (
     <TitikContext.Provider
       value={{
@@ -221,6 +231,7 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addComment,
         getComments,
         submitReport,
+        deleteReport,
         updateReportStatus,
         refreshFeed,
       }}

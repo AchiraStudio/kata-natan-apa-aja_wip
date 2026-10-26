@@ -418,7 +418,7 @@ describe('Domain Calculations & State Logic (4-Tier Suite)', () => {
         adapter.updateReportStatus(
           'rep-non-existent-999999',
           'resolved',
-          'Moderator',
+          'Admin TITIK',
           'Tandai selesai'
         )
       ).rejects.toThrow(/Report with ID rep-non-existent-999999 not found/);

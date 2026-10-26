@@ -13,7 +13,7 @@ import {
   Facility,
   BudgetSectorContext,
 } from '../../types/domain';
-import { FeedComment, IDataAdapter, NewReportInput, ReportSubmitResult } from './types';
+import { FeedComment, IDataAdapter, NewReportInput, RejectedReportEdits, ReportSubmitResult } from './types';
 import { getReportMediaType } from '../../utils/reportEvidence';
 import { loadPersistedReports, savePersistedReports } from '../reportPersistence';
 
@@ -46,10 +46,14 @@ function loadStoredArray<T>(key: string, fallback: T[]): T[] {
 
 const MOCK_REPORTS_STORAGE_KEY = 'titik_mock_reports_v2';
 const MOCK_POSTS_STORAGE_KEY = 'titik_mock_posts_v2';
+const DELETED_REPORTS_STORAGE_KEY = 'titik_deleted_reports_v1';
 
 export class MockDataAdapter implements IDataAdapter {
-  private reports: Report[] = loadStoredArray(MOCK_REPORTS_STORAGE_KEY, MOCK_REPORTS);
-  private posts: Post[] = loadStoredArray(MOCK_POSTS_STORAGE_KEY, MOCK_POSTS);
+  private deletedReportIds = new Set(loadStoredArray<string>(DELETED_REPORTS_STORAGE_KEY, []));
+  private reports: Report[] = loadStoredArray(MOCK_REPORTS_STORAGE_KEY, MOCK_REPORTS)
+    .filter((report) => !this.deletedReportIds.has(report.id));
+  private posts: Post[] = loadStoredArray(MOCK_POSTS_STORAGE_KEY, MOCK_POSTS)
+    .filter((post) => !post.relatedReportId || !this.deletedReportIds.has(post.relatedReportId));
   private submittedPostIds = new Set(
     this.posts.filter((post) => !MOCK_POSTS.some((seedPost) => seedPost.id === post.id)).map((post) => post.id)
   );
@@ -77,8 +81,13 @@ export class MockDataAdapter implements IDataAdapter {
           if (!persisted) return;
           const existingReportIds = new Set(this.reports.map((report) => report.id));
           const existingPostIds = new Set(this.posts.map((post) => post.id));
-          const addedReports = persisted.reports.filter((report) => !existingReportIds.has(report.id));
-          const addedPosts = persisted.posts.filter((post) => !existingPostIds.has(post.id));
+          const addedReports = persisted.reports.filter((report) => (
+            !existingReportIds.has(report.id) && !this.deletedReportIds.has(report.id)
+          ));
+          const addedPosts = persisted.posts.filter((post) => (
+            !existingPostIds.has(post.id)
+            && (!post.relatedReportId || !this.deletedReportIds.has(post.relatedReportId))
+          ));
           this.reports = [...addedReports, ...this.reports];
           this.posts = [...addedPosts, ...this.posts];
           addedReports.forEach((report) => this.submittedReportIds.add(report.id));
@@ -274,6 +283,117 @@ export class MockDataAdapter implements IDataAdapter {
     };
   }
 
+  async resubmitRejectedReport(
+    reportId: string,
+    reporterUserId: string,
+    edits: RejectedReportEdits
+  ): Promise<Report> {
+    await this.ensurePersistedReportsLoaded();
+    const reportIndex = this.reports.findIndex((report) => report.id === reportId);
+    const current = this.reports[reportIndex];
+    if (!current || current.reporterUserId !== reporterUserId) {
+      throw new Error('Laporan tidak ditemukan di akun Anda.');
+    }
+    if (current.status !== 'rejected') {
+      throw new Error('Hanya laporan yang ditolak yang dapat diperbaiki dan dikirim ulang.');
+    }
+    if (!edits.title.trim() || !edits.description.trim() || !edits.category.trim() || !edits.address.trim()) {
+      throw new Error('Judul, deskripsi, kategori, dan alamat wajib diisi.');
+    }
+
+    let matchedSector = MOCK_BUDGET_SECTORS.drainase;
+    if (edits.category === 'Lingkungan') matchedSector = MOCK_BUDGET_SECTORS.persampahan;
+    if (edits.category === 'Infrastruktur' && edits.title.toLowerCase().includes('pju')) {
+      matchedSector = MOCK_BUDGET_SECTORS.pju;
+    }
+    if (edits.category === 'Infrastruktur' && edits.title.toLowerCase().includes('jalan')) {
+      matchedSector = MOCK_BUDGET_SECTORS.jalan;
+    }
+
+    const updated: Report = {
+      ...current,
+      title: edits.title.trim(),
+      description: edits.description.trim(),
+      category: edits.category,
+      severity: edits.severity,
+      location: { ...current.location, address: edits.address.trim() },
+      responsibleAgency: matchedSector.responsibleAgency,
+      budgetContext: matchedSector,
+      status: 'submitted',
+      updatedAt: new Date().toISOString(),
+      events: [
+        ...current.events,
+        {
+          id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          reportId: current.id,
+          eventType: 'RESUBMITTED',
+          previousStatus: current.status,
+          newStatus: 'submitted',
+          actorType: 'citizen',
+          actorName: current.reporterDisplayName || 'Pelapor',
+          description: 'Pelapor memperbaiki laporan dan mengirimkannya kembali untuk ditinjau.',
+          timestamp: new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' WIB',
+        },
+      ],
+    };
+
+    this.reports[reportIndex] = updated;
+    this.posts = this.posts.map((post) => (
+      post.relatedReportId === reportId
+        ? {
+            ...post,
+            body: updated.description.length > 140
+              ? `${updated.description.slice(0, 140)}...`
+              : updated.description,
+            locationTag: updated.location.address,
+            relatedReport: updated,
+          }
+        : post
+    ));
+    await this.persistReportsAndPosts();
+    return updated;
+  }
+
+  async deleteReport(reportId: string): Promise<void> {
+    await this.ensurePersistedReportsLoaded();
+    if (!this.reports.some((report) => report.id === reportId)) {
+      throw new Error(`Laporan ${reportId} tidak ditemukan.`);
+    }
+
+    const previousReports = this.reports;
+    const previousPosts = this.posts;
+    const wasSubmittedReport = this.submittedReportIds.has(reportId);
+    const removedPosts = this.posts.filter((post) => post.relatedReportId === reportId);
+    this.reports = this.reports.filter((report) => report.id !== reportId);
+    this.posts = this.posts.filter((post) => post.relatedReportId !== reportId);
+    this.submittedReportIds.delete(reportId);
+    removedPosts.forEach((post) => this.submittedPostIds.delete(post.id));
+    this.deletedReportIds.add(reportId);
+
+    try {
+      globalThis.localStorage?.setItem(
+        DELETED_REPORTS_STORAGE_KEY,
+        JSON.stringify([...this.deletedReportIds])
+      );
+      await this.persistReportsAndPosts();
+    } catch (error) {
+      this.reports = previousReports;
+      this.posts = previousPosts;
+      if (wasSubmittedReport) this.submittedReportIds.add(reportId);
+      removedPosts.forEach((post) => this.submittedPostIds.add(post.id));
+      this.deletedReportIds.delete(reportId);
+      try {
+        globalThis.localStorage?.setItem(
+          DELETED_REPORTS_STORAGE_KEY,
+          JSON.stringify([...this.deletedReportIds])
+        );
+      } catch (storageError) {
+        console.error('Failed to restore deleted report marker after deletion failure:', storageError);
+      }
+      throw error;
+    }
+  }
+
   async updateReportStatus(
     reportId: string,
     newStatus: ReportStatus,
@@ -295,7 +415,7 @@ export class MockDataAdapter implements IDataAdapter {
       eventType: newStatus.toUpperCase(),
       previousStatus,
       newStatus,
-      actorType: 'moderator',
+      actorType: 'agency_officer',
       actorName,
       description,
       timestamp: new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' WIB',

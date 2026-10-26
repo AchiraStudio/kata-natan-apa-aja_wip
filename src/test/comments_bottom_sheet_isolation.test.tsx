@@ -102,6 +102,7 @@ function createMockContext(overrides: Partial<any> = {}) {
       publicReference: 'TIK-2026-0001',
       secretFollowUpToken: 'tok',
     })),
+    deleteReport: vi.fn(),
     updateReportStatus: vi.fn(),
     refreshFeed: vi.fn(),
     ...overrides,

@@ -96,19 +96,6 @@ export const PRESET_PERSONAS: Record<string, UserProfile & { passwordHint: strin
     passwordHint: 'adminpupr2026',
     description: 'Admin instansi pemerintah. Memiliki otoritas update status tiket dan alokasi anggaran.',
   },
-  moderator: {
-    id: 'usr-mod-01',
-    username: 'moderator.bambang',
-    displayName: 'Bambang Surya',
-    email: 'bambang.s@audit.titik.id',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    role: 'moderator',
-    district: 'Bogor Utara',
-    isVerified: true,
-    bio: 'Tim moderasi independen & verifikasi berkas bukti fisik lapangan.',
-    passwordHint: 'modtitik2026',
-    description: 'Moderator platform. Memvalidasi keaslian foto bukti GPS sebelum tiket dipublikasikan.',
-  },
   anonymous: {
     id: 'usr-anon-00',
     username: 'warga.anonim',
@@ -144,14 +131,11 @@ export function generateFakeAccounts(count: number, startIndex = 1): UserProfile
     const username = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${idx > 50 ? idx : ''}`;
     const email = `${username}@warga.bogor.go.id`;
 
-    // 94% regular citizens, 4% moderators, 2% agency admins
-    let role: 'citizen' | 'moderator' | 'admin' = 'citizen';
+    let role: 'citizen' | 'admin' = 'citizen';
     let verifiedAgency: string | undefined = undefined;
     if (idx % 50 === 0) {
       role = 'admin';
       verifiedAgency = 'Dinas Pekerjaan Umum dan Penataan Ruang (PUPR)';
-    } else if (idx % 25 === 0) {
-      role = 'moderator';
     }
 
     accounts.push({
@@ -264,4 +248,3 @@ export async function syncAccountsToSupabase(
     };
   }
 }
-

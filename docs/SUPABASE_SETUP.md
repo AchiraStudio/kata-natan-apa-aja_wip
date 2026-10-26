@@ -56,7 +56,7 @@ File: `supabase/migrations/20261017000002_storage_and_rls_policies.sql`
 - Enables Row Level Security (RLS) on all 9 tables.
 - Public read access is restricted strictly to `reports` where `publication_status = 'published'`.
 - Configures two isolated storage buckets:
-  - `report-evidence-private`: Incoming submissions. No public read access; accessible only to moderators or the authorized backend procedure.
+  - `report-evidence-private`: Incoming submissions. No public read access; accessible only to admins or the authorized backend procedure.
   - `report-evidence-public`: Approved media files only. Public CDN read access.
 - Creates atomic database procedure `submit_citizen_report(...)` with `SECURITY DEFINER` and sanitized search path to process reports in a single transactional unit.
 - Creates `get_report_by_follow_up_token(...)` enabling anonymous citizens to check review status using their high-entropy token without opening arbitrary read permissions.
@@ -164,4 +164,3 @@ Ensure the following tables are enabled for replication:
 - `report_votes`
 
 This enables live real-time updates across open browser tabs as reports are submitted, moderated, or voted on.
-

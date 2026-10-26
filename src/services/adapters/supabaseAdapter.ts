@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { IDataAdapter, NewReportInput, ReportSubmitResult, FeedComment } from './types';
+import { IDataAdapter, NewReportInput, RejectedReportEdits, ReportSubmitResult, FeedComment } from './types';
 import { formatIndonesianTimeAgo } from '../../utils/timeAgo';
 import { MockDataAdapter } from './mockAdapter';
 import { Post, Report, ReportStatus, Facility, BudgetSectorContext } from '../../types/domain';
@@ -76,6 +76,18 @@ export class SupabaseDataAdapter implements IDataAdapter {
 
   async submitReport(input: NewReportInput): Promise<ReportSubmitResult> {
     return this.fallbackMock.submitReport(input);
+  }
+
+  async resubmitRejectedReport(
+    reportId: string,
+    reporterUserId: string,
+    edits: RejectedReportEdits
+  ): Promise<Report> {
+    return this.fallbackMock.resubmitRejectedReport(reportId, reporterUserId, edits);
+  }
+
+  async deleteReport(reportId: string): Promise<void> {
+    return this.fallbackMock.deleteReport(reportId);
   }
 
   async updateReportStatus(

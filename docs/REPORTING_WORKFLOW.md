@@ -95,6 +95,8 @@ Both `/lapor` and the quick-report modal use `ReportWorkflowForm.tsx`:
 The civic reporting center at `/lapor` is organized into three distinct workflows:
 
 - **Laporan Saya (`/laporan-saya`)**: Authenticated users can view only reports whose `reporterUserId` matches their active account. Each report shows its latest status and the admin action history, including the note, actor, and timestamp. In demo/offline mode, status changes and their audit events are stored with the report in that browser's IndexedDB.
+- When rejecting a report, an administrator must provide actionable correction guidance. The report owner sees this guidance in a warning on **Laporan Saya**, can edit the report details, and resubmit the same report/reference. Resubmission preserves the rejection audit event and adds a citizen resubmission event.
+- Administrators can permanently remove an unclear or invalid report with **Hapus Permanen** after confirming the action. The report and its linked feed post are removed from the local demo data and are excluded after reload.
 
 1. **Daftar Kasus Warga (`ALL_REPORTS`)**:
    - Searchable, filterable directory of all published citizen observations.

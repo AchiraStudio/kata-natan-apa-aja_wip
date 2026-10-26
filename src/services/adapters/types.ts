@@ -23,6 +23,14 @@ export interface ReportSubmitResult {
   secretFollowUpToken: string; // Plaintext token shown once to reporter
 }
 
+export interface RejectedReportEdits {
+  title: string;
+  description: string;
+  category: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  address: string;
+}
+
 export interface FeedComment {
   id: string;
   authorName: string;
@@ -39,6 +47,12 @@ export interface IDataAdapter {
   getReportByReference(reference: string): Promise<Report | null>;
   verifyReportTracking(reference: string, token: string): Promise<Report | null>;
   submitReport(input: NewReportInput): Promise<ReportSubmitResult>;
+  resubmitRejectedReport(
+    reportId: string,
+    reporterUserId: string,
+    edits: RejectedReportEdits
+  ): Promise<Report>;
+  deleteReport(reportId: string): Promise<void>;
   updateReportStatus(
     reportId: string,
     newStatus: ReportStatus,

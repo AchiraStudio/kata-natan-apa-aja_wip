@@ -712,10 +712,6 @@
   background-color: var(--titik-accent-amber);
 }
 
-.login-persona-btn--moderator {
-  background-color: var(--titik-accent-cobalt);
-}
-
 .login-persona-tooltip {
   position: absolute;
   bottom: -1.75rem;
@@ -1062,11 +1058,6 @@
 .login-modal-role-badge--admin {
   background-color: #dbeafe;
   color: #1e40af;
-}
-
-.login-modal-role-badge--moderator {
-  background-color: #fef3c7;
-  color: #92400e;
 }
 
 .login-modal-role-badge--citizen {

@@ -45,7 +45,7 @@ Singkatan: **T**ransparansi **I**nfrastruktur, **T**indak **I**klim, **K**omunit
 ### 🔐 Autentikasi & Manajemen Akun
 - Login/registrasi via Supabase Auth
 - Halaman login dengan generator akun demo bulk (ratusan akun preset persona warga)
-- Role-based access: `citizen`, `moderator`, `admin`
+- Role-based access: `citizen`, `admin`
 - Panel admin: antrean verifikasi laporan, transisi status, dan konsol moderasi
 
 ### 🌙 Dark Mode
@@ -107,7 +107,7 @@ Seluruh logika state machine, token hashing, dan korelasi APBD berjalan 100% di 
 ## Skema Database (Supabase)
 
 ```sql
-profiles      -- Profil pengguna (citizen / moderator / admin)
+profiles      -- Profil pengguna (citizen / admin)
 comments      -- Komentar berulir per postingan (threaded, dengan likes)
 ```
 

@@ -78,7 +78,7 @@ describe('Report Service & State Machine Tests', () => {
     const step1 = await adapter.updateReportStatus(
       reportId,
       'under_review',
-      'Moderator TITIK',
+      'Admin TITIK',
       'Memeriksa bukti foto dan kesesuaian koordinat.'
     );
     expect(step1.status).toBe('under_review');
@@ -140,4 +140,3 @@ describe('Report Service & State Machine Tests', () => {
     expect(updatedComments[0].id).toBe(newComment.id);
   });
 });
-

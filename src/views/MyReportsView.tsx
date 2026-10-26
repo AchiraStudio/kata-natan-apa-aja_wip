@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, MapPin, Plus, RefreshCw } from 'lucide-react';
+import { FileText, MapPin, Plus, RefreshCw, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTitik } from '../context/TitikContext';
 import { dataService } from '../services/dataService';
+import { RejectedReportEdits } from '../services/adapters/types';
 import { Report, ReportStatus } from '../types/domain';
 import { getReportMediaType } from '../utils/reportEvidence';
 import { Sidebar } from '../components/layout/Sidebar';
@@ -29,6 +30,11 @@ export const MyReportsView: React.FC = () => {
     reports?: Report[];
     error?: string;
   } | null>(null);
+  const [editingReportId, setEditingReportId] = useState('');
+  const [editValues, setEditValues] = useState<RejectedReportEdits | null>(null);
+  const [savingReportId, setSavingReportId] = useState('');
+  const [resubmitError, setResubmitError] = useState('');
+  const [resubmitSuccess, setResubmitSuccess] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -52,6 +58,40 @@ export const MyReportsView: React.FC = () => {
   const isLoading = loadedReports?.userId !== profile.id;
   const reports = loadedReports?.userId === profile.id ? loadedReports.reports ?? [] : [];
   const loadError = loadedReports?.userId === profile.id ? loadedReports.error ?? '' : '';
+
+  const startEditing = (report: Report) => {
+    setEditingReportId(report.id);
+    setEditValues({
+      title: report.title,
+      description: report.description,
+      category: report.category,
+      severity: report.severity,
+      address: report.location.address,
+    });
+    setResubmitError('');
+    setResubmitSuccess('');
+  };
+
+  const handleResubmit = async (event: React.FormEvent<HTMLFormElement>, report: Report) => {
+    event.preventDefault();
+    if (!editValues || savingReportId) return;
+    setSavingReportId(report.id);
+    setResubmitError('');
+    setResubmitSuccess('');
+    try {
+      await dataService.resubmitRejectedReport(report.id, profile.id, editValues);
+      const updatedReports = await dataService.getMyReports(profile.id);
+      setLoadedReports({ userId: profile.id, reports: updatedReports });
+      setEditingReportId('');
+      setEditValues(null);
+      setResubmitSuccess(`Laporan ${report.publicReference} sudah dikirim ulang untuk ditinjau.`);
+    } catch (error) {
+      console.error('Failed to resubmit corrected report:', error);
+      setResubmitError(error instanceof Error ? error.message : 'Laporan gagal dikirim ulang. Silakan coba lagi.');
+    } finally {
+      setSavingReportId('');
+    }
+  };
 
   return (
     <div className="h-screen w-full max-w-[1680px] mx-auto bg-[#F7F6F1] dark:bg-[#0C100E] flex flex-col lg:flex-row overflow-hidden">
@@ -112,6 +152,119 @@ export const MyReportsView: React.FC = () => {
                 key={report.id}
                 className="rounded-3xl border border-[#E4E2DA] dark:border-[#26352E] bg-white dark:bg-[#1A221E] p-4 sm:p-5"
               >
+                {report.status === 'rejected' && (() => {
+                  const rejectionEvent = [...report.events]
+                    .reverse()
+                    .find((event) => event.newStatus === 'rejected');
+                  const isEditing = editingReportId === report.id;
+
+                  return (
+                    <section className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900 dark:bg-rose-950/30">
+                      <h3 className="text-sm font-bold text-rose-800 dark:text-rose-200">
+                        Laporan ditolak — perbaiki lalu kirim ulang
+                      </h3>
+                      <p className="mt-1 text-xs leading-relaxed text-rose-800 dark:text-rose-200">
+                        {rejectionEvent?.description || 'Admin belum memberikan saran. Silakan periksa kembali informasi laporan dan hubungi admin bila perlu.'}
+                      </p>
+                      {!isEditing ? (
+                        <button
+                          type="button"
+                          onClick={() => startEditing(report)}
+                          className="mt-3 rounded-xl bg-rose-700 px-4 py-2 text-xs font-bold text-white hover:bg-rose-800"
+                        >
+                          Perbaiki dan kirim ulang
+                        </button>
+                      ) : editValues && (
+                        <form onSubmit={(event) => handleResubmit(event, report)} className="mt-4 space-y-3">
+                          <div>
+                            <label htmlFor={`${report.id}-edit-title`} className="mb-1 block text-xs font-semibold text-[#20221D] dark:text-[#F3F6F4]">Judul laporan</label>
+                            <input
+                              id={`${report.id}-edit-title`}
+                              required
+                              value={editValues.title}
+                              onChange={(event) => setEditValues({ ...editValues, title: event.target.value })}
+                              className="w-full rounded-xl border border-[#E4E2DA] bg-white px-3 py-2 text-xs text-[#20221D] dark:border-[#26352E] dark:bg-[#131916] dark:text-[#F3F6F4]"
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor={`${report.id}-edit-description`} className="mb-1 block text-xs font-semibold text-[#20221D] dark:text-[#F3F6F4]">Deskripsi dan kronologi</label>
+                            <textarea
+                              id={`${report.id}-edit-description`}
+                              required
+                              rows={4}
+                              value={editValues.description}
+                              onChange={(event) => setEditValues({ ...editValues, description: event.target.value })}
+                              className="w-full rounded-xl border border-[#E4E2DA] bg-white px-3 py-2 text-xs text-[#20221D] dark:border-[#26352E] dark:bg-[#131916] dark:text-[#F3F6F4]"
+                            />
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <label htmlFor={`${report.id}-edit-category`} className="mb-1 block text-xs font-semibold text-[#20221D] dark:text-[#F3F6F4]">Kategori</label>
+                              <select
+                                id={`${report.id}-edit-category`}
+                                value={editValues.category}
+                                onChange={(event) => setEditValues({ ...editValues, category: event.target.value })}
+                                className="w-full rounded-xl border border-[#E4E2DA] bg-white px-3 py-2 text-xs text-[#20221D] dark:border-[#26352E] dark:bg-[#131916] dark:text-[#F3F6F4]"
+                              >
+                                {!['Infrastruktur', 'Lingkungan', 'Pendidikan', 'Kesehatan', 'Lainnya'].includes(editValues.category) && (
+                                  <option value={editValues.category}>{editValues.category}</option>
+                                )}
+                                {['Infrastruktur', 'Lingkungan', 'Pendidikan', 'Kesehatan', 'Lainnya']
+                                  .map((category) => <option key={category} value={category}>{category}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label htmlFor={`${report.id}-edit-severity`} className="mb-1 block text-xs font-semibold text-[#20221D] dark:text-[#F3F6F4]">Tingkat urgensi</label>
+                              <select
+                                id={`${report.id}-edit-severity`}
+                                value={editValues.severity}
+                                onChange={(event) => setEditValues({
+                                  ...editValues,
+                                  severity: event.target.value as RejectedReportEdits['severity'],
+                                })}
+                                className="w-full rounded-xl border border-[#E4E2DA] bg-white px-3 py-2 text-xs text-[#20221D] dark:border-[#26352E] dark:bg-[#131916] dark:text-[#F3F6F4]"
+                              >
+                                <option value="low">Rendah</option>
+                                <option value="medium">Sedang</option>
+                                <option value="high">Tinggi</option>
+                                <option value="critical">Kritis</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div>
+                            <label htmlFor={`${report.id}-edit-address`} className="mb-1 block text-xs font-semibold text-[#20221D] dark:text-[#F3F6F4]">Alamat lokasi</label>
+                            <input
+                              id={`${report.id}-edit-address`}
+                              required
+                              value={editValues.address}
+                              onChange={(event) => setEditValues({ ...editValues, address: event.target.value })}
+                              className="w-full rounded-xl border border-[#E4E2DA] bg-white px-3 py-2 text-xs text-[#20221D] dark:border-[#26352E] dark:bg-[#131916] dark:text-[#F3F6F4]"
+                            />
+                          </div>
+                          {resubmitError && <p role="alert" className="text-xs text-rose-700 dark:text-rose-300">{resubmitError}</p>}
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="submit"
+                              disabled={savingReportId === report.id}
+                              className="inline-flex items-center gap-2 rounded-xl bg-[#263F35] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                              {savingReportId === report.id ? 'Mengirim...' : 'Kirim ulang untuk ditinjau'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setEditingReportId(''); setEditValues(null); setResubmitError(''); }}
+                              className="rounded-xl border border-[#D5D8D2] px-4 py-2 text-xs font-semibold text-[#41443D] dark:border-[#37493F] dark:text-[#D5DDD7]"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                      {resubmitSuccess && <p role="status" className="mt-3 text-xs font-semibold text-emerald-800 dark:text-emerald-300">{resubmitSuccess}</p>}
+                    </section>
+                  );
+                })()}
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <span className="font-mono text-[11px] font-bold text-[#686B65] dark:text-[#9EACA3]">

@@ -92,6 +92,7 @@ function createChallengerContext(overrides: Partial<any> = {}) {
       publicReference: 'TIK-2026-CHALLENGER',
       secretFollowUpToken: 'tok',
     })),
+    deleteReport: vi.fn(),
     updateReportStatus: vi.fn(),
     refreshFeed: vi.fn(),
     ...overrides,

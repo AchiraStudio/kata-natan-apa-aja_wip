@@ -12,8 +12,19 @@ import {
 import { Sidebar } from '../components/layout/Sidebar';
 import { BottomNav } from '../components/layout/BottomNav';
 import { dataService } from '../services/dataService';
-import { Report } from '../types/domain';
+import { Report, ReportStatus } from '../types/domain';
 import './TrackReportView.css';
+
+const STATUS_LABELS: Record<ReportStatus, string> = {
+  submitted: 'Terkirim',
+  under_review: 'Sedang ditinjau',
+  needs_info: 'Perlu informasi tambahan',
+  accepted_for_routing: 'Disetujui',
+  forwarded_to_institution: 'Diteruskan ke instansi',
+  institution_responded: 'Instansi merespons',
+  resolved: 'Selesai',
+  rejected: 'Ditolak',
+};
 
 const TRACKING_STEPS = [
   { status: 'submitted', label: 'Laporan diterima', detail: 'Nomor laporan berhasil dicatat.' },
@@ -203,7 +214,7 @@ export const TrackReportView: React.FC = () => {
                       {report.publicReference}
                     </span>
                     <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/60 text-[#92400E] dark:text-amber-300 border border-amber-300 dark:border-amber-800/80">
-                      {report.status.replace('_', ' ')}
+                      {STATUS_LABELS[report.status]}
                     </span>
                   </div>
                   <h3 className="text-lg font-bold text-[#20221D] dark:text-[#F3F6F4] mt-1">{report.title}</h3>

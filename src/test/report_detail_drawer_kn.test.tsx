@@ -50,6 +50,7 @@ function createMockContextValue(report: Report | null, isOpen = true) {
       publicReference: 'TIK-2026-999999',
       secretFollowUpToken: 'tok',
     }),
+    deleteReport: async () => {},
     updateReportStatus: async () => {},
     refreshFeed: async () => {},
   };

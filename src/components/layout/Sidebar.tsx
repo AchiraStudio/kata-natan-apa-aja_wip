@@ -331,8 +331,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
               <div className="text-[10px] text-[#263F35] dark:text-[#34D399] font-semibold truncate">
                 {profile.role === 'admin'
                   ? 'Admin Instansi PUPR'
-                  : profile.role === 'moderator'
-                  ? 'Moderator Verifikasi'
                   : profile.isVerified
                   ? 'Warga Terverifikasi'
                   : 'Warga Kota Bogor'}

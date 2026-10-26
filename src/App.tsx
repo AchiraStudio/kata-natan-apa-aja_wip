@@ -51,8 +51,8 @@ export default function App() {
               <Route path="/masuk" element={<Navigate to="/login" replace />} />
               <Route path="/alur" element={<AuthenticatedRoute><WorkflowView /></AuthenticatedRoute>} />
               <Route path="/workflow" element={<Navigate to="/alur" replace />} />
-              <Route path="/report/:id" element={<ReportDetailView />} />
-              <Route path="/laporan/:id" element={<ReportDetailView />} />
+              <Route path="/report/:id" element={<AuthenticatedRoute><ReportDetailView /></AuthenticatedRoute>} />
+              <Route path="/laporan/:id" element={<AuthenticatedRoute><ReportDetailView /></AuthenticatedRoute>} />
               <Route path="/explore" element={<AuthenticatedRoute><ExploreView /></AuthenticatedRoute>} />
               <Route path="/map" element={<AuthenticatedRoute><MapView /></AuthenticatedRoute>} />
               <Route path="/track" element={<AuthenticatedRoute><TrackReportView /></AuthenticatedRoute>} />

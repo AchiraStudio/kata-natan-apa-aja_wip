@@ -1,221 +1,86 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft,
-  User,
-  Mail,
-  Lock,
+  AlertCircle,
+  CheckCircle2,
   Eye,
   EyeOff,
-  CheckCircle2,
-  AlertCircle,
+  Lock,
+  Mail,
   RefreshCw,
-  Sparkles,
-  Users,
-  Shield,
-  Download,
-  Search,
-  X,
 } from 'lucide-react';
 import { TitikLogo } from '../components/common/TitikLogo';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { useAuth } from '../context/AuthContext';
-import {
-  PRESET_PERSONAS,
-  generateFakeAccounts,
-  getStoredGeneratedAccounts,
-  syncAccountsToSupabase,
-} from '../services/accountGenerator';
-import { UserProfile } from '../types/domain';
 import { isSupabaseConfigured } from '../services/supabaseClient';
 import './LoginView.css';
 
 export const LoginView: React.FC = () => {
   const navigate = useNavigate();
-  const { profile, signIn, signUp, signInAsPersona, switchProfile } = useAuth();
-
-  // Mode: 'login' | 'signup'
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
-
-  // Form Fields
-  const [username, setUsername] = useState('');
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Mass Account Generator Modal / Drawer State
-  const [isGeneratorModalOpen, setIsGeneratorModalOpen] = useState(false);
-  const [generatedAccounts, setGeneratedAccounts] = useState<UserProfile[]>(() => {
-    const existing = getStoredGeneratedAccounts();
-    if (existing && existing.length > 0) {
-      return existing;
-    }
-    return generateFakeAccounts(25);
-  });
-  const [searchAccountQuery, setSearchAccountQuery] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<string | null>(null);
-
-  // Form Submit Handler
-  const handleAuthSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAuthSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
     setIsSubmitting(true);
 
-    if (authMode === 'login') {
-      const res = await signIn(email, password);
-      setIsSubmitting(false);
-      if (res.success) {
-        setSuccessMessage('Berhasil masuk! Mengalihkan ke beranda...');
-        setTimeout(() => navigate(res.role === 'admin' ? '/admin' : '/'), 700);
-      } else {
-        setErrorMessage(res.error || 'Gagal masuk. Periksa kembali email dan kata sandi.');
-      }
+    const result = await signIn(email, password);
+    setIsSubmitting(false);
+    if (result.success) {
+      setSuccessMessage('Berhasil masuk! Mengalihkan ke beranda...');
+      window.setTimeout(() => navigate(result.role === 'admin' ? '/admin' : '/'), 700);
     } else {
-      if (!agreeTerms) {
-        setIsSubmitting(false);
-        setErrorMessage('Silakan setujui syarat dan ketentuan partisipasi warga.');
-        return;
-      }
-      const displayName = username.trim() || email.split('@')[0];
-      const res = await signUp(email, password, displayName);
-      setIsSubmitting(false);
-      if (res.success) {
-        setSuccessMessage('Pendaftaran berhasil! Akun warga Anda telah aktif.');
-        setTimeout(() => navigate('/'), 800);
-      } else {
-        setErrorMessage(res.error || 'Pendaftaran gagal.');
-      }
+      setErrorMessage(result.error || 'Gagal masuk. Periksa kembali username dan kata sandi.');
     }
   };
 
-  // 1-Click Demo Persona Login
-  const handleQuickPersonaLogin = (key: 'citizen' | 'admin' | 'moderator' | 'anonymous') => {
-    signInAsPersona(key);
-    setSuccessMessage(`Berhasil masuk sebagai ${PRESET_PERSONAS[key].displayName}!`);
-    setTimeout(() => navigate('/'), 600);
-  };
-
-  // Mass Account Generation Trigger
-  const handleGenerateBatch = (count: number) => {
-    setIsGenerating(true);
-    setSyncStatus(null);
-
-    setTimeout(() => {
-      const startIndex = generatedAccounts.length + 1;
-      const newBatch = generateFakeAccounts(count, startIndex);
-      const combined = [...newBatch, ...generatedAccounts];
-      setGeneratedAccounts(combined);
-      setIsGenerating(false);
-      setSuccessMessage(`Berhasil membuat ${count.toLocaleString('id-ID')} akun warga simulasi.`);
-
-      syncAccountsToSupabase(combined).then((res) => {
-        setSyncStatus(res.message);
-      });
-    }, 150);
-  };
-
-  const handleSwitchToGeneratedAccount = (acc: UserProfile) => {
-    switchProfile(acc);
-    setSuccessMessage(`Aktif sebagai ${acc.displayName} (${acc.district || 'Jabodetabek'})`);
-    setIsGeneratorModalOpen(false);
-    setTimeout(() => navigate('/'), 600);
-  };
-
-  const handleExportJson = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(generatedAccounts, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `titik-warga-simulasi-${generatedAccounts.length}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  };
-
-  const filteredAccounts = generatedAccounts.filter((a) => {
-    if (!searchAccountQuery) return true;
-    const q = searchAccountQuery.toLowerCase();
-    return (
-      a.displayName.toLowerCase().includes(q) ||
-      a.username.toLowerCase().includes(q) ||
-      (a.district && a.district.toLowerCase().includes(q)) ||
-      (a.email && a.email.toLowerCase().includes(q))
-    );
-  });
-
   return (
     <div className="login-page">
-      {/* Back to Home floating action */}
-      <div className="login-back-action">
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          className="login-back-btn"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Beranda Feed</span>
-        </button>
-      </div>
       <div className="absolute top-4 right-4 z-30">
         <ThemeToggle />
       </div>
 
-      {/* Responsive Dual-Screen Wrapper */}
       <div className="login-card-container">
-        {/* ============================================================== */}
-        {/* PANEL 1 (LEFT / TOP): Vibrant Brand Splash with Geometric Lines */}
-        {/* ============================================================== */}
         <div className="login-hero">
-          {/* Dynamic Geometric Angled Slashes */}
-          <div className="login-hero-slashes">
-            {/* Soft Ambient Light Gradient */}
+          <div className="login-hero-slashes" aria-hidden="true">
             <div className="login-glow-top" />
             <div className="login-glow-bottom" />
-
-            {/* Geometric Diagonal Ribbons (-35deg) */}
             <div className="login-ribbon-1" />
             <div className="login-ribbon-2" />
             <div className="login-ribbon-3" />
             <div className="login-ribbon-4" />
-
-            {/* Slender Accent Slash Lines (-35deg) */}
             <div className="login-slash-1" />
             <div className="login-slash-2" />
             <div className="login-slash-3" />
           </div>
 
-          {/* Top Brand Monogram Pill */}
           <div className="login-hero-header">
             <div className="flex items-center gap-2">
               <TitikLogo className="w-5 h-5 shrink-0" pinColor="#FFFFFF" innerColor="#263F35" dotColor="#34D399" />
-              <span className="login-brand-tag">
-                Civic Social Platform
-              </span>
+              <span className="login-brand-tag">Civic Social Platform</span>
             </div>
             <span className="login-env-tag">
               {isSupabaseConfigured ? 'Supabase Auth' : 'Demo Mode'}
             </span>
           </div>
 
-          {/* Center Brand Identity (Official Titik Logo & Logotype) */}
           <div className="login-hero-body">
-            {/* Official Titik Brand Logomark */}
             <div className="login-brand-logo-frame group">
               <div className="login-brand-logo-badge">
                 <TitikLogo className="w-full h-full" pinColor="#263F35" innerColor="#FFFFFF" dotColor="#34D399" />
               </div>
             </div>
-
-            {/* Brand Title */}
             <div>
               <h2 className="login-brand-title">
                 <span>TITIK</span>
-                <span className="login-brand-dot"></span>
+                <span className="login-brand-dot" />
               </h2>
               <p className="login-brand-tagline">
                 See the issue. Trace the budget. Track the impact.
@@ -223,412 +88,95 @@ export const LoginView: React.FC = () => {
             </div>
           </div>
 
-          {/* Bottom Callout & Quick Generator Pill */}
           <div className="login-hero-footer">
-            <button
-              type="button"
-              onClick={() => setIsGeneratorModalOpen(true)}
-              className="login-hero-btn-generator"
-            >
-              <Users className="w-4 h-4 text-[#263F35]" />
-              <span>Buka Generator Ribuan Akun Warga ({generatedAccounts.length.toLocaleString('id-ID')})</span>
-            </button>
-
             <p className="login-hero-subtext">
               Ruang publik, suara bersama warga Jabodetabek.
             </p>
           </div>
         </div>
 
-        {/* ============================================================== */}
-        {/* PANEL 2 (RIGHT / BOTTOM): Elegant White Sheet with Form       */}
-        {/* ============================================================== */}
         <div className="login-form-panel">
           <div className="login-form-content">
-            {/* Friendly Greeting & Mode Switcher */}
             <div className="login-form-header">
               <div className="login-form-title-row">
                 <div className="flex items-center gap-2.5">
                   <div className="lg:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-[#263F35] shadow-xs shrink-0">
                     <TitikLogo className="w-5 h-5" pinColor="#FFFFFF" innerColor="#263F35" dotColor="#34D399" />
                   </div>
-                  <h3 className="login-form-heading">
-                    hello!
-                  </h3>
+                  <h3 className="login-form-heading">hello!</h3>
                 </div>
 
-                {/* Pill Mode Switcher (Login vs Sign Up) */}
-                <div className="login-mode-track">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthMode('login');
-                      setErrorMessage('');
-                      setSuccessMessage('');
-                    }}
-                    className={`login-mode-tab ${
-                      authMode === 'login' ? 'login-mode-tab--active' : ''
-                    }`}
-                  >
-                    Masuk
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthMode('signup');
-                      setErrorMessage('');
-                      setSuccessMessage('');
-                    }}
-                    className={`login-mode-tab ${
-                      authMode === 'signup' ? 'login-mode-tab--active' : ''
-                    }`}
-                  >
-                    Daftar
-                  </button>
-                </div>
+                <span className="login-mode-track login-mode-tab login-mode-tab--active">Masuk</span>
               </div>
 
               <p className="login-form-desc">
-                {authMode === 'login'
-                  ? 'Masuk ke portal TITIK untuk memantau laporan dan anggaran.'
-                  : 'Daftarkan diri Anda untuk menjadi warga terverifikasi Jabodetabek.'}
+                Masuk dengan akun demo TITIK untuk membuka portal laporan dan anggaran.
               </p>
             </div>
 
-            {/* Notification Messages */}
             {errorMessage && (
-              <div className="login-alert-error">
+              <div className="login-alert-error" role="alert">
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
                 <span>{errorMessage}</span>
               </div>
             )}
 
             {successMessage && (
-              <div className="login-alert-success">
+              <div className="login-alert-success" role="status">
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                 <span>{successMessage}</span>
               </div>
             )}
 
-            {/* Interactive Form with Rounded Pill Inputs */}
             <form onSubmit={handleAuthSubmit} className="login-form">
-              {/* Username Input (Only on Sign Up) */}
-              {authMode === 'signup' && (
-                <div className="login-input-group">
-                  <div className="login-input-icon">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Username / Nama Pengguna"
-                    className="login-input-field"
-                    required
-                  />
-                </div>
-              )}
-
-              {/* Email Input */}
               <div className="login-input-group">
-                <div className="login-input-icon">
-                  <Mail className="w-4 h-4" />
-                </div>
+                <div className="login-input-icon"><Mail className="w-4 h-4" /></div>
                 <input
-                  type={authMode === 'signup' ? 'email' : 'text'}
+                  type="text"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={authMode === 'signup' ? 'Email' : 'Username atau email'}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="Username atau email demo"
                   className="login-input-field"
+                  autoComplete="username"
                   required
                 />
               </div>
 
-              {/* Password Input */}
               <div className="login-input-group">
-                <div className="login-input-icon">
-                  <Lock className="w-4 h-4" />
-                </div>
+                <div className="login-input-icon"><Lock className="w-4 h-4" /></div>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
                   placeholder="Password"
                   className="login-input-field login-input-field--password"
+                  autoComplete="current-password"
                   required
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((visible) => !visible)}
                   className="login-password-toggle"
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
 
-              {/* Terms Checkbox */}
-              <div className="login-terms-row">
-                <label className="login-checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={agreeTerms}
-                    onChange={(e) => setAgreeTerms(e.target.checked)}
-                    className="login-checkbox"
-                  />
-                  <span>
-                    {authMode === 'signup'
-                      ? 'I agree to the terms and conditions'
-                      : 'Ingat saya di perangkat ini'}
-                  </span>
-                </label>
-
-                {authMode === 'login' && (
-                  <button
-                    type="button"
-                    onClick={() => handleQuickPersonaLogin('citizen')}
-                    className="login-help-link"
-                  >
-                    Bantuan Akun?
-                  </button>
-                )}
-              </div>
-
-              {/* Pill Action Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="login-submit-button"
-              >
+              <button type="submit" disabled={isSubmitting} className="login-submit-button">
                 {isSubmitting && <RefreshCw className="w-4 h-4 animate-spin" />}
-                <span>{authMode === 'login' ? 'Sign In' : 'Sign Up'}</span>
+                <span>{isSubmitting ? 'Memproses...' : 'Masuk'}</span>
               </button>
             </form>
 
-            {/* Divider (or) */}
-            <div className="login-divider">
-              <div className="login-divider-line" />
-              <span className="login-divider-text">
-                or
-              </span>
+            <div className="mt-5 space-y-1 border-t border-[#E4E2DA] pt-4 text-center text-[10px] text-[#686B65]" aria-label="Akun demo TITIK">
+              <p className="mb-2 text-xs font-bold text-[#263F35]">Gunakan akun demo yang tersedia</p>
+              <p>Warga: <strong>sahabatbogor</strong> / <strong>titik2026</strong></p>
+              <p>Admin: <strong>admin.pupr</strong> / <strong>adminpupr2026</strong></p>
             </div>
-
-            {/* 3 Quick Demo Personas */}
-            <div className="login-persona-section">
-              <div className="login-persona-row">
-                {/* Persona 1: Warga */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickPersonaLogin('citizen')}
-                  className="login-persona-btn login-persona-btn--citizen group"
-                  title="Masuk sebagai Rizky Aprianto (Warga Terverifikasi)"
-                >
-                  <User className="w-5 h-5" />
-                  <span className="login-persona-tooltip">
-                    Warga Kota
-                  </span>
-                </button>
-
-                {/* Persona 3: Moderator */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickPersonaLogin('moderator')}
-                  className="login-persona-btn login-persona-btn--moderator group"
-                  title="Masuk sebagai Bambang Surya (Moderator Lapangan)"
-                >
-                  <Shield className="w-5 h-5" />
-                  <span className="login-persona-tooltip">
-                    Moderator
-                  </span>
-                </button>
-              </div>
-
-              <p className="login-persona-caption">
-                Akun warga: sahabatbogor / titik2026 • Demo admin: admin.pupr / adminpupr2026
-              </p>
-            </div>
-          </div>
-
-          {/* Bottom Active User Indicator */}
-          <div className="login-active-user-bar">
-            <div className="login-active-user-info">
-              <img
-                src={profile.avatarUrl}
-                alt={profile.displayName}
-                className="login-active-avatar"
-              />
-              <span className="login-active-name">
-                Aktif: <strong>{profile.displayName}</strong>
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsGeneratorModalOpen(true)}
-              className="login-active-generator-btn"
-            >
-              <Sparkles className="w-3 h-3" />
-              <span>Daftar Akun</span>
-            </button>
           </div>
         </div>
       </div>
-
-      {/* ============================================================== */}
-      {/* MASS FAKE ACCOUNTS MODAL / DRAWER                              */}
-      {/* ============================================================== */}
-      {isGeneratorModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="login-modal-overlay"
-          onClick={() => setIsGeneratorModalOpen(false)}
-        >
-          <div
-            className="login-modal-box"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="login-modal-header">
-              <div className="login-modal-title-group">
-                <Users className="w-5 h-5 text-[#263F35]" />
-                <div>
-                  <h3 className="login-modal-title">
-                    Generator Ribuan Akun Warga Simulasi
-                  </h3>
-                  <p className="login-modal-subtitle">
-                    Generate profil warga Jabodetabek untuk pengujian feed, komentar, dan pelaporan masal.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsGeneratorModalOpen(false)}
-                className="login-modal-close-btn"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body & Controls */}
-            <div className="login-modal-body">
-              {/* Batch Action Buttons */}
-              <div className="login-modal-batch-bar">
-                <div className="login-modal-batch-group">
-                  <span className="login-modal-batch-label">Generate Baru:</span>
-                  <button
-                    type="button"
-                    disabled={isGenerating}
-                    onClick={() => handleGenerateBatch(10)}
-                    className="login-modal-batch-btn"
-                  >
-                    +10 Akun
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isGenerating}
-                    onClick={() => handleGenerateBatch(100)}
-                    className="login-modal-batch-btn"
-                  >
-                    +100 Akun
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isGenerating}
-                    onClick={() => handleGenerateBatch(1000)}
-                    className="login-modal-batch-btn login-modal-batch-btn--primary"
-                  >
-                    +1.000 Akun
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleExportJson}
-                  className="login-modal-export-btn"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Ekspor JSON</span>
-                </button>
-              </div>
-
-              {syncStatus && (
-                <div className="login-modal-sync-status">
-                  {syncStatus}
-                </div>
-              )}
-
-              {/* Search Filter */}
-              <div className="login-modal-search-group">
-                <Search className="login-modal-search-icon w-4 h-4" />
-                <input
-                  type="text"
-                  value={searchAccountQuery}
-                  onChange={(e) => setSearchAccountQuery(e.target.value)}
-                  placeholder="Cari nama warga, wilayah (Bogor, Depok, Bekasi, Tangerang, Jakarta)..."
-                  className="login-modal-search-input"
-                />
-              </div>
-
-              {/* Data Table */}
-              <div className="login-modal-table-wrap">
-                <table className="login-modal-table">
-                  <thead>
-                    <tr>
-                      <th className="login-modal-th">Warga / Profil</th>
-                      <th className="login-modal-th">Kecamatan</th>
-                      <th className="login-modal-th">Peran & NIK</th>
-                      <th className="login-modal-th text-right">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAccounts.slice(0, 40).map((acc) => (
-                      <tr key={acc.id} className="login-modal-tr">
-                        <td className="login-modal-td">
-                          <div className="flex items-center gap-2.5">
-                            <img
-                              src={acc.avatarUrl}
-                              alt={acc.displayName}
-                              className="login-modal-user-avatar"
-                            />
-                            <div>
-                              <div className="font-semibold text-[#20221D]">{acc.displayName}</div>
-                              <div className="text-[10px] text-[#686B65]">@{acc.username}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="login-modal-td font-medium text-[#20221D]">{acc.district}</td>
-                        <td className="login-modal-td">
-                          <span
-                            className={`login-modal-role-badge ${
-                              acc.role === 'admin'
-                                ? 'login-modal-role-badge--admin'
-                                : acc.role === 'moderator'
-                                ? 'login-modal-role-badge--moderator'
-                                : 'login-modal-role-badge--citizen'
-                            }`}
-                          >
-                            {acc.role}
-                          </span>
-                        </td>
-                        <td className="login-modal-td text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleSwitchToGeneratedAccount(acc)}
-                            className="login-modal-use-btn"
-                          >
-                            Gunakan Akun
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

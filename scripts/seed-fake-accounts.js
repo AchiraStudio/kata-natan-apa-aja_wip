@@ -78,7 +78,6 @@ for (let i = 1; i <= countArg; i++) {
 
   let role = 'citizen';
   if (i % 50 === 0) role = 'admin';
-  else if (i % 25 === 0) role = 'moderator';
 
   generated.push({
     id: `usr-gen-${String(i).padStart(6, '0')}`,
@@ -130,4 +129,3 @@ if (supabaseUrl && supabaseKey) {
 } else {
   console.log('ℹ️ Supabase credentials tidak ditemukan di .env, akun hanya tersimpan di JSON lokal.');
 }
-

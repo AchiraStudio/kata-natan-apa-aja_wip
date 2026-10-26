@@ -9,7 +9,7 @@ export interface UserProfile {
   username: string;
   displayName: string;
   avatarUrl: string;
-  role: 'citizen' | 'moderator' | 'admin';
+  role: 'citizen' | 'admin';
   verifiedAgency?: string;
   bio?: string;
   email?: string;
@@ -87,7 +87,7 @@ export interface ReportEvent {
   eventType: string;
   previousStatus?: ReportStatus;
   newStatus?: ReportStatus;
-  actorType: 'citizen' | 'moderator' | 'agency_officer';
+  actorType: 'citizen' | 'agency_officer';
   actorName: string;
   description: string;
   timestamp: string;

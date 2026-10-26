@@ -1,4 +1,4 @@
-import { Post, Report } from '../types/domain';
+import { Post, Report, ReportAttachment } from '../types/domain';
 import { registerReportMediaType } from '../utils/reportEvidence';
 
 interface PersistedReports {
@@ -105,27 +105,49 @@ export async function loadPersistedReports(): Promise<PersistedReports | null> {
 export async function savePersistedReports(reports: Report[], posts: Post[]): Promise<void> {
   const database = await openDatabase();
   try {
+    const existingMedia = await new Promise<Map<string, Blob>>((resolve, reject) => {
+      const transaction = database.transaction(MEDIA_STORE, 'readonly');
+      const request = transaction.objectStore(MEDIA_STORE).getAll() as IDBRequest<StoredMedia[]>;
+      request.onsuccess = () => resolve(new Map(request.result.map(({ id, blob }) => [id, blob])));
+      request.onerror = () => reject(request.error ?? new Error('Gagal membaca bukti media tersimpan.'));
+      transaction.onabort = () => reject(transaction.error ?? new Error('Pembacaan bukti media dibatalkan.'));
+    });
     const mediaBlobs = new Map<string, Blob>();
     const mediaIdsByReport = new Map<string, string[]>();
     const saveMediaUrl = async (reportId: string, index: number, url: string) => {
       if (!url.startsWith('data:') && !url.startsWith('blob:')) return url;
       const id = `${reportId}-${index}`;
       if (!mediaBlobs.has(id)) {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Gagal menyiapkan bukti media untuk disimpan.');
-        mediaBlobs.set(id, await response.blob());
+        let blob = existingMedia.get(id);
+        try {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`Media mengembalikan status ${response.status}.`);
+          blob = await response.blob();
+        } catch (error) {
+          if (!blob) {
+            console.warn(`Bukti media ${id} tidak dapat dipertahankan saat menyimpan laporan.`, error);
+            return null;
+          }
+        }
+        mediaBlobs.set(id, blob);
       }
       return `${MEDIA_REFERENCE_PREFIX}${encodeURIComponent(id)}`;
     };
 
     const storedReports = await Promise.all(reports.map(async (report) => {
-      const urls = await Promise.all(report.mediaUrls.map((url, index) => saveMediaUrl(report.id, index, url)));
-      const supportingDocuments = await Promise.all((report.supportingDocuments ?? []).map(async (document, index) => ({
-        ...document,
-        dataUrl: await saveMediaUrl(report.id, report.mediaUrls.length + index, document.dataUrl),
-      })));
+      const urls = (await Promise.all(
+        report.mediaUrls.map((url, index) => saveMediaUrl(report.id, index, url))
+      )).filter((url): url is string => url !== null);
+      const supportingDocuments = (await Promise.all(
+        (report.supportingDocuments ?? []).map(async (document, index) => {
+          const dataUrl = await saveMediaUrl(report.id, report.mediaUrls.length + index, document.dataUrl);
+          return dataUrl ? { ...document, dataUrl } : null;
+        })
+      )).filter((document): document is ReportAttachment => document !== null);
       mediaIdsByReport.set(report.id, report.mediaUrls.map((url, index) => (
-        url.startsWith('data:') || url.startsWith('blob:') ? `${report.id}-${index}` : ''
+        (url.startsWith('data:') || url.startsWith('blob:')) && mediaBlobs.has(`${report.id}-${index}`)
+          ? `${report.id}-${index}`
+          : ''
       )));
       return { ...report, mediaUrls: urls, supportingDocuments };
     }));
@@ -133,7 +155,7 @@ export async function savePersistedReports(reports: Report[], posts: Post[]): Pr
     const storedPosts = await Promise.all(posts.map(async (post) => {
       const reportId = post.relatedReportId;
       const reportMediaIds = reportId ? mediaIdsByReport.get(reportId) : undefined;
-      const media = await Promise.all(post.media.map(async (item, index) => {
+      const media = (await Promise.all(post.media.map(async (item, index) => {
         const matchingReportMediaIndex = reportId
           ? reports.find((report) => report.id === reportId)?.mediaUrls.indexOf(item.url) ?? -1
           : -1;
@@ -143,8 +165,8 @@ export async function savePersistedReports(reports: Report[], posts: Post[]): Pr
         const url = matchingId
           ? `${MEDIA_REFERENCE_PREFIX}${encodeURIComponent(matchingId)}`
           : await saveMediaUrl(post.id, index, item.url);
-        return { ...item, url };
-      }));
+        return url ? { ...item, url } : null;
+      }))).filter((item): item is Post['media'][number] => item !== null);
       return {
         ...post,
         media,

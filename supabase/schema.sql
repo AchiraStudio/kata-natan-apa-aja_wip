@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   display_name TEXT NOT NULL,
   email TEXT,
   avatar_url TEXT,
-  role TEXT DEFAULT 'citizen' CHECK (role IN ('citizen', 'moderator', 'admin')),
+  role TEXT DEFAULT 'citizen' CHECK (role IN ('citizen', 'admin')),
   verified_agency TEXT,
   district TEXT,
   is_verified BOOLEAN DEFAULT FALSE,
@@ -44,7 +44,7 @@ BEGIN
     COALESCE(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)),
     new.email,
     COALESCE(new.raw_user_meta_data->>'avatar_url', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'),
-    COALESCE(new.raw_user_meta_data->>'role', 'citizen'),
+    CASE WHEN new.raw_user_meta_data->>'role' = 'admin' THEN 'admin' ELSE 'citizen' END,
     COALESCE(new.raw_user_meta_data->>'district', 'Bogor Tengah'),
     true,
     'Warga terdaftar di portal TITIK.'

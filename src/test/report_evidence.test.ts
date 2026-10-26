@@ -119,4 +119,66 @@ describe('report evidence requirements', () => {
       { status: 'rejected', description: 'Foto lokasi tidak sesuai.', actor: 'Admin TITIK' },
     ]);
   });
+
+  it('lets the report owner correct a rejected report and resubmit it without losing its audit history', async () => {
+    const adapter = new MockDataAdapter();
+    const { report } = await adapter.submitReport({
+      title: 'Lampu jalan mati',
+      description: 'Lampu penerangan jalan sudah mati selama beberapa malam.',
+      category: 'Infrastruktur',
+      severity: 'medium',
+      address: 'Jl. Merdeka, Bogor',
+      latitude: -6.59,
+      longitude: 106.8,
+      mediaUrls: ['data:image/jpeg;base64,photo', 'data:video/mp4;base64,video'],
+      reporterType: 'anonymous',
+      reporterUserId: 'citizen-account-1',
+    });
+    await adapter.updateReportStatus(report.id, 'rejected', 'Admin TITIK', 'Mohon tambahkan kronologi waktu kerusakan.');
+
+    await expect(adapter.resubmitRejectedReport(report.id, 'another-account', {
+      title: 'Lampu jalan mati',
+      description: 'Lampu sudah mati sejak Senin malam dan lokasinya tepat di depan halte.',
+      category: 'Infrastruktur',
+      severity: 'medium',
+      address: 'Jl. Merdeka depan halte, Bogor',
+    })).rejects.toThrow('Laporan tidak ditemukan di akun Anda.');
+
+    const resubmitted = await adapter.resubmitRejectedReport(report.id, 'citizen-account-1', {
+      title: 'Lampu jalan mati depan halte',
+      description: 'Lampu sudah mati sejak Senin malam dan lokasinya tepat di depan halte.',
+      category: 'Infrastruktur',
+      severity: 'high',
+      address: 'Jl. Merdeka depan halte, Bogor',
+    });
+
+    expect(resubmitted.publicReference).toBe(report.publicReference);
+    expect(resubmitted.status).toBe('submitted');
+    expect(resubmitted.title).toBe('Lampu jalan mati depan halte');
+    expect(resubmitted.description).toContain('Senin malam');
+    expect(resubmitted.events.slice(-2).map((event) => event.newStatus)).toEqual(['rejected', 'submitted']);
+    expect(resubmitted.events.at(-1)?.actorType).toBe('citizen');
+  });
+
+  it('removes a deleted report from the report list and linked feed', async () => {
+    const adapter = new MockDataAdapter();
+    const { report } = await adapter.submitReport({
+      title: 'Laporan tidak jelas',
+      description: 'Informasi awal yang belum cukup untuk diverifikasi.',
+      category: 'Lainnya',
+      severity: 'low',
+      address: 'Lokasi belum diketahui',
+      latitude: -6.59,
+      longitude: 106.8,
+      mediaUrls: ['data:image/jpeg;base64,photo', 'data:video/mp4;base64,video'],
+      reporterType: 'verified_citizen',
+      reporterUserId: 'citizen-account-1',
+    });
+
+    await adapter.deleteReport(report.id);
+
+    expect(await adapter.getMyReports('citizen-account-1')).toEqual([]);
+    expect((await adapter.getFeedPosts()).some((post) => post.relatedReportId === report.id)).toBe(false);
+    await expect(adapter.deleteReport(report.id)).rejects.toThrow('tidak ditemukan');
+  });
 });
