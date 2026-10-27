@@ -276,9 +276,14 @@
 
 .home-feed-stream {
   scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+}
+
+@media (min-width: 1024px) {
+  .home-feed-stream {
+    scroll-behavior: smooth;
+  }
 }
 
 .home-feed-item {

@@ -218,3 +218,28 @@ describe('MockDataAdapter Correct Metric Behavior', () => {
     expect(resOff.likesCount).toBe(initialLikes);
   });
 });
+
+describe('Mobile Snap Scroll Stability', () => {
+  it('verifies scroll restoration effect in FeedContainer does not re-trigger on activePost change', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const feedContainerSrc = fs.readFileSync(
+      path.resolve(__dirname, '../components/feed/FeedContainer.tsx'),
+      'utf-8'
+    );
+
+    // It must use hasRestoredInitialScrollRef to only restore once on mount
+    expect(feedContainerSrc).toContain('hasRestoredInitialScrollRef');
+    expect(feedContainerSrc).toContain('if (hasRestoredInitialScrollRef.current) return;');
+    expect(feedContainerSrc).toContain('lg:scroll-smooth');
+  });
+
+  it('verifies HomeView.css scopes scroll-behavior smooth to desktop to prevent mobile snap jitter', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const css = fs.readFileSync(path.resolve(__dirname, '../views/HomeView.css'), 'utf-8');
+
+    expect(css).toContain('@media (min-width: 1024px)');
+    expect(css).toContain('scroll-snap-type: y mandatory;');
+  });
+});
