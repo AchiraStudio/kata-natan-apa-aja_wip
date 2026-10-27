@@ -200,21 +200,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ): Promise<{ success: boolean; error?: string; role?: UserProfile['role'] }> => {
     setIsLoading(true);
 
-    const normalizedEmail = email.trim();
+    let normalizedEmail = email.trim();
+
+    // Map common aliases/usernames to official emails
+    const lowerInput = normalizedEmail.toLowerCase();
+    if (!normalizedEmail.includes('@')) {
+      if (lowerInput === 'admin' || lowerInput === 'admin.pupr') {
+        normalizedEmail = 'admin@titik.id';
+      } else if (lowerInput === 'warga' || lowerInput === 'budi.santoso' || lowerInput === 'sahabatbogor') {
+        normalizedEmail = 'warga@titik.id';
+      }
+    }
 
     // 1. In DEMO mode only, check preset personas
     if (!isLiveMode) {
-      const normalizedLogin = normalizedEmail.toLowerCase();
-      const matchedPersona = normalizedLogin === 'admin'
+      const normalizedLogin = lowerInput;
+      const matchedPersona = normalizedLogin === 'admin' || normalizedLogin === 'admin.pupr' || normalizedLogin === 'admin@titik.id'
         ? PRESET_PERSONAS.admin
         : [PRESET_PERSONAS.citizen, PRESET_PERSONAS.admin].find(
             (persona) =>
               persona.email?.toLowerCase() === normalizedLogin ||
-              persona.username.toLowerCase() === normalizedLogin
+              persona.username.toLowerCase() === normalizedLogin ||
+              (normalizedLogin === 'warga@titik.id' && persona.role === 'citizen') ||
+              (normalizedLogin === 'admin@titik.id' && persona.role === 'admin')
           );
 
       if (matchedPersona) {
-        if (password && password !== matchedPersona.passwordHint) {
+        if (password && password !== matchedPersona.passwordHint && password !== 'titik2026' && password !== 'admin2026') {
           setIsLoading(false);
           return { success: false, error: 'Username atau password demo tidak sesuai.' };
         }

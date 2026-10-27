@@ -5,6 +5,7 @@ import { seedFacilities } from './seedFacilities';
 import { seedReports } from './seedReports';
 import { seedPosts } from './seedPosts';
 import { seedComments } from './seedComments';
+import { seedAuthUsers } from './seedAuthUsers';
 
 async function resetDemoData() {
   const client = getSeedClient();
@@ -48,6 +49,10 @@ async function runMasterSeed() {
   }
 
   try {
+    // 1. Seed Auth accounts (Admin & Citizen) if service_role provided
+    await seedAuthUsers();
+
+    // 2. Seed data tables
     const profilesCount = await seedProfiles();
     const facilitiesCount = await seedFacilities();
     const reportsCount = await seedReports();
