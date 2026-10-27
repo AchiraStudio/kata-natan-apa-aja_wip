@@ -64,7 +64,7 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav
-      className={`lg:hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-[340px] rounded-full bg-[#20221D]/85 backdrop-blur-xl border border-white/20 shadow-[0_12px_32px_rgba(0,0,0,0.35)] px-4 py-2 flex items-center justify-between transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      className={`lg:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-[340px] rounded-full bg-[#20221D]/85 backdrop-blur-xl border border-white/20 shadow-[0_12px_32px_rgba(0,0,0,0.35)] px-4 py-2 flex items-center justify-between transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         isVisible
           ? 'translate-y-0 opacity-100 pointer-events-auto scale-100'
           : 'translate-y-24 opacity-0 pointer-events-none scale-95'

@@ -9,6 +9,7 @@
     "lint": "oxlint src",
     "test": "vitest run",
     "seed:comments": "npx vite-node scripts/seedSupabaseComments.ts",
+    "seed:supabase": "npx vite-node scripts/seedSupabaseFull.ts",
     "preview": "vite preview --host"
   },
   "dependencies": {

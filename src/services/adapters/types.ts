@@ -42,7 +42,7 @@ export interface FeedComment {
 }
 
 export interface IDataAdapter {
-  getFeedPosts(tab?: 'for_you' | 'following' | 'nearby', category?: string): Promise<Post[]>;
+  getFeedPosts(tab?: 'for_you' | 'following' | 'nearby', category?: string, userId?: string): Promise<Post[]>;
   getMyReports(reporterUserId: string): Promise<Report[]>;
   getReportByReference(reference: string): Promise<Report | null>;
   verifyReportTracking(reference: string, token: string): Promise<Report | null>;
@@ -59,7 +59,10 @@ export interface IDataAdapter {
     actorName: string,
     description: string
   ): Promise<Report>;
-  toggleReportSupport(reportId: string): Promise<{ supportCount: number; isSupported: boolean }>;
+  toggleReportSupport(reportId: string, userId?: string): Promise<{ supportCount: number; isSupported: boolean }>;
+  togglePostSave(postId: string, userId: string): Promise<{ savesCount: number; isSaved: boolean }>;
+  togglePostLike(postId: string, userId: string): Promise<{ likesCount: number; isLiked: boolean }>;
+  getSavedPosts(userId: string): Promise<Post[]>;
   addComment(postId: string, authorName: string, avatarUrl: string, body: string, parentId?: string): Promise<FeedComment>;
   getComments(postId: string): Promise<FeedComment[]>;
   getFacilities(query?: string, category?: string): Promise<Facility[]>;

@@ -11,7 +11,8 @@
   max-width: 1680px;
   margin-left: auto;
   margin-right: auto;
-  height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;

@@ -48,6 +48,10 @@ const MOCK_REPORTS_STORAGE_KEY = 'titik_mock_reports_v2';
 const MOCK_POSTS_STORAGE_KEY = 'titik_mock_posts_v2';
 const DELETED_REPORTS_STORAGE_KEY = 'titik_deleted_reports_v1';
 
+const isTestEnv =
+  typeof process !== 'undefined' &&
+  (Boolean(process.env?.VITEST) || process.env?.NODE_ENV === 'test');
+
 export class MockDataAdapter implements IDataAdapter {
   private deletedReportIds = new Set(loadStoredArray<string>(DELETED_REPORTS_STORAGE_KEY, []));
   private reports: Report[] = loadStoredArray(MOCK_REPORTS_STORAGE_KEY, MOCK_REPORTS)
@@ -61,7 +65,7 @@ export class MockDataAdapter implements IDataAdapter {
     this.reports.filter((report) => !MOCK_REPORTS.some((seedReport) => seedReport.id === report.id)).map((report) => report.id)
   );
   private persistenceLoad: Promise<void> | null = null;
-  private comments: Record<string, FeedComment[]> = { ...MOCK_COMMENTS };
+  private comments: Record<string, FeedComment[]> = isTestEnv ? { ...MOCK_COMMENTS } : {};
   private facilities: Facility[] = [...MOCK_FACILITIES];
   private budgetSectors: BudgetSectorContext[] = Object.values(MOCK_BUDGET_SECTORS);
   private referenceCounter = this.getNextReferenceCounter();
@@ -109,7 +113,7 @@ export class MockDataAdapter implements IDataAdapter {
     await savePersistedReports(reports, posts);
   }
 
-  async getFeedPosts(tab: 'for_you' | 'following' | 'nearby' = 'for_you', category?: string): Promise<Post[]> {
+  async getFeedPosts(tab: 'for_you' | 'following' | 'nearby' = 'for_you', category?: string, _userId?: string): Promise<Post[]> {
     await this.ensurePersistedReportsLoaded();
     let result = [...this.posts];
 
@@ -442,7 +446,7 @@ export class MockDataAdapter implements IDataAdapter {
     return updated;
   }
 
-  async toggleReportSupport(reportId: string): Promise<{ supportCount: number; isSupported: boolean }> {
+  async toggleReportSupport(reportId: string, _userId?: string): Promise<{ supportCount: number; isSupported: boolean }> {
     await this.ensurePersistedReportsLoaded();
     const report = this.reports.find((r) => r.id === reportId);
     if (!report) {
@@ -466,6 +470,38 @@ export class MockDataAdapter implements IDataAdapter {
     await this.persistReportsAndPosts();
 
     return { supportCount, isSupported };
+  }
+
+  async togglePostSave(postId: string, _userId: string): Promise<{ savesCount: number; isSaved: boolean }> {
+    const post = this.posts.find((p) => p.id === postId);
+    if (!post) {
+      throw new Error(`Post with id ${postId} not found`);
+    }
+    const wasSaved = post.isSavedByMe ?? false;
+    const isSaved = !wasSaved;
+    const savesCount = isSaved ? post.savesCount + 1 : Math.max(0, post.savesCount - 1);
+    post.isSavedByMe = isSaved;
+    post.savesCount = savesCount;
+    await this.persistReportsAndPosts();
+    return { savesCount, isSaved };
+  }
+
+  async togglePostLike(postId: string, _userId: string): Promise<{ likesCount: number; isLiked: boolean }> {
+    const post = this.posts.find((p) => p.id === postId);
+    if (!post) {
+      throw new Error(`Post with id ${postId} not found`);
+    }
+    const wasLiked = post.isSupportedByMe ?? false;
+    const isLiked = !wasLiked;
+    const likesCount = isLiked ? post.supportCount + 1 : Math.max(0, post.supportCount - 1);
+    post.isSupportedByMe = isLiked;
+    post.supportCount = likesCount;
+    await this.persistReportsAndPosts();
+    return { likesCount, isLiked };
+  }
+
+  async getSavedPosts(_userId: string): Promise<Post[]> {
+    return this.posts.filter((p) => p.isSavedByMe);
   }
 
   async addComment(

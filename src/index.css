@@ -36,10 +36,20 @@
     --titik-accent-emerald: #059669;
   }
 
+  html,
+  body,
+  #root {
+    height: 100%;
+    min-height: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
   body {
     background-color: var(--titik-canvas);
     color: var(--titik-ink-primary);
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 

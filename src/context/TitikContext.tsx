@@ -25,7 +25,10 @@ interface TitikContextType {
   closeReportDetail: () => void;
   setSearchModalOpen: (open: boolean) => void;
   setLandingBannerOpen: (open: boolean) => void;
+  currentUserId?: string;
   toggleSupport: (reportId: string) => Promise<void>;
+  togglePostSave?: (postId: string) => Promise<void>;
+  togglePostLike?: (postId: string) => Promise<void>;
   addComment: (
     postId: string,
     body: string,
@@ -114,9 +117,9 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setSelectedReport(null);
   };
 
+  const currentUserId = 'usr-citizen-default-001';
+
   const toggleSupport = async (reportId: string) => {
-    await dataService.toggleReportSupport(reportId);
-    // Refresh local feed state optimistically
     setPosts((prev) =>
       prev.map((p) => {
         if (p.relatedReportId === reportId && p.relatedReport) {
@@ -137,6 +140,45 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return p;
       })
     );
+    await dataService.toggleReportSupport(reportId, currentUserId);
+  };
+
+  const togglePostSave = async (postId: string) => {
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id === postId) {
+          const wasSaved = p.isSavedByMe ?? false;
+          const isSaved = !wasSaved;
+          const savesCount = isSaved ? p.savesCount + 1 : Math.max(0, p.savesCount - 1);
+          return {
+            ...p,
+            isSavedByMe: isSaved,
+            savesCount,
+          };
+        }
+        return p;
+      })
+    );
+    await dataService.togglePostSave(postId, currentUserId);
+  };
+
+  const togglePostLike = async (postId: string) => {
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id === postId) {
+          const wasLiked = p.isSupportedByMe ?? false;
+          const isLiked = !wasLiked;
+          const supportCount = isLiked ? p.supportCount + 1 : Math.max(0, p.supportCount - 1);
+          return {
+            ...p,
+            isSupportedByMe: isLiked,
+            supportCount,
+          };
+        }
+        return p;
+      })
+    );
+    await dataService.togglePostLike(postId, currentUserId);
   };
 
   const getComments = async (postId: string) => {
@@ -227,7 +269,10 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         closeReportDetail,
         setSearchModalOpen,
         setLandingBannerOpen,
+        currentUserId,
         toggleSupport,
+        togglePostSave,
+        togglePostLike,
         addComment,
         getComments,
         submitReport,

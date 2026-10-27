@@ -8,34 +8,42 @@ describe('SupabaseDataAdapter Comments Integration', () => {
     adapter = new SupabaseDataAdapter();
   });
 
-  it('retrieves comments from fallback mock when client is offline or empty', async () => {
-    const comments = await adapter.getComments('kn-001');
+  it('retrieves an empty array when a post has no comments', async () => {
+    const emptyPostId = `test-empty-${Date.now()}`;
+    const comments = await adapter.getComments(emptyPostId);
     expect(comments).toBeDefined();
-    expect(comments.length).toBeGreaterThan(0);
-
-    const first = comments[0];
-    expect(first).toHaveProperty('id');
-    expect(first).toHaveProperty('authorName');
-    expect(first).toHaveProperty('body');
-    expect(first).toHaveProperty('timeAgo');
-    expect(first).toHaveProperty('likes');
+    expect(Array.isArray(comments)).toBe(true);
+    expect(comments.length).toBe(0);
   });
 
   it('preserves threaded replies with valid parentId', async () => {
-    const comments = await adapter.getComments('kn-001');
-    const replies = comments.filter((c) => Boolean(c.parentId));
-    expect(replies.length).toBeGreaterThan(0);
+    const testPostId = `test-thread-${Date.now()}`;
+    const parent = await adapter.addComment(
+      testPostId,
+      'Warga Pengetes',
+      'https://example.com/avatar.jpg',
+      'Induk komentar'
+    );
+    const reply = await adapter.addComment(
+      testPostId,
+      'Warga Pembalas',
+      'https://example.com/avatar2.jpg',
+      'Balasan komentar',
+      parent.id
+    );
 
-    replies.forEach((r) => {
-      expect(r.parentId).toBeDefined();
-      const parent = comments.find((c) => c.id === r.parentId);
-      expect(parent, `Parent comment ${r.parentId} must exist`).toBeDefined();
-    });
+    const comments = await adapter.getComments(testPostId);
+    expect(comments.length).toBe(2);
+
+    const foundReply = comments.find((c) => c.id === reply.id);
+    expect(foundReply).toBeDefined();
+    expect(foundReply?.parentId).toBe(parent.id);
   });
 
   it('adds a new comment and returns properly formatted FeedComment', async () => {
+    const testPostId = `test-add-${Date.now()}`;
     const newComment = await adapter.addComment(
-      'kn-001',
+      testPostId,
       'Warga Pengetes',
       'https://example.com/avatar.jpg',
       'Test tanggapan warga di Supabase adapter'
@@ -49,15 +57,21 @@ describe('SupabaseDataAdapter Comments Integration', () => {
     expect(newComment.likes).toBe(0);
 
     // Verify it is present in subsequent queries
-    const comments = await adapter.getComments('kn-001');
+    const comments = await adapter.getComments(testPostId);
     const found = comments.find((c) => c.id === newComment.id);
     expect(found).toBeDefined();
   });
 
   it('adds a threaded reply with parentId successfully', async () => {
-    const parent = (await adapter.getComments('kn-001'))[0];
+    const testPostId = `test-reply-${Date.now()}`;
+    const parent = await adapter.addComment(
+      testPostId,
+      'Warga Utama',
+      'https://example.com/avatar.jpg',
+      'Laporan awal'
+    );
     const reply = await adapter.addComment(
-      'kn-001',
+      testPostId,
       'Warga Pembalas',
       'https://example.com/avatar2.jpg',
       'Setuju sekali pak!',

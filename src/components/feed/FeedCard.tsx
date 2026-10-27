@@ -30,7 +30,7 @@ interface FeedCardProps {
 }
 
 export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive = true }) => {
-  const { toggleSupport, openReportDetail } = useTitik();
+  const { toggleSupport, togglePostSave, openReportDetail } = useTitik();
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -247,7 +247,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
       </div>
 
       {/* 3. Right Floating Social Action Bar (TikTok Style) */}
-      <div className="absolute right-3.5 bottom-24 lg:bottom-20 z-20 flex flex-col items-center gap-3.5 sm:gap-4">
+      <div className="absolute right-3.5 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:bottom-20 z-20 flex flex-col items-center gap-3.5 sm:gap-4">
         {/* Author Avatar with Follow Badge */}
         <div className="relative">
           <img
@@ -324,7 +324,12 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         <div className="flex flex-col items-center">
           <button
             type="button"
-            onClick={() => setIsSaved(!isSaved)}
+            onClick={() => {
+              setIsSaved(!isSaved);
+              if (togglePostSave) {
+                togglePostSave(post.id);
+              }
+            }}
             className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center backdrop-blur-md transition-all active:scale-90 ${
               isSaved ? 'bg-amber-400 text-[#20221D]' : 'bg-black/45 text-white hover:bg-black/65'
             }`}
@@ -339,7 +344,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
       </div>
 
       {/* 4. Bottom Information & Media Controls Overlay */}
-      <div className="relative z-10 p-4 sm:p-5 pb-24 lg:pb-5 pr-16 space-y-2">
+      <div className="relative z-10 p-4 sm:p-5 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-5 pr-16 space-y-2">
         {/* Author Handle */}
         <div className="flex items-center gap-2">
           <span className="font-bold text-sm tracking-tight drop-shadow-md">
