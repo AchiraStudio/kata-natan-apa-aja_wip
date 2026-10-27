@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { describe, it, expect } from 'vitest';
 import { MockDataAdapter } from '../services/adapters/mockAdapter';
 import { UserProfile } from '../types/domain';
@@ -63,5 +64,28 @@ describe('Profile Customization & Supabase Persistence', () => {
     expect(sampleProfile.backgroundTheme).toBe('midnight_charcoal');
     expect(sampleProfile.customStatus).toBe('Bogor Bersih 2026');
   });
-});
+  it('verifies CommentsBottomSheet.tsx includes onCommentsCountChangeRef to prevent infinite refresh re-renders', () => {
+    const bottomSheetSrc = fs.readFileSync('src/components/feed/CommentsBottomSheet.tsx', 'utf8');
+    expect(bottomSheetSrc).toContain('onCommentsCountChangeRef');
+    expect(bottomSheetSrc).toContain('onCommentsCountChangeRef.current = onCommentsCountChange;');
+    expect(bottomSheetSrc).toContain('useEffect(() => {\n    if (!isOpen) return;\n    fetchComments(false);\n  }, [isOpen, postId]);');
+  });
 
+  it('verifies ProfileView.tsx defines full visual theme tokens including pageBg and cardBg', () => {
+    const profileViewSrc = fs.readFileSync('src/views/ProfileView.tsx', 'utf8');
+    expect(profileViewSrc).toContain('pageBg: string;');
+    expect(profileViewSrc).toContain('cardBg: string;');
+    expect(profileViewSrc).toContain('cardBorder: string;');
+    expect(profileViewSrc).toContain('statBg: string;');
+    expect(profileViewSrc).toContain('${currentTheme.pageBg}');
+    expect(profileViewSrc).toContain('${currentTheme.cardBg}');
+    expect(profileViewSrc).toContain('${currentTheme.cardBorder}');
+    expect(profileViewSrc).toContain('${currentTheme.statBg}');
+  });
+
+  it('verifies useMediaUpload.ts specifies contentType for Supabase storage uploads', () => {
+    const mediaUploadSrc = fs.readFileSync('src/components/composer/useMediaUpload.ts', 'utf8');
+    expect(mediaUploadSrc).toContain('contentType: mimeType');
+    expect(mediaUploadSrc).toContain('maxWidth = 1600');
+  });
+});

@@ -843,10 +843,36 @@ export class SupabaseDataAdapter implements IDataAdapter {
     customStatus?: string;
   }): Promise<UserProfile> {
     try {
-      let data: any = null;
-      let rpcError: any = null;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new DataError('auth', 'Autentikasi diperlukan untuk memperbarui profil.');
 
-      try {
+      const updateFields: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+      if (payload.displayName !== undefined) updateFields.display_name = payload.displayName.trim();
+      if (payload.username !== undefined) updateFields.username = payload.username.trim().toLowerCase();
+      if (payload.avatarUrl !== undefined) updateFields.avatar_url = payload.avatarUrl || null;
+      if (payload.bio !== undefined) updateFields.bio = payload.bio || null;
+      if (payload.district !== undefined) updateFields.district = payload.district || null;
+      if (payload.bannerUrl !== undefined) updateFields.banner_url = payload.bannerUrl || null;
+      if (payload.backgroundTheme !== undefined) updateFields.background_theme = payload.backgroundTheme || 'editorial_forest';
+      if (payload.websiteUrl !== undefined) updateFields.website_url = payload.websiteUrl || null;
+      if (payload.customStatus !== undefined) updateFields.custom_status = payload.customStatus || null;
+
+      let data: any = null;
+
+      // 1. Primary path: Direct update on public.profiles via authenticated user RLS
+      const { data: directData, error: directErr } = await supabase
+        .from('profiles')
+        .update(updateFields)
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (!directErr && directData) {
+        data = directData;
+      } else {
+        // 2. Secondary fallback path: RPC function update_my_profile
         const res = await supabase.rpc('update_my_profile', {
           p_display_name: payload.displayName?.trim() || null,
           p_username: payload.username?.trim().toLowerCase() || null,
@@ -858,41 +884,10 @@ export class SupabaseDataAdapter implements IDataAdapter {
           p_website_url: payload.websiteUrl || null,
           p_custom_status: payload.customStatus || null,
         });
-        data = res.data;
-        rpcError = res.error;
-      } catch (e) {
-        rpcError = e;
-      }
-
-      // Fallback: If RPC failed (e.g. signature mismatch on remote DB), direct update profiles via RLS
-      if (rpcError || !data) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new DataError('auth', 'Autentikasi diperlukan untuk memperbarui profil.');
-
-        const updateFields: Record<string, any> = {
-          updated_at: new Date().toISOString(),
-        };
-        if (payload.displayName !== undefined) updateFields.display_name = payload.displayName.trim();
-        if (payload.username !== undefined) updateFields.username = payload.username.trim().toLowerCase();
-        if (payload.avatarUrl !== undefined) updateFields.avatar_url = payload.avatarUrl;
-        if (payload.bio !== undefined) updateFields.bio = payload.bio;
-        if (payload.district !== undefined) updateFields.district = payload.district;
-        if (payload.bannerUrl !== undefined) updateFields.banner_url = payload.bannerUrl;
-        if (payload.backgroundTheme !== undefined) updateFields.background_theme = payload.backgroundTheme;
-        if (payload.websiteUrl !== undefined) updateFields.website_url = payload.websiteUrl;
-        if (payload.customStatus !== undefined) updateFields.custom_status = payload.customStatus;
-
-        const { data: directData, error: directErr } = await supabase
-          .from('profiles')
-          .update(updateFields)
-          .eq('id', user.id)
-          .select()
-          .single();
-
-        if (directErr) {
-          throw mapPostgrestError(directErr, 'Gagal memperbarui profil.');
+        if (res.error || !res.data) {
+          throw mapPostgrestError(directErr || res.error, 'Gagal memperbarui profil.');
         }
-        data = directData;
+        data = res.data;
       }
 
       return {

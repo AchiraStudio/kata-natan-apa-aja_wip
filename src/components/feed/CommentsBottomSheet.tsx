@@ -56,31 +56,41 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
     };
   }, [isOpen]);
 
-  const fetchComments = useCallback(async (isRefreshAction = false) => {
-    if (isRefreshAction) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-    try {
-      const loaded = await getComments(postId);
-      const list = loaded || [];
-      setComments(list);
-      setHasFetched(true);
-      onCommentsCountChange?.(list.length);
-    } catch (err) {
-      console.error('Failed to load comments:', err);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [postId, getComments, onCommentsCountChange]);
+  const onCommentsCountChangeRef = useRef(onCommentsCountChange);
+  useEffect(() => {
+    onCommentsCountChangeRef.current = onCommentsCountChange;
+  }, [onCommentsCountChange]);
 
-  // Load comments when sheet opens
+  const fetchComments = useCallback(
+    async (isRefreshAction = false) => {
+      if (isRefreshAction) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      try {
+        const loaded = await getComments(postId);
+        const list = loaded || [];
+        setComments(list);
+        setHasFetched(true);
+        if (list.length !== commentsCount) {
+          onCommentsCountChangeRef.current?.(list.length);
+        }
+      } catch (err) {
+        console.error('Failed to load comments:', err);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [postId, getComments, commentsCount]
+  );
+
+  // Load comments when sheet opens or postId changes (isolated from re-render loops)
   useEffect(() => {
     if (!isOpen) return;
     fetchComments(false);
-  }, [isOpen, fetchComments]);
+  }, [isOpen, postId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle ESC key to dismiss
   useEffect(() => {

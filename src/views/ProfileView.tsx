@@ -49,7 +49,10 @@ interface ThemeOption {
   name: string;
   description: string;
   bannerGradient: string;
+  pageBg: string;
+  cardBg: string;
   cardBorder: string;
+  statBg: string;
   swatchHex: string;
 }
 
@@ -59,7 +62,10 @@ const THEME_OPTIONS: ThemeOption[] = [
     name: 'Hutan Hujan Bogor',
     description: 'Hijau cemara khas alam Kota Hujan',
     bannerGradient: 'from-[#1E3A2F] via-[#2A4C3E] to-[#1E3A2F]',
-    cardBorder: 'border-emerald-900/30',
+    pageBg: 'bg-[#F4F6F4] dark:bg-[#0A120E]',
+    cardBg: 'bg-white dark:bg-[#131C17]',
+    cardBorder: 'border-[#D5DDD7] dark:border-[#1E2D25]',
+    statBg: 'bg-[#EFF4F0] dark:bg-[#16221C]',
     swatchHex: '#1E3A2F',
   },
   {
@@ -67,7 +73,10 @@ const THEME_OPTIONS: ThemeOption[] = [
     name: 'Batu Andesit Salak',
     description: 'Batu sungai dingin Gunung Salak',
     bannerGradient: 'from-[#1E252B] via-[#2D3740] to-[#1E252B]',
-    cardBorder: 'border-slate-800/40',
+    pageBg: 'bg-[#F2F4F7] dark:bg-[#0D1115]',
+    cardBg: 'bg-white dark:bg-[#151B21]',
+    cardBorder: 'border-[#D2D8DF] dark:border-[#222C36]',
+    statBg: 'bg-[#EAEEF3] dark:bg-[#1A222A]',
     swatchHex: '#252F38',
   },
   {
@@ -75,7 +84,10 @@ const THEME_OPTIONS: ThemeOption[] = [
     name: 'Bata Klasik Suryakencana',
     description: 'Terakota hangat kawasan cagar budaya',
     bannerGradient: 'from-[#3E2723] via-[#4E342E] to-[#3E2723]',
-    cardBorder: 'border-amber-900/30',
+    pageBg: 'bg-[#F8F5F2] dark:bg-[#140E0C]',
+    cardBg: 'bg-white dark:bg-[#1C1513]',
+    cardBorder: 'border-[#E0D7D0] dark:border-[#2C211D]',
+    statBg: 'bg-[#F2ECE6] dark:bg-[#231A17]',
     swatchHex: '#4E342E',
   },
   {
@@ -83,7 +95,10 @@ const THEME_OPTIONS: ThemeOption[] = [
     name: 'Malam Kebun Raya',
     description: 'Gelap arang malam dengan aksen tajam',
     bannerGradient: 'from-[#111815] via-[#16201B] to-[#111815]',
-    cardBorder: 'border-stone-800/60',
+    pageBg: 'bg-[#F5F5F4] dark:bg-[#0A0D0B]',
+    cardBg: 'bg-white dark:bg-[#121614]',
+    cardBorder: 'border-[#DEDDD9] dark:border-[#1E2521]',
+    statBg: 'bg-[#EAEAE7] dark:bg-[#171D1A]',
     swatchHex: '#141B18',
   },
   {
@@ -91,7 +106,10 @@ const THEME_OPTIONS: ThemeOption[] = [
     name: 'Arsip Berita Cetak',
     description: 'Nuansa kertas koran dan arsip kota',
     bannerGradient: 'from-[#2B2922] via-[#38352C] to-[#2B2922]',
-    cardBorder: 'border-yellow-950/30',
+    pageBg: 'bg-[#F7F5EE] dark:bg-[#12110D]',
+    cardBg: 'bg-white dark:bg-[#1B1914]',
+    cardBorder: 'border-[#DDD8C8] dark:border-[#2A261D]',
+    statBg: 'bg-[#EFECE0] dark:bg-[#221F18]',
     swatchHex: '#333027',
   },
 ];
@@ -270,7 +288,7 @@ export const ProfileView: React.FC = () => {
     try {
       setIsSaving(true);
       if (!isEditOpen) showToast('Sedang memproses foto profil...');
-      const cleaned = await stripExifAndCleanImage(file);
+      const cleaned = await stripExifAndCleanImage(file, 1600, 600, 0.85);
       const uploadedUrl = await uploadFileToSupabase('avatars', cleaned.blob, profile?.id, `avatar-${Date.now()}`);
       setEditAvatarUrl(uploadedUrl);
 
@@ -310,7 +328,7 @@ export const ProfileView: React.FC = () => {
     try {
       setIsSaving(true);
       showToast('Sedang memproses & mengunggah sampul profil...');
-      const cleaned = await stripExifAndCleanImage(file);
+      const cleaned = await stripExifAndCleanImage(file, 1600, 600, 0.85);
       const uploadedUrl = await uploadFileToSupabase('avatars', cleaned.blob, profile?.id, `banner-${Date.now()}`);
       
       const updated = await dataService.updateProfile({
@@ -433,7 +451,7 @@ export const ProfileView: React.FC = () => {
     THEME_OPTIONS.find((t) => t.id === profile?.backgroundTheme) || THEME_OPTIONS[0];
 
   return (
-    <div className="min-h-screen bg-[#F7F6F1] dark:bg-[#0A100D] text-[#20221D] dark:text-[#F3F6F4] flex flex-col lg:flex-row pb-24 lg:pb-0">
+    <div className={`min-h-screen ${currentTheme.pageBg} text-[#20221D] dark:text-[#F3F6F4] flex flex-col lg:flex-row pb-24 lg:pb-0 transition-colors duration-300`}>
       <Sidebar />
 
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 lg:py-8">
@@ -504,7 +522,7 @@ export const ProfileView: React.FC = () => {
         {!isLoading && profile && (
           <div className="space-y-6">
                         {/* Profile Card Header with Dynamic Theme & Banner */}
-            <div className="relative bg-white dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl shadow-sm overflow-hidden">
+            <div className={`relative ${currentTheme.cardBg} border ${currentTheme.cardBorder} rounded-3xl shadow-sm overflow-hidden transition-colors duration-300`}>
               {/* Cover Banner */}
               <div
                 className={`h-36 sm:h-48 relative overflow-hidden bg-gradient-to-r ${currentTheme.bannerGradient}`}
@@ -517,8 +535,8 @@ export const ProfileView: React.FC = () => {
                   />
                 )}
                 {/* Visual Depth Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#F7F6F1_1px,transparent_1px)] [background-size:16px_16px]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#F7F6F1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
 
                 {isOwnProfile && (
                   <>
@@ -532,7 +550,7 @@ export const ProfileView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => bannerInputRef.current?.click()}
-                      className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-[11px] font-bold shadow-md transition-all active:scale-95 cursor-pointer border border-white/20"
+                      className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 backdrop-blur-md text-white text-[11px] font-bold shadow-md transition-all active:scale-95 cursor-pointer border border-white/20"
                       title="Ubah Foto Sampul Langsung"
                     >
                       <Camera className="w-3.5 h-3.5" />
@@ -707,8 +725,8 @@ export const ProfileView: React.FC = () => {
                 </div>
 
                 {/* Stats Summary Bar */}
-                <div className="grid grid-cols-3 gap-3 pt-5 mt-5 border-t border-[#E4E2DA] dark:border-[#26352E]">
-                  <div className="text-center p-3 rounded-2xl bg-[#F7F6F1] dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E]">
+                <div className={`grid grid-cols-3 gap-3 pt-5 mt-5 border-t ${currentTheme.cardBorder}`}>
+                  <div className={`text-center p-3 rounded-2xl ${currentTheme.statBg} border ${currentTheme.cardBorder} transition-colors duration-300`}>
                     <div className="text-base sm:text-lg font-black text-[#20221D] dark:text-[#F3F6F4]">
                       {posts.length}
                     </div>
@@ -717,7 +735,7 @@ export const ProfileView: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="text-center p-3 rounded-2xl bg-[#F7F6F1] dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E]">
+                  <div className={`text-center p-3 rounded-2xl ${currentTheme.statBg} border ${currentTheme.cardBorder} transition-colors duration-300`}>
                     <div className="text-base sm:text-lg font-black text-[#20221D] dark:text-[#F3F6F4]">
                       {reports.length}
                     </div>
@@ -726,7 +744,7 @@ export const ProfileView: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="text-center p-3 rounded-2xl bg-[#F7F6F1] dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E]">
+                  <div className={`text-center p-3 rounded-2xl ${currentTheme.statBg} border ${currentTheme.cardBorder} transition-colors duration-300`}>
                     <div className="text-base sm:text-lg font-black text-[#20221D] dark:text-[#F3F6F4]">
                       {totalSupportAndLikes}
                     </div>

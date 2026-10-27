@@ -12,21 +12,37 @@ export interface UploadedMediaItem {
   sizeBytes: number;
 }
 
-export async function stripExifAndCleanImage(file: File): Promise<{ blob: Blob; dataUrl: string }> {
+export async function stripExifAndCleanImage(
+  file: File,
+  maxWidth = 1600,
+  maxHeight = 900,
+  quality = 0.85
+): Promise<{ blob: Blob; dataUrl: string }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
+      let { width, height } = {
+        width: img.naturalWidth || img.width,
+        height: img.naturalHeight || img.height,
+      };
+
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
       const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth || img.width;
-      canvas.height = img.naturalHeight || img.height;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         reject(new Error('Canvas 2D context tidak tersedia di browser ini.'));
         return;
       }
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, width, height);
       canvas.toBlob(
         (blob) => {
           if (!blob) {
@@ -41,7 +57,7 @@ export async function stripExifAndCleanImage(file: File): Promise<{ blob: Blob; 
           reader.readAsDataURL(blob);
         },
         'image/jpeg',
-        0.92
+        quality
       );
     };
     img.onerror = () => {
@@ -60,19 +76,32 @@ export async function uploadFileToSupabase(
 ): Promise<string> {
   if (isSupabaseConfigured) {
     try {
-      const folder = userId || 'public';
+      // Determine folder: Must match auth.uid() for storage RLS
+      let folder = userId;
+      if (!folder || folder === 'public') {
+        const { data: userData } = await supabase.auth.getUser();
+        folder = userData.user?.id || userId || 'public';
+      }
+
       const cleanExt = fileName.includes('.') ? fileName.split('.').pop() : 'jpg';
       const path = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${cleanExt}`;
+      const mimeType = (fileOrBlob as Blob).type || (cleanExt === 'png' ? 'image/png' : 'image/jpeg');
+
       const { data, error } = await supabase.storage.from(bucket).upload(path, fileOrBlob, {
         cacheControl: '3600',
         upsert: false,
+        contentType: mimeType,
       });
+
       if (!error && data) {
         if (bucket === 'post-media' || bucket === 'avatars') {
           const { data: pubData } = supabase.storage.from(bucket).getPublicUrl(path);
           return pubData.publicUrl;
         }
         return path;
+      }
+      if (error) {
+        console.warn('Storage upload returned error, falling back:', error.message);
       }
     } catch (err) {
       console.warn('Storage upload fallback:', err);

@@ -677,7 +677,7 @@ export class MockDataAdapter implements IDataAdapter {
       district: payload.district,
       isVerified: false,
       createdAt: new Date().toISOString(),
-      bannerUrl: payload.bannerUrl || 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=1200&q=80',
+      bannerUrl: payload.bannerUrl !== undefined ? (payload.bannerUrl || undefined) : 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=1200&q=80',
       backgroundTheme: payload.backgroundTheme || 'editorial_forest',
       websiteUrl: payload.websiteUrl,
       customStatus: payload.customStatus,
