@@ -22,7 +22,7 @@ export const RightContextualPanel: React.FC = () => {
   const { profile } = useAuth();
 
   const [comments, setComments] = useState<FeedComment[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadedPostId, setLoadedPostId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
   const [replyTarget, setReplyTarget] = useState<{ id: string; authorName: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,26 +34,20 @@ export const RightContextualPanel: React.FC = () => {
 
   // Load comments when active post changes
   useEffect(() => {
-    if (!activePost) {
-      setComments([]);
-      return;
-    }
+    if (!activePost) return;
 
     let isMounted = true;
-    setIsLoading(true);
-
     getComments(activePost.id)
       .then((loaded) => {
         if (isMounted) {
           setComments(loaded || []);
+          setLoadedPostId(activePost.id);
         }
       })
       .catch((err) => {
         console.error('Failed to load comments in RightContextualPanel:', err);
-      })
-      .finally(() => {
         if (isMounted) {
-          setIsLoading(false);
+          setLoadedPostId(activePost.id);
         }
       });
 
@@ -61,6 +55,9 @@ export const RightContextualPanel: React.FC = () => {
       isMounted = false;
     };
   }, [activePost, getComments]);
+
+  // Derived: a load is in flight while the rendered post has no settled result yet
+  const isLoading = activePost != null && loadedPostId !== activePost.id;
 
   if (!activePost) {
     return (

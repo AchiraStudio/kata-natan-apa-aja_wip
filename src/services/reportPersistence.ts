@@ -191,3 +191,20 @@ export async function savePersistedReports(reports: Report[], posts: Post[]): Pr
     database.close();
   }
 }
+
+export async function clearPersistedReports(): Promise<void> {
+  if (typeof indexedDB === 'undefined') return;
+  try {
+    const database = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction([OBJECT_STORE, MEDIA_STORE], 'readwrite');
+      transaction.objectStore(OBJECT_STORE).clear();
+      transaction.objectStore(MEDIA_STORE).clear();
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error ?? new Error('Gagal membersihkan database IndexedDB.'));
+    });
+    database.close();
+  } catch (err) {
+    console.warn('Could not clear IndexedDB persisted reports:', err);
+  }
+}

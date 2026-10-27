@@ -308,15 +308,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
       {/* Bottom Section: Citizen Profile Card & Theme Toggle */}
       <div className="pt-3 border-t border-[#E4E2DA] dark:border-[#26352E] flex items-center gap-2">
         <a
-          href="/login"
+          href={isAuthenticated ? '/laporan-saya' : '/login'}
           onClick={(e) => {
             e.preventDefault();
-            if (location.pathname !== '/login') {
-              navigate('/login');
+            const target = isAuthenticated ? '/laporan-saya' : '/login';
+            if (location.pathname !== target) {
+              navigate(target);
             }
           }}
           className="flex min-w-0 flex-1 items-center justify-between p-2.5 bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-xl shadow-xs hover:border-[#263F35]/40 dark:hover:border-[#10B981]/40 transition-all group"
-          title="Kelola Akun & Generator Warga"
+          title={isAuthenticated ? 'Laporan Saya' : 'Masuk'}
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <img

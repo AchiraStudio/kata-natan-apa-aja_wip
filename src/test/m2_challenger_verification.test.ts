@@ -144,19 +144,20 @@ describe('Milestone 2 Challenger Empirical Verification Suite', () => {
   describe('FeedCard.tsx Layout & Invariant Safeguards', () => {
     const feedCardPath = path.resolve(__dirname, '../components/feed/FeedCard.tsx');
 
-    it('confirms FeedCard imports and applies formatEngagementMetric to all 4 metrics', () => {
+    it('confirms FeedCard imports and applies formatEngagementMetric to the 3 real metrics', () => {
       const content = fs.readFileSync(feedCardPath, 'utf-8');
       expect(content).toContain('formatEngagementMetric');
       expect(content).toContain('formatEngagementMetric(post.supportCount)');
       expect(content).toContain('formatEngagementMetric(post.commentsCount)');
-      expect(content).toContain('formatEngagementMetric(post.sharesCount)');
       expect(content).toContain('formatEngagementMetric(post.savesCount)');
+      // sharesCount is not rendered: nothing increments it, so the metric would be fake
+      expect(content).not.toContain('formatEngagementMetric(post.sharesCount)');
     });
 
     it('verifies whitespace-nowrap tabular-nums select-none applied to action bar metric spans', () => {
       const content = fs.readFileSync(feedCardPath, 'utf-8');
       const occurrences = (content.match(/whitespace-nowrap tabular-nums select-none/g) || []).length;
-      expect(occurrences).toBeGreaterThanOrEqual(4);
+      expect(occurrences).toBeGreaterThanOrEqual(3);
     });
 
     it('verifies caption expansion has overscroll-y-contain and data-scroll-isolated', () => {

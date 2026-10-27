@@ -149,6 +149,8 @@ export interface Post {
   relatedReport?: Report;
   supportCount: number; // Civic verification: "Saya terdampak juga"
   isSupportedByMe?: boolean;
+  likesCount?: number;
+  isLikedByMe?: boolean;
   commentsCount: number;
   sharesCount: number;
   savesCount: number;

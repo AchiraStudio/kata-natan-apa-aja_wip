@@ -2,10 +2,16 @@ import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 import { MOCK_POSTS_KN, MOCK_REPORTS_KN, MOCK_FACILITIES } from '../src/data/mockCivicData';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://oetnxbovjwovaddivmwf.supabase.co';
-const supabaseKey =
-  process.env.VITE_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ldG54Ym92andvdmFkZGl2bXdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyMTMzMDUsImV4cCI6MjEwNzc4OTMwNX0.TrLvfg1dCPs_Vuiw-En739SS83w3gxNkNiAL73oRGYM';
+const rawUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const rawKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+if (!rawUrl || !rawKey) {
+  console.error('Error: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables are required.');
+  process.exit(1);
+}
+
+const supabaseUrl: string = rawUrl;
+const supabaseKey: string = rawKey;
 
 export async function seedSupabaseFull() {
   console.log('Connecting to Supabase at:', supabaseUrl);
@@ -101,4 +107,3 @@ export async function seedSupabaseFull() {
 seedSupabaseFull().catch((err) => {
   console.error('Seed script failed:', err);
 });
-

@@ -60,8 +60,8 @@ export interface IDataAdapter {
     description: string
   ): Promise<Report>;
   toggleReportSupport(reportId: string, userId?: string): Promise<{ supportCount: number; isSupported: boolean }>;
-  togglePostSave(postId: string, userId: string): Promise<{ savesCount: number; isSaved: boolean }>;
-  togglePostLike(postId: string, userId: string): Promise<{ likesCount: number; isLiked: boolean }>;
+  togglePostSave(postId: string, userId?: string): Promise<{ savesCount: number; isSaved: boolean }>;
+  togglePostLike(postId: string, userId?: string): Promise<{ likesCount: number; isLiked: boolean }>;
   getSavedPosts(userId: string): Promise<Post[]>;
   addComment(postId: string, authorName: string, avatarUrl: string, body: string, parentId?: string): Promise<FeedComment>;
   getComments(postId: string): Promise<FeedComment[]>;

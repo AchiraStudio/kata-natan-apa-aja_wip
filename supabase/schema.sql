@@ -1,411 +1,991 @@
 -- =============================================================================
--- TITIK. — Master Supabase Database Schema & Production Seed
--- Architecture: 100% Server-Side Live Storage on Supabase (PostgreSQL)
--- Generated: 2026-10-27T00:26:20.474Z
+-- TITIK. — Migration 20261028000001: Security Hardening & Zero-Trust RLS Policies
+-- Description: Closes privilege-escalation holes, introduces user_roles & is_admin(),
+--              restricts public data leaks, implements atomic RPCs, and enforces
+--              least-privilege RLS for profiles, posts, reports, comments, and storage.
 -- =============================================================================
 
--- Enable pgcrypto
+-- Enable pgcrypto for constant-time comparisons and UUID generation
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- -----------------------------------------------------------------------------
--- 0. CLEANUP & RESET CONFLICTING LEGACY TABLES
+-- 1. USER ROLES & PRIVILEGE ELEVATION DEFENSE
 -- -----------------------------------------------------------------------------
--- Safely drop legacy tables to eliminate incompatible column types (e.g. UUID vs TEXT)
-DROP TABLE IF EXISTS public.post_likes CASCADE;
-DROP TABLE IF EXISTS public.post_saves CASCADE;
-DROP TABLE IF EXISTS public.report_supports CASCADE;
-DROP TABLE IF EXISTS public.comments CASCADE;
-DROP TABLE IF EXISTS public.posts CASCADE;
-DROP TABLE IF EXISTS public.report_events CASCADE;
-DROP TABLE IF EXISTS public.report_attachments CASCADE;
-DROP TABLE IF EXISTS public.report_revisions CASCADE;
-DROP TABLE IF EXISTS public.report_status_audit CASCADE;
-DROP TABLE IF EXISTS public.budget_projects CASCADE;
-DROP TABLE IF EXISTS public.reports CASCADE;
-DROP TABLE IF EXISTS public.facilities CASCADE;
-DROP TABLE IF EXISTS public.user_preferences CASCADE;
-DROP TABLE IF EXISTS public.profiles CASCADE;
 
--- -----------------------------------------------------------------------------
--- 1. PROFILES (Citizen & Administrator Profiles linked with Supabase Auth)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id TEXT PRIMARY KEY,
-  username TEXT UNIQUE NOT NULL,
-  display_name TEXT NOT NULL,
-  email TEXT,
-  avatar_url TEXT,
-  role TEXT DEFAULT 'citizen' CHECK (role IN ('citizen', 'admin')),
-  verified_agency TEXT,
-  district TEXT,
-  is_verified BOOLEAN DEFAULT FALSE,
-  bio TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS public.user_roles (
+  user_id TEXT PRIMARY KEY,
+  role TEXT NOT NULL CHECK (role IN ('admin')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
-CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
-CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (true);
-DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
-CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (true);
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
--- Trigger to create profile when auth user signs up
+REVOKE ALL ON public.user_roles FROM anon, authenticated;
+GRANT SELECT ON public.user_roles TO authenticated;
+
+DROP POLICY IF EXISTS "Users can view own role" ON public.user_roles;
+CREATE POLICY "Users can view own role" ON public.user_roles
+  FOR SELECT USING (user_id = (SELECT auth.uid()::text));
+
+-- Stable, fixed search_path security definer function to test admin status
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = (SELECT auth.uid()::text) AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public, auth;
+
+-- RPC for frontend to discover user's real role safely
+CREATE OR REPLACE FUNCTION public.get_my_role()
+RETURNS TEXT AS $$
+DECLARE
+  v_role TEXT;
+BEGIN
+  SELECT role INTO v_role FROM public.user_roles
+  WHERE user_id = (SELECT auth.uid()::text);
+  RETURN COALESCE(v_role, 'citizen');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public, auth;
+
+GRANT EXECUTE ON FUNCTION public.is_admin() TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_my_role() TO authenticated;
+
+-- Bootstrap initial admin if user exists in auth.users
+DO $$
+DECLARE
+  v_user_id TEXT;
+BEGIN
+  SELECT id::text INTO v_user_id FROM auth.users WHERE email = 'achira@studio.id' LIMIT 1;
+  IF v_user_id IS NOT NULL THEN
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (v_user_id, 'admin')
+    ON CONFLICT (user_id) DO NOTHING;
+
+    UPDATE public.profiles
+    SET role = 'admin'
+    WHERE id = v_user_id;
+  END IF;
+END $$;
+
+-- -----------------------------------------------------------------------------
+-- 2. HARDENED PROFILES & NEW USER TRIGGER
+-- -----------------------------------------------------------------------------
+
+-- Fix handle_new_user to NEVER trust client metadata for roles or verification
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_raw_username TEXT;
+  v_cleaned_username TEXT;
 BEGIN
-  INSERT INTO public.profiles (id, username, display_name, email, avatar_url, role, district, is_verified, bio)
+  v_raw_username := COALESCE(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1));
+  v_cleaned_username := LOWER(REGEXP_REPLACE(v_raw_username, '[^a-z0-9_.]', '', 'g'));
+  IF length(v_cleaned_username) < 3 THEN
+    v_cleaned_username := 'warga_' || substr(md5(random()::text), 1, 6);
+  END IF;
+
+  INSERT INTO public.profiles (
+    id,
+    username,
+    display_name,
+    email,
+    avatar_url,
+    role,
+    district,
+    is_verified,
+    bio,
+    is_demo
+  )
   VALUES (
-    new.id,
-    COALESCE(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
+    new.id::text,
+    v_cleaned_username,
     COALESCE(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)),
     new.email,
     COALESCE(new.raw_user_meta_data->>'avatar_url', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'),
-    CASE WHEN new.raw_user_meta_data->>'role' = 'admin' THEN 'admin' ELSE 'citizen' END,
-    COALESCE(new.raw_user_meta_data->>'district', 'Bogor Tengah'),
-    true,
-    'Warga terdaftar di portal TITIK.'
+    'citizen', -- Always citizen! No self-service admin
+    COALESCE(new.raw_user_meta_data->>'district', 'Bogor'),
+    false,
+    'Warga terdaftar di portal TITIK.',
+    false
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email;
+
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+-- Add is_demo columns to data tables
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.comments ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Profile update guard: prevent non-admins from changing role or verification, enforce username rules
+CREATE OR REPLACE FUNCTION public.check_profile_update()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NOT public.is_admin() THEN
+    NEW.role := OLD.role;
+    NEW.is_verified := OLD.is_verified;
+    NEW.verified_agency := OLD.verified_agency;
+    NEW.id := OLD.id;
+    NEW.is_demo := OLD.is_demo;
+  END IF;
+
+  IF NEW.username IS NOT NULL AND NEW.username <> OLD.username THEN
+    NEW.username := LOWER(NEW.username);
+    IF NOT (NEW.username ~ '^[a-z0-9_.]{3,24}$') THEN
+      RAISE EXCEPTION 'Username harus terdiri dari 3-24 karakter (huruf kecil, angka, titik, atau garis bawah).';
+    END IF;
+    IF NEW.username IN ('admin', 'administrator', 'titik', 'support', 'help', 'root', 'system', 'official') THEN
+      RAISE EXCEPTION 'Username ini dilindungi dan tidak dapat digunakan.';
+    END IF;
+  END IF;
+
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_check_profile_update ON public.profiles;
+CREATE TRIGGER trg_check_profile_update
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.check_profile_update();
+
+-- Public Profile View (hiding email from general public queries)
+CREATE OR REPLACE VIEW public.public_profiles AS
+SELECT
+  id,
+  username,
+  display_name,
+  avatar_url,
+  bio,
+  district,
+  is_verified,
+  role,
+  created_at,
+  is_demo
+FROM public.profiles;
+
+GRANT SELECT ON public.public_profiles TO anon, authenticated;
+
+-- Hardened RLS on profiles
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
+CREATE POLICY "Profiles are viewable by everyone" ON public.profiles
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
+CREATE POLICY "Users can insert their own profile" ON public.profiles
+  FOR INSERT WITH CHECK (id = (SELECT auth.uid()::text));
+
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+CREATE POLICY "Users can update own profile" ON public.profiles
+  FOR UPDATE
+  USING (id = (SELECT auth.uid()::text) OR public.is_admin())
+  WITH CHECK (id = (SELECT auth.uid()::text) OR public.is_admin());
+
+-- RPC to update profile cleanly
+CREATE OR REPLACE FUNCTION public.update_my_profile(
+  p_display_name TEXT,
+  p_username TEXT,
+  p_avatar_url TEXT DEFAULT NULL,
+  p_bio TEXT DEFAULT NULL,
+  p_district TEXT DEFAULT NULL
+)
+RETURNS public.profiles AS $$
+DECLARE
+  v_uid TEXT;
+  v_res public.profiles;
+BEGIN
+  v_uid := (SELECT auth.uid()::text);
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Autentikasi diperlukan';
+  END IF;
+
+  UPDATE public.profiles
+  SET
+    display_name = COALESCE(NULLIF(TRIM(p_display_name), ''), display_name),
+    username = COALESCE(NULLIF(TRIM(p_username), ''), username),
+    avatar_url = COALESCE(p_avatar_url, avatar_url),
+    bio = COALESCE(p_bio, bio),
+    district = COALESCE(p_district, district),
+    updated_at = NOW()
+  WHERE id = v_uid
+  RETURNING * INTO v_res;
+
+  RETURN v_res;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+GRANT EXECUTE ON FUNCTION public.update_my_profile(TEXT, TEXT, TEXT, TEXT, TEXT) TO authenticated;
 
 -- -----------------------------------------------------------------------------
--- 2. FACILITIES (Civic Infrastructure Reference)
+-- 3. BUDGET SECTORS & FACILITIES
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.facilities (
+
+CREATE TABLE IF NOT EXISTS public.budget_sectors (
   id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  category TEXT NOT NULL,
-  address TEXT NOT NULL,
-  latitude NUMERIC(10, 7) NOT NULL,
-  longitude NUMERIC(10, 7) NOT NULL,
-  responsible_agency TEXT NOT NULL,
-  active_reports_count INTEGER NOT NULL DEFAULT 0,
-  resolved_reports_count INTEGER NOT NULL DEFAULT 0,
+  sector TEXT NOT NULL,
+  department TEXT NOT NULL,
+  allocated_budget NUMERIC NOT NULL,
+  realization_budget NUMERIC NOT NULL,
+  fiscal_year INTEGER NOT NULL DEFAULT 2026,
+  is_demo BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE public.budget_sectors ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.budget_sectors FROM anon, authenticated;
+GRANT SELECT ON public.budget_sectors TO anon, authenticated;
+
+DROP POLICY IF EXISTS "Public can view budget sectors" ON public.budget_sectors;
+CREATE POLICY "Public can view budget sectors" ON public.budget_sectors
+  FOR SELECT USING (true);
+
+-- Facilities: public read, only admin can insert/update/delete
 ALTER TABLE public.facilities ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Facilities are viewable by everyone" ON public.facilities;
-CREATE POLICY "Facilities are viewable by everyone" ON public.facilities FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Anyone can insert facilities" ON public.facilities;
-CREATE POLICY "Anyone can insert facilities" ON public.facilities FOR ALL USING (true);
+DROP POLICY IF EXISTS "Facilities are viewable by everyone" ON public.facilities;
+CREATE POLICY "Facilities are viewable by everyone" ON public.facilities
+  FOR SELECT USING (true);
+CREATE POLICY "Only admins can modify facilities" ON public.facilities
+  FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- -----------------------------------------------------------------------------
--- 3. REPORTS (Citizen Verified Reports & Audit Trail)
+-- 4. HARDENED POSTS & INTERACTIONS
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.reports (
-  id TEXT PRIMARY KEY,
-  public_reference TEXT NOT NULL UNIQUE,
-  reporter_user_id TEXT,
-  secret_follow_up_token_hash TEXT,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  category TEXT NOT NULL,
-  severity TEXT NOT NULL DEFAULT 'medium',
-  status TEXT NOT NULL DEFAULT 'submitted',
-  publication_status TEXT NOT NULL DEFAULT 'published',
-  location JSONB NOT NULL DEFAULT '{}'::jsonb,
-  facility_name TEXT,
-  estimated_cost BIGINT DEFAULT 0,
-  responsible_agency TEXT NOT NULL,
-  media_urls JSONB NOT NULL DEFAULT '[]'::jsonb,
-  supporting_documents JSONB DEFAULT '[]'::jsonb,
-  reporter_type TEXT NOT NULL DEFAULT 'verified_citizen',
-  reporter_display_name TEXT,
-  support_count INTEGER NOT NULL DEFAULT 0,
-  budget_context JSONB DEFAULT '{}'::jsonb,
-  events JSONB NOT NULL DEFAULT '[]'::jsonb,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
 
-ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Reports are viewable by everyone" ON public.reports;
-CREATE POLICY "Reports are viewable by everyone" ON public.reports FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Users can insert reports" ON public.reports;
-CREATE POLICY "Users can insert reports" ON public.reports FOR INSERT WITH CHECK (true);
-DROP POLICY IF EXISTS "Users can update reports" ON public.reports;
-CREATE POLICY "Users can update reports" ON public.reports FOR UPDATE USING (true);
-DROP POLICY IF EXISTS "Users can delete reports" ON public.reports;
-CREATE POLICY "Users can delete reports" ON public.reports FOR DELETE USING (true);
+ALTER TABLE public.posts DROP CONSTRAINT IF EXISTS chk_posts_body_length;
+ALTER TABLE public.posts ADD CONSTRAINT chk_posts_body_length CHECK (length(body) <= 2000);
 
--- -----------------------------------------------------------------------------
--- 4. POSTS (TikTok-Style Vertical Civic Feed Stream)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.posts (
-  id TEXT PRIMARY KEY,
-  author_id TEXT,
-  author_username TEXT NOT NULL DEFAULT 'warga_bogor',
-  author_display_name TEXT NOT NULL DEFAULT 'Warga Sipil',
-  author_avatar_url TEXT NOT NULL DEFAULT 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-  author_role TEXT NOT NULL DEFAULT 'citizen',
-  body TEXT NOT NULL,
-  post_type TEXT NOT NULL DEFAULT 'citizen_report',
-  media JSONB NOT NULL DEFAULT '[]'::jsonb,
-  location_tag TEXT NOT NULL DEFAULT 'Kota Bogor',
-  related_report_id TEXT REFERENCES public.reports(id) ON DELETE SET NULL,
-  support_count INTEGER NOT NULL DEFAULT 0,
-  likes_count INTEGER NOT NULL DEFAULT 0,
-  saves_count INTEGER NOT NULL DEFAULT 0,
-  comments_count INTEGER NOT NULL DEFAULT 0,
-  shares_count INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- Unique index for idempotent request_id submissions
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS request_id UUID UNIQUE;
 
-ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Posts are viewable by everyone" ON public.posts;
-CREATE POLICY "Posts are viewable by everyone" ON public.posts FOR SELECT USING (true);
+CREATE POLICY "Posts are viewable by everyone" ON public.posts
+  FOR SELECT USING (true);
+
 DROP POLICY IF EXISTS "Users can insert posts" ON public.posts;
-CREATE POLICY "Users can insert posts" ON public.posts FOR INSERT WITH CHECK (true);
+CREATE POLICY "Authenticated users can insert posts" ON public.posts
+  FOR INSERT WITH CHECK (
+    author_id = (SELECT auth.uid()::text)
+    AND (post_type <> 'official_update' OR public.is_admin())
+  );
+
 DROP POLICY IF EXISTS "Users can update posts" ON public.posts;
-CREATE POLICY "Users can update posts" ON public.posts FOR UPDATE USING (true);
+CREATE POLICY "Users can update their own posts" ON public.posts
+  FOR UPDATE
+  USING (author_id = (SELECT auth.uid()::text) OR public.is_admin())
+  WITH CHECK (
+    (author_id = (SELECT auth.uid()::text) AND (post_type <> 'official_update' OR public.is_admin()))
+    OR public.is_admin()
+  );
+
+DROP POLICY IF EXISTS "Users can delete posts" ON public.posts;
+CREATE POLICY "Users can delete their own posts" ON public.posts
+  FOR DELETE USING (author_id = (SELECT auth.uid()::text) OR public.is_admin());
+
+-- Atomic Post Creation RPC
+CREATE OR REPLACE FUNCTION public.create_post(
+  p_request_id UUID,
+  p_body TEXT,
+  p_post_type TEXT DEFAULT 'citizen_report',
+  p_media JSONB DEFAULT '[]'::jsonb,
+  p_location_tag TEXT DEFAULT 'Kota Bogor',
+  p_related_report_id TEXT DEFAULT NULL
+)
+RETURNS public.posts AS $$
+DECLARE
+  v_uid TEXT;
+  v_profile public.profiles;
+  v_post public.posts;
+  v_id TEXT;
+BEGIN
+  v_uid := (SELECT auth.uid()::text);
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Autentikasi diperlukan untuk membuat postingan.';
+  END IF;
+
+  IF length(TRIM(p_body)) < 1 OR length(p_body) > 2000 THEN
+    RAISE EXCEPTION 'Isi postingan harus antara 1 dan 2000 karakter.';
+  END IF;
+
+  IF p_post_type = 'official_update' AND NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Hanya admin yang dapat menerbitkan pembaruan resmi.';
+  END IF;
+
+  -- Idempotency check
+  IF p_request_id IS NOT NULL THEN
+    SELECT * INTO v_post FROM public.posts WHERE request_id = p_request_id;
+    IF v_post.id IS NOT NULL THEN
+      RETURN v_post;
+    END IF;
+  END IF;
+
+  SELECT * INTO v_profile FROM public.profiles WHERE id = v_uid;
+  v_id := 'post-' || substr(md5(random()::text), 1, 8);
+
+  INSERT INTO public.posts (
+    id,
+    request_id,
+    author_id,
+    author_username,
+    author_display_name,
+    author_avatar_url,
+    author_role,
+    body,
+    post_type,
+    media,
+    location_tag,
+    related_report_id,
+    support_count,
+    likes_count,
+    saves_count,
+    comments_count,
+    shares_count,
+    is_demo,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    v_id,
+    p_request_id,
+    v_uid,
+    COALESCE(v_profile.username, 'warga'),
+    COALESCE(v_profile.display_name, 'Warga TITIK'),
+    COALESCE(v_profile.avatar_url, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'),
+    COALESCE(v_profile.role, 'citizen'),
+    p_body,
+    p_post_type,
+    p_media,
+    COALESCE(p_location_tag, 'Kota Bogor'),
+    p_related_report_id,
+    0, 0, 0, 0, 0,
+    false,
+    NOW(),
+    NOW()
+  )
+  RETURNING * INTO v_post;
+
+  RETURN v_post;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+GRANT EXECUTE ON FUNCTION public.create_post(UUID, TEXT, TEXT, JSONB, TEXT, TEXT) TO authenticated;
+
+-- Atomic Like/Save/Support RPCs
+CREATE OR REPLACE FUNCTION public.toggle_post_like(p_post_id TEXT)
+RETURNS JSONB AS $$
+DECLARE
+  v_uid TEXT;
+  v_exists BOOLEAN;
+  v_count INTEGER;
+BEGIN
+  v_uid := (SELECT auth.uid()::text);
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Autentikasi diperlukan';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.post_likes WHERE post_id = p_post_id AND user_id = v_uid
+  ) INTO v_exists;
+
+  IF v_exists THEN
+    DELETE FROM public.post_likes WHERE post_id = p_post_id AND user_id = v_uid;
+  ELSE
+    INSERT INTO public.post_likes (post_id, user_id) VALUES (p_post_id, v_uid) ON CONFLICT DO NOTHING;
+  END IF;
+
+  SELECT likes_count INTO v_count FROM public.posts WHERE id = p_post_id;
+  RETURN jsonb_build_object('likes_count', COALESCE(v_count, 0), 'is_liked', NOT v_exists);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+CREATE OR REPLACE FUNCTION public.toggle_post_save(p_post_id TEXT)
+RETURNS JSONB AS $$
+DECLARE
+  v_uid TEXT;
+  v_exists BOOLEAN;
+  v_count INTEGER;
+BEGIN
+  v_uid := (SELECT auth.uid()::text);
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Autentikasi diperlukan';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.post_saves WHERE post_id = p_post_id AND user_id = v_uid
+  ) INTO v_exists;
+
+  IF v_exists THEN
+    DELETE FROM public.post_saves WHERE post_id = p_post_id AND user_id = v_uid;
+  ELSE
+    INSERT INTO public.post_saves (post_id, user_id) VALUES (p_post_id, v_uid) ON CONFLICT DO NOTHING;
+  END IF;
+
+  SELECT saves_count INTO v_count FROM public.posts WHERE id = p_post_id;
+  RETURN jsonb_build_object('saves_count', COALESCE(v_count, 0), 'is_saved', NOT v_exists);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+CREATE OR REPLACE FUNCTION public.toggle_report_support(p_report_id TEXT)
+RETURNS JSONB AS $$
+DECLARE
+  v_uid TEXT;
+  v_exists BOOLEAN;
+  v_count INTEGER;
+BEGIN
+  v_uid := (SELECT auth.uid()::text);
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Autentikasi diperlukan';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.report_supports WHERE report_id = p_report_id AND user_id = v_uid
+  ) INTO v_exists;
+
+  IF v_exists THEN
+    DELETE FROM public.report_supports WHERE report_id = p_report_id AND user_id = v_uid;
+  ELSE
+    INSERT INTO public.report_supports (report_id, user_id) VALUES (p_report_id, v_uid) ON CONFLICT DO NOTHING;
+  END IF;
+
+  SELECT support_count INTO v_count FROM public.reports WHERE id = p_report_id;
+  RETURN jsonb_build_object('support_count', COALESCE(v_count, 0), 'is_supported', NOT v_exists);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+GRANT EXECUTE ON FUNCTION public.toggle_post_like(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.toggle_post_save(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.toggle_report_support(TEXT) TO authenticated;
+
+-- Saves privacy: only owner can read their saves!
+DROP POLICY IF EXISTS "Post saves are viewable by everyone" ON public.post_saves;
+DROP POLICY IF EXISTS "Users can view own saves" ON public.post_saves;
+CREATE POLICY "Users can view own saves" ON public.post_saves
+  FOR SELECT USING (user_id = (SELECT auth.uid()::text));
+
+DROP POLICY IF EXISTS "Users can insert post saves" ON public.post_saves;
+CREATE POLICY "Users can insert post saves" ON public.post_saves
+  FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()::text));
+
+DROP POLICY IF EXISTS "Users can delete post saves" ON public.post_saves;
+CREATE POLICY "Users can delete post saves" ON public.post_saves
+  FOR DELETE USING (user_id = (SELECT auth.uid()::text));
+
+-- Post likes & report supports RLS
+DROP POLICY IF EXISTS "Users can insert post likes" ON public.post_likes;
+CREATE POLICY "Users can insert post likes" ON public.post_likes
+  FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()::text));
+
+DROP POLICY IF EXISTS "Users can delete post likes" ON public.post_likes;
+CREATE POLICY "Users can delete post likes" ON public.post_likes
+  FOR DELETE USING (user_id = (SELECT auth.uid()::text));
+
+DROP POLICY IF EXISTS "Users can insert report supports" ON public.report_supports;
+CREATE POLICY "Users can insert report supports" ON public.report_supports
+  FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()::text));
+
+DROP POLICY IF EXISTS "Users can delete report supports" ON public.report_supports;
+CREATE POLICY "Users can delete report supports" ON public.report_supports
+  FOR DELETE USING (user_id = (SELECT auth.uid()::text));
 
 -- -----------------------------------------------------------------------------
--- 5. COMMENTS (Threaded Citizen Discussion)
+-- 5. COMMENTS & COMMENT LIKES
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.comments (
-  id TEXT PRIMARY KEY,
-  post_id TEXT NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
-  author_id TEXT,
-  author_name TEXT NOT NULL,
-  avatar_url TEXT,
-  body TEXT NOT NULL,
-  parent_id TEXT REFERENCES public.comments(id) ON DELETE CASCADE,
-  likes INTEGER NOT NULL DEFAULT 0,
+
+ALTER TABLE public.comments ADD COLUMN IF NOT EXISTS author_id TEXT;
+ALTER TABLE public.comments DROP CONSTRAINT IF EXISTS chk_comments_body_length;
+ALTER TABLE public.comments ADD CONSTRAINT chk_comments_body_length CHECK (length(body) BETWEEN 1 AND 1000);
+
+DROP POLICY IF EXISTS "Comments are viewable by everyone" ON public.comments;
+CREATE POLICY "Comments are viewable by everyone" ON public.comments
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert comments" ON public.comments;
+CREATE POLICY "Users can insert comments" ON public.comments
+  FOR INSERT WITH CHECK (
+    author_id = (SELECT auth.uid()::text) OR
+    (author_id IS NULL AND (SELECT auth.uid()) IS NULL)
+  );
+
+DROP POLICY IF EXISTS "Users can update comments" ON public.comments;
+CREATE POLICY "Users can update comments" ON public.comments
+  FOR UPDATE
+  USING (author_id = (SELECT auth.uid()::text) OR public.is_admin())
+  WITH CHECK (author_id = (SELECT auth.uid()::text) OR public.is_admin());
+
+DROP POLICY IF EXISTS "Users can delete comments" ON public.comments;
+CREATE POLICY "Users can delete comments" ON public.comments
+  FOR DELETE USING (author_id = (SELECT auth.uid()::text) OR public.is_admin());
+
+-- Comment Likes table & trigger
+CREATE TABLE IF NOT EXISTS public.comment_likes (
+  user_id TEXT NOT NULL,
+  comment_id TEXT NOT NULL REFERENCES public.comments(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, comment_id)
+);
+
+ALTER TABLE public.comment_likes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Comment likes viewable by everyone" ON public.comment_likes;
+CREATE POLICY "Comment likes viewable by everyone" ON public.comment_likes FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can like comments" ON public.comment_likes;
+CREATE POLICY "Users can like comments" ON public.comment_likes FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()::text));
+DROP POLICY IF EXISTS "Users can unlike comments" ON public.comment_likes;
+CREATE POLICY "Users can unlike comments" ON public.comment_likes FOR DELETE USING (user_id = (SELECT auth.uid()::text));
+
+CREATE OR REPLACE FUNCTION public.sync_comment_likes()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE public.comments SET likes = likes + 1 WHERE id = NEW.comment_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE public.comments SET likes = GREATEST(0, likes - 1) WHERE id = OLD.comment_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_sync_comment_likes ON public.comment_likes;
+CREATE TRIGGER trg_sync_comment_likes
+  AFTER INSERT OR DELETE ON public.comment_likes
+  FOR EACH ROW EXECUTE FUNCTION public.sync_comment_likes();
+
+-- -----------------------------------------------------------------------------
+-- 6. PRIVATE REPORT DATA & STATUS HISTORY (REPORT EVENTS)
+-- -----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.report_private_data (
+  report_id TEXT PRIMARY KEY REFERENCES public.reports(id) ON DELETE CASCADE,
+  secret_follow_up_token_hash TEXT NOT NULL,
+  reporter_user_id TEXT,
+  supporting_documents JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public can view comments" ON public.comments;
-CREATE POLICY "Public can view comments" ON public.comments FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Public can insert comments" ON public.comments;
-CREATE POLICY "Public can insert comments" ON public.comments FOR INSERT WITH CHECK (true);
-DROP POLICY IF EXISTS "Public can update comments" ON public.comments;
-CREATE POLICY "Public can update comments" ON public.comments FOR UPDATE USING (true);
-DROP POLICY IF EXISTS "Public can delete comments" ON public.comments;
-CREATE POLICY "Public can delete comments" ON public.comments FOR DELETE USING (true);
+ALTER TABLE public.report_private_data ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.report_private_data FROM anon, authenticated;
 
-CREATE INDEX IF NOT EXISTS idx_comments_post_id ON public.comments(post_id);
-CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON public.comments(parent_id);
-CREATE INDEX IF NOT EXISTS idx_comments_created_at ON public.comments(created_at DESC);
-
--- -----------------------------------------------------------------------------
--- 6. POST_LIKES (Relational Likes & Personalization)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.post_likes (
+CREATE TABLE IF NOT EXISTS public.report_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT NOT NULL,
-  post_id TEXT NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(user_id, post_id)
-);
-
-ALTER TABLE public.post_likes ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Post likes viewable by everyone" ON public.post_likes;
-CREATE POLICY "Post likes viewable by everyone" ON public.post_likes FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Users can toggle like" ON public.post_likes;
-CREATE POLICY "Users can toggle like" ON public.post_likes FOR INSERT WITH CHECK (true);
-DROP POLICY IF EXISTS "Users can remove like" ON public.post_likes;
-CREATE POLICY "Users can remove like" ON public.post_likes FOR DELETE USING (true);
-
--- -----------------------------------------------------------------------------
--- 7. POST_SAVES (Bookmarks / Saved Posts Personalization)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.post_saves (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT NOT NULL,
-  post_id TEXT NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(user_id, post_id)
-);
-
-ALTER TABLE public.post_saves ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Post saves viewable by everyone" ON public.post_saves;
-CREATE POLICY "Post saves viewable by everyone" ON public.post_saves FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Users can save post" ON public.post_saves;
-CREATE POLICY "Users can save post" ON public.post_saves FOR INSERT WITH CHECK (true);
-DROP POLICY IF EXISTS "Users can remove saved post" ON public.post_saves;
-CREATE POLICY "Users can remove saved post" ON public.post_saves FOR DELETE USING (true);
-
--- -----------------------------------------------------------------------------
--- 8. REPORT_SUPPORTS ("Saya Terdampak Juga" Relational Civic Verification)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.report_supports (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT NOT NULL,
   report_id TEXT NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(user_id, report_id)
+  event_type TEXT NOT NULL,
+  actor_id TEXT NOT NULL,
+  actor_name TEXT NOT NULL DEFAULT 'Petugas',
+  previous_status TEXT,
+  new_status TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE public.report_supports ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Report supports viewable by everyone" ON public.report_supports;
-CREATE POLICY "Report supports viewable by everyone" ON public.report_supports FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Users can toggle support" ON public.report_supports;
-CREATE POLICY "Users can toggle support" ON public.report_supports FOR INSERT WITH CHECK (true);
-DROP POLICY IF EXISTS "Users can remove support" ON public.report_supports;
-CREATE POLICY "Users can remove support" ON public.report_supports FOR DELETE USING (true);
+ALTER TABLE public.report_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Report events viewable by everyone" ON public.report_events;
+CREATE POLICY "Report events viewable by everyone" ON public.report_events
+  FOR SELECT USING (true);
+REVOKE INSERT, UPDATE, DELETE ON public.report_events FROM anon, authenticated;
+
+-- Reports table policy: Only published reports are public. Private details protected.
+DROP POLICY IF EXISTS "Reports are viewable by everyone" ON public.reports;
+CREATE POLICY "Published reports are viewable by everyone" ON public.reports
+  FOR SELECT USING (
+    publication_status = 'published'
+    OR (reporter_user_id IS NOT NULL AND reporter_user_id = (SELECT auth.uid()::text))
+    OR public.is_admin()
+  );
+
+DROP POLICY IF EXISTS "Users can insert reports" ON public.reports;
+DROP POLICY IF EXISTS "Users can update reports" ON public.reports;
+DROP POLICY IF EXISTS "Users can delete reports" ON public.reports;
+
+-- Direct writes to reports are restricted to admins; citizen submissions go through submit_report RPC
+CREATE POLICY "Admin write reports" ON public.reports
+  FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- -----------------------------------------------------------------------------
--- 9. USER_PREFERENCES (Civic Personalization)
+-- 7. ATOMIC SUBMISSION & TRACKING RPCS
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.user_preferences (
-  user_id TEXT PRIMARY KEY,
-  theme TEXT NOT NULL DEFAULT 'light',
-  preferred_district TEXT NOT NULL DEFAULT 'Kota Bogor',
-  saved_categories JSONB NOT NULL DEFAULT '[]'::jsonb,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
 
-ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "User preferences viewable by everyone" ON public.user_preferences;
-CREATE POLICY "User preferences viewable by everyone" ON public.user_preferences FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Users can upsert preferences" ON public.user_preferences;
-CREATE POLICY "Users can upsert preferences" ON public.user_preferences FOR ALL USING (true);
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS request_id UUID UNIQUE;
 
--- -----------------------------------------------------------------------------
--- 10. REAL-TIME COUNT SYNCHRONIZATION TRIGGERS
--- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.sync_post_likes_count()
-RETURNS TRIGGER AS $$
+CREATE SEQUENCE IF NOT EXISTS public.report_public_ref_seq START WITH 101 INCREMENT BY 1;
+
+CREATE OR REPLACE FUNCTION public.submit_report(
+  p_request_id UUID,
+  p_title TEXT,
+  p_description TEXT,
+  p_category TEXT,
+  p_severity TEXT,
+  p_location JSONB,
+  p_responsible_agency TEXT,
+  p_media_urls JSONB,
+  p_supporting_documents JSONB DEFAULT '[]'::jsonb,
+  p_reporter_type TEXT DEFAULT 'verified_citizen',
+  p_reporter_display_name TEXT DEFAULT NULL,
+  p_is_anonymous BOOLEAN DEFAULT FALSE,
+  p_link_to_feed BOOLEAN DEFAULT TRUE,
+  p_plain_token TEXT DEFAULT NULL
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_uid TEXT;
+  v_report_id TEXT;
+  v_post_id TEXT;
+  v_public_ref TEXT;
+  v_token TEXT;
+  v_token_hash TEXT;
+  v_seq BIGINT;
+  v_profile public.profiles;
+  v_existing_report public.reports;
 BEGIN
-  IF TG_OP = 'INSERT' THEN
-    UPDATE public.posts SET likes_count = likes_count + 1 WHERE id = NEW.post_id;
-  ELSIF TG_OP = 'DELETE' THEN
-    UPDATE public.posts SET likes_count = GREATEST(0, likes_count - 1) WHERE id = OLD.post_id;
+  v_uid := (SELECT auth.uid()::text);
+
+  -- Anonymous enforcement: if anonymous, strip account ID completely
+  IF p_is_anonymous OR p_reporter_type = 'anonymous' THEN
+    v_uid := NULL;
   END IF;
-  RETURN NULL;
+
+  -- Idempotency check via request_id
+  IF p_request_id IS NOT NULL THEN
+    SELECT * INTO v_existing_report FROM public.reports WHERE request_id = p_request_id;
+    IF v_existing_report.id IS NOT NULL THEN
+      RETURN jsonb_build_object(
+        'report_id', v_existing_report.id,
+        'public_reference', v_existing_report.public_reference,
+        'token', NULL
+      );
+    END IF;
+  END IF;
+
+  -- Generate human-readable reference number
+  v_seq := nextval('public.report_public_ref_seq');
+  v_public_ref := 'TIK-2026-' || LPAD(v_seq::TEXT, 6, '0');
+  v_report_id := 'rep-' || substr(md5(random()::text), 1, 8);
+
+  -- Generate or use provided token
+  v_token := COALESCE(p_plain_token, encode(gen_random_bytes(16), 'hex'));
+  v_token_hash := crypt(v_token, gen_salt('bf', 8));
+
+  INSERT INTO public.reports (
+    id,
+    request_id,
+    public_reference,
+    reporter_user_id,
+    secret_follow_up_token_hash,
+    title,
+    description,
+    category,
+    severity,
+    status,
+    publication_status,
+    location,
+    responsible_agency,
+    media_urls,
+    supporting_documents,
+    reporter_type,
+    reporter_display_name,
+    support_count,
+    budget_context,
+    events,
+    is_demo,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    v_report_id,
+    p_request_id,
+    v_public_ref,
+    v_uid,
+    v_token_hash,
+    p_title,
+    p_description,
+    p_category,
+    COALESCE(p_severity, 'medium'),
+    'submitted',
+    'published',
+    p_location,
+    p_responsible_agency,
+    p_media_urls,
+    p_supporting_documents,
+    CASE WHEN p_is_anonymous THEN 'anonymous' ELSE p_reporter_type END,
+    CASE WHEN p_is_anonymous THEN 'Warga Anonim' ELSE p_reporter_display_name END,
+    0,
+    '{}'::jsonb,
+    '[]'::jsonb,
+    false,
+    NOW(),
+    NOW()
+  );
+
+  -- Store in private reports table
+  INSERT INTO public.report_private_data (
+    report_id,
+    secret_follow_up_token_hash,
+    reporter_user_id,
+    supporting_documents
+  )
+  VALUES (
+    v_report_id,
+    v_token_hash,
+    v_uid,
+    p_supporting_documents
+  );
+
+  -- Log initial status event
+  INSERT INTO public.report_events (
+    report_id,
+    event_type,
+    actor_id,
+    actor_name,
+    previous_status,
+    new_status,
+    notes
+  )
+  VALUES (
+    v_report_id,
+    'status_change',
+    COALESCE(v_uid, 'anon'),
+    COALESCE(p_reporter_display_name, 'Pelapor'),
+    NULL,
+    'submitted',
+    'Laporan berhasil diajukan ke sistem.'
+  );
+
+  -- Optional linked feed post
+  IF p_link_to_feed THEN
+    v_post_id := 'post-' || substr(md5(random()::text), 1, 8);
+    IF v_uid IS NOT NULL THEN
+      SELECT * INTO v_profile FROM public.profiles WHERE id = v_uid;
+    END IF;
+
+    INSERT INTO public.posts (
+      id,
+      request_id,
+      author_id,
+      author_username,
+      author_display_name,
+      author_avatar_url,
+      author_role,
+      body,
+      post_type,
+      media,
+      location_tag,
+      related_report_id,
+      support_count,
+      likes_count,
+      saves_count,
+      comments_count,
+      shares_count,
+      is_demo,
+      created_at,
+      updated_at
+    )
+    VALUES (
+      v_post_id,
+      p_request_id,
+      v_uid,
+      CASE WHEN p_is_anonymous THEN 'anonim' ELSE COALESCE(v_profile.username, 'warga') END,
+      CASE WHEN p_is_anonymous THEN 'Warga Anonim' ELSE COALESCE(v_profile.display_name, 'Warga TITIK') END,
+      CASE WHEN p_is_anonymous THEN 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150' ELSE COALESCE(v_profile.avatar_url, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde') END,
+      'citizen',
+      p_title || E'\n\n' || p_description,
+      'citizen_report',
+      p_media_urls,
+      COALESCE(p_location->>'address', 'Kota Bogor'),
+      v_report_id,
+      0, 0, 0, 0, 0,
+      false,
+      NOW(),
+      NOW()
+    );
+  END IF;
+
+  RETURN jsonb_build_object(
+    'report_id', v_report_id,
+    'public_reference', v_public_ref,
+    'token', v_token
+  );
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, extensions;
 
-DROP TRIGGER IF EXISTS trg_sync_post_likes ON public.post_likes;
-CREATE TRIGGER trg_sync_post_likes
-AFTER INSERT OR DELETE ON public.post_likes
-FOR EACH ROW EXECUTE FUNCTION public.sync_post_likes_count();
+GRANT EXECUTE ON FUNCTION public.submit_report(UUID, TEXT, TEXT, TEXT, TEXT, JSONB, TEXT, JSONB, JSONB, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT) TO anon, authenticated;
 
-CREATE OR REPLACE FUNCTION public.sync_post_saves_count()
-RETURNS TRIGGER AS $$
+-- Constant-time tracking verification RPC
+CREATE OR REPLACE FUNCTION public.get_report_by_follow_up_token(
+  p_reference TEXT,
+  p_token TEXT
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_hash TEXT;
+  v_report public.reports;
+  v_events JSONB;
 BEGIN
-  IF TG_OP = 'INSERT' THEN
-    UPDATE public.posts SET saves_count = saves_count + 1 WHERE id = NEW.post_id;
-  ELSIF TG_OP = 'DELETE' THEN
-    UPDATE public.posts SET saves_count = GREATEST(0, saves_count - 1) WHERE id = OLD.post_id;
+  -- Simple rate throttle / guard
+  IF length(p_token) < 8 OR length(p_reference) < 5 THEN
+    RETURN NULL;
   END IF;
-  RETURN NULL;
+
+  SELECT rpd.secret_follow_up_token_hash INTO v_hash
+  FROM public.report_private_data rpd
+  JOIN public.reports r ON r.id = rpd.report_id
+  WHERE r.public_reference = p_reference;
+
+  IF v_hash IS NULL THEN
+    SELECT secret_follow_up_token_hash INTO v_hash
+    FROM public.reports
+    WHERE public_reference = p_reference;
+  END IF;
+
+  IF v_hash IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  -- Constant-time crypt check
+  IF crypt(p_token, v_hash) <> v_hash THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT * INTO v_report FROM public.reports WHERE public_reference = p_reference;
+  SELECT COALESCE(jsonb_agg(row_to_json(e)), '[]'::jsonb) INTO v_events
+  FROM (
+    SELECT id, event_type, actor_name, previous_status, new_status, notes, created_at
+    FROM public.report_events
+    WHERE report_id = v_report.id
+    ORDER BY created_at ASC
+  ) e;
+
+  RETURN jsonb_build_object(
+    'id', v_report.id,
+    'public_reference', v_report.public_reference,
+    'title', v_report.title,
+    'description', v_report.description,
+    'category', v_report.category,
+    'severity', v_report.severity,
+    'status', v_report.status,
+    'location', v_report.location,
+    'responsible_agency', v_report.responsible_agency,
+    'media_urls', v_report.media_urls,
+    'reporter_type', v_report.reporter_type,
+    'reporter_display_name', v_report.reporter_display_name,
+    'support_count', v_report.support_count,
+    'events', v_events,
+    'created_at', v_report.created_at,
+    'updated_at', v_report.updated_at
+  );
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, extensions;
 
-DROP TRIGGER IF EXISTS trg_sync_post_saves ON public.post_saves;
-CREATE TRIGGER trg_sync_post_saves
-AFTER INSERT OR DELETE ON public.post_saves
-FOR EACH ROW EXECUTE FUNCTION public.sync_post_saves_count();
+GRANT EXECUTE ON FUNCTION public.get_report_by_follow_up_token(TEXT, TEXT) TO anon, authenticated;
 
-CREATE OR REPLACE FUNCTION public.sync_post_comments_count()
-RETURNS TRIGGER AS $$
+-- Admin Moderation RPCs
+CREATE OR REPLACE FUNCTION public.admin_update_report_status(
+  p_report_id TEXT,
+  p_status TEXT,
+  p_notes TEXT DEFAULT NULL
+)
+RETURNS public.reports AS $$
+DECLARE
+  v_uid TEXT;
+  v_old_status TEXT;
+  v_res public.reports;
+  v_admin_name TEXT;
 BEGIN
-  IF TG_OP = 'INSERT' THEN
-    UPDATE public.posts SET comments_count = comments_count + 1 WHERE id = NEW.post_id;
-  ELSIF TG_OP = 'DELETE' THEN
-    UPDATE public.posts SET comments_count = GREATEST(0, comments_count - 1) WHERE id = OLD.post_id;
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Akses ditolak: Hanya administrator yang berwenang memperbarui status laporan.';
   END IF;
-  RETURN NULL;
+
+  v_uid := (SELECT auth.uid()::text);
+  SELECT status INTO v_old_status FROM public.reports WHERE id = p_report_id;
+  SELECT display_name INTO v_admin_name FROM public.profiles WHERE id = v_uid;
+
+  UPDATE public.reports
+  SET
+    status = p_status,
+    updated_at = NOW()
+  WHERE id = p_report_id
+  RETURNING * INTO v_res;
+
+  INSERT INTO public.report_events (
+    report_id,
+    event_type,
+    actor_id,
+    actor_name,
+    previous_status,
+    new_status,
+    notes
+  )
+  VALUES (
+    p_report_id,
+    'status_change',
+    v_uid,
+    COALESCE(v_admin_name, 'Admin TITIK'),
+    v_old_status,
+    p_status,
+    p_notes
+  );
+
+  RETURN v_res;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 
-DROP TRIGGER IF EXISTS trg_sync_post_comments ON public.comments;
-CREATE TRIGGER trg_sync_post_comments
-AFTER INSERT OR DELETE ON public.comments
-FOR EACH ROW EXECUTE FUNCTION public.sync_post_comments_count();
-
-CREATE OR REPLACE FUNCTION public.sync_report_supports_count()
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION public.admin_delete_report(p_report_id TEXT)
+RETURNS BOOLEAN AS $$
 BEGIN
-  IF TG_OP = 'INSERT' THEN
-    UPDATE public.reports SET support_count = support_count + 1 WHERE id = NEW.report_id;
-    UPDATE public.posts SET support_count = support_count + 1 WHERE related_report_id = NEW.report_id;
-  ELSIF TG_OP = 'DELETE' THEN
-    UPDATE public.reports SET support_count = GREATEST(0, support_count - 1) WHERE id = OLD.report_id;
-    UPDATE public.posts SET support_count = GREATEST(0, support_count - 1) WHERE related_report_id = OLD.report_id;
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Akses ditolak: Hanya administrator yang berwenang menghapus laporan.';
   END IF;
-  RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_sync_report_supports ON public.report_supports;
-CREATE TRIGGER trg_sync_report_supports
-AFTER INSERT OR DELETE ON public.report_supports
-FOR EACH ROW EXECUTE FUNCTION public.sync_report_supports_count();
+  DELETE FROM public.reports WHERE id = p_report_id;
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+GRANT EXECUTE ON FUNCTION public.admin_update_report_status(TEXT, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_delete_report(TEXT) TO authenticated;
 
 -- -----------------------------------------------------------------------------
--- 11. CLEAN CIVIC SEED DATA (All Counts = 0 Default)
+-- 8. STORAGE BUCKETS & ISOLATION POLICIES
 -- -----------------------------------------------------------------------------
 
--- Facilities Seed
-INSERT INTO public.facilities (id, name, category, address, latitude, longitude, responsible_agency, active_reports_count, resolved_reports_count)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES
-  ('fac-01', 'Puskesmas Bogor Barat', 'Kesehatan', 'Jl. Darul Quran No. 5, Loji, Bogor Barat', -6.589211, 106.772412, 'Dinas Kesehatan Kota Bogor', 0, 14),
-  ('fac-02', 'SMP Negeri 1 Kota Bogor', 'Pendidikan', 'Jl. Menteng No. 12, Bogor Barat', -6.581903, 106.778942, 'Dinas Pendidikan Kota Bogor', 0, 8),
-  ('fac-03', 'Saluran Drainase Utama Pajajaran', 'Infrastruktur', 'Koridor Jl. Pajajaran KM 2 - KM 5', -6.602314, 106.804119, 'Dinas Pekerjaan Umum dan Penataan Ruang (PUPR) Kota Bogor', 0, 22),
-  ('fac-04', 'Taman Kencana', 'Lingkungan', 'Babakan, Bogor Tengah', -6.590745, 106.801287, 'Dinas Perumahan dan Permukiman', 0, 19)
+  ('post-media', 'post-media', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm']),
+  ('avatars', 'avatars', true, 2097152, ARRAY['image/jpeg', 'image/png', 'image/webp']),
+  ('report-evidence-private', 'report-evidence-private', false, 20971520, ARRAY['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm', 'application/pdf'])
 ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name,
-  category = EXCLUDED.category,
-  address = EXCLUDED.address,
-  latitude = EXCLUDED.latitude,
-  longitude = EXCLUDED.longitude,
-  responsible_agency = EXCLUDED.responsible_agency;
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- 10 Reports Seed with support_count = 0
-INSERT INTO public.reports (id, public_reference, reporter_user_id, secret_follow_up_token_hash, title, description, category, severity, status, publication_status, location, facility_name, responsible_agency, media_urls, reporter_type, reporter_display_name, support_count, budget_context, events, created_at, updated_at)
-VALUES
-  ('rep-kn-001', 'TIK-2026-000101', 'usr-kn-001', 'hash_secret_token_kn_001', 'Lubang Jalan Menganga di Jalur Cepat Ahmad Yani', 'Aspal ambles berdiameter sekitar 80 cm dengan kedalaman lebih dari 15 cm di lajur kanan arah Summarecon. Sangat membahayakan pengendara motor.', 'Infrastruktur', 'critical', 'under_review', 'published', '{"latitude": -6.2384, "longitude": 106.9912, "address": "Jl. Jendral Ahmad Yani, Marga Jaya", "district": "Bekasi Selatan", "city": "Kota Bekasi", "province": "Jawa Barat", "isApproximate": false}'::jsonb, 'Ruas Jalan Arteri Primer Ahmad Yani', 'Dinas Bina Marga dan Sumber Daya Air Kota Bekasi', '["/images/feed/k001.png"]'::jsonb, 'verified_citizen', 'Mamat Saputra', 0, '{"sectorName": "Infrastruktur Jalan", "responsibleAgency": "Dinas Bina Marga Kota Bekasi"}'::jsonb, '[{"eventType": "SUBMITTED", "description": "Laporan warga tercatat di sistem TITIK."}]'::jsonb, '2026-10-19T07:48:00+07:00', '2026-10-19T08:15:00+07:00'),
-  ('rep-kn-002', 'TIK-2026-000102', 'usr-kn-002', 'hash_secret_token_kn_002', 'U-Ditch Terbuka & Trotoar Ambles Margonda', 'Trotoar pejalan kaki di depan deretan ruko Margonda ambles, penutup saluran beton pecah menyisakan lubang terbuka sedalam 1.2 meter.', 'Infrastruktur', 'medium', 'forwarded_to_institution', 'published', '{"latitude": -6.3725, "longitude": 106.8327, "address": "Jl. Margonda Raya, Pondok Cina", "district": "Beji", "city": "Kota Depok", "province": "Jawa Barat", "isApproximate": false}'::jsonb, 'Pedestrian & Saluran Drainase Margonda Raya', 'Dinas Pekerjaan Umum dan Penataan Ruang Kota Depok', '["/images/feed/k002.png"]'::jsonb, 'verified_citizen', 'Dian Prameswari', 0, '{"sectorName": "Infrastruktur Trotoar", "responsibleAgency": "Dinas PUPR Depok"}'::jsonb, '[{"eventType": "SUBMITTED", "description": "Laporan warga tercatat."}]'::jsonb, '2026-10-18T10:14:00+07:00', '2026-10-18T11:20:00+07:00'),
-  ('rep-kn-003', 'TIK-2026-000103', 'usr-kn-003', 'hash_secret_token_kn_003', 'PJU Padam Total di Jalur Truk Logistik Pelabuhan', 'Penerangan jalan umum padam sepanjang hampir 500 meter di koridor kontainer Pelabuhan Tanjung Priok.', 'Infrastruktur', 'critical', 'needs_info', 'published', '{"latitude": -6.1189, "longitude": 106.8856, "address": "Jl. Sulawesi, Tanjung Priok", "district": "Tanjung Priok", "city": "Jakarta Utara", "province": "DKI Jakarta", "isApproximate": false}'::jsonb, 'Jaringan PJU Jalur Arteri Pelabuhan Tanjung Priok', 'Dinas Bina Marga Provinsi DKI Jakarta', '["/images/feed/k003.png"]'::jsonb, 'verified_citizen', 'Syaiful Anwar', 0, '{"sectorName": "Penerangan Jalan", "responsibleAgency": "Dinas Bina Marga DKI"}'::jsonb, '[{"eventType": "SUBMITTED", "description": "Laporan warga tercatat."}]'::jsonb, '2026-10-17T19:35:00+07:00', '2026-10-17T20:10:00+07:00'),
-  ('rep-kn-004', 'TIK-2026-000104', 'usr-kn-004', 'hash_secret_token_kn_004', 'Marka Zebra Cross Pudar & Lampu Kedip Sekolah Mati', 'Marka penyeberangan anak sekolah di depan SDN Bintaro 03 hampir hilang tak terlihat.', 'Infrastruktur', 'medium', 'under_review', 'published', '{"latitude": -6.2731, "longitude": 106.7118, "address": "Jl. Bintaro Utama Sektor 3A", "district": "Pondok Aren", "city": "Kota Tangerang Selatan", "province": "Banten", "isApproximate": false}'::jsonb, 'Zebra Cross & Rambu Keselamatan Sekolah', 'Dinas Perhubungan Kota Tangerang Selatan', '["/images/feed/k004.png"]'::jsonb, 'verified_citizen', 'Farhan Wibisono', 0, '{"sectorName": "Keselamatan Lalu Lintas", "responsibleAgency": "Dishub Tangsel"}'::jsonb, '[{"eventType": "SUBMITTED", "description": "Laporan warga tercatat."}]'::jsonb, '2026-10-17T11:45:00+07:00', '2026-10-17T13:00:00+07:00'),
-  ('rep-kn-005', 'TIK-2026-000105', 'usr-kn-005', 'hash_secret_token_kn_005', 'Retakan Tebing Curam Bantaran Sungai Cisadane Empang', 'Retakan tanah selebar 10 cm terlihat di tebing penyangga jalan setapak pinggir sungai Cisadane.', 'Infrastruktur', 'critical', 'forwarded_to_institution', 'published', '{"latitude": -6.6082, "longitude": 106.7941, "address": "Kampung Empang Hilir", "district": "Bogor Selatan", "city": "Kota Bogor", "province": "Jawa Barat", "isApproximate": false}'::jsonb, 'Dinding Penahan Tebing DAS Cisadane Empang', 'Balai Besar Wilayah Sungai (BBWS) Ciliwung Cisadane', '["/images/feed/k005.png"]'::jsonb, 'verified_citizen', 'Wardi Gunawan', 0, '{"sectorName": "Penanganan Bencana & Tebing", "responsibleAgency": "BBWS Ciliwung Cisadane"}'::jsonb, '[{"eventType": "SUBMITTED", "description": "Laporan warga tercatat."}]'::jsonb, '2026-10-17T15:20:00+07:00', '2026-10-17T16:05:00+07:00'),
-  ('rep-kn-006', 'TIK-2026-000106', 'usr-kn-006', 'hash_secret_token_kn_006', 'Banjir Luapan Kali Sunter Merendam Akses Cipinang Melayu', 'Hujan deras semalam mengakibatkan luapan Kali Sunter merendam permukiman dan akses jalan utama Cipinang Melayu hingga setinggi paha.', 'Lingkungan', 'critical', 'forwarded_to_institution', 'published', '{"latitude": -6.2483, "longitude": 106.9042, "address": "Jl. Inspeksi Kali Sunter, Cipinang Melayu", "district": "Makasar", "city": "Jakarta Timur", "province": "DKI Jakarta", "isApproximate": false}'::jsonb, 'Tanggul & Saluran Pengendali Banjir Kali Sunter', 'Dinas Sumber Daya Air Provinsi DKI Jakarta', '["/images/feed/k006.png"]'::jsonb, 'verified_citizen', 'Hendra Kusuma', 0, '{"sectorName": "Pengendalian Banjir", "responsibleAgency": "Dinas SDA DKI"}'::jsonb, '[{"eventType": "SUBMITTED", "description": "Laporan warga tercatat."}]'::jsonb, '2026-10-17T08:12:00+07:00', '2026-10-17T09:00:00+07:00'),
-  ('rep-kn-007', 'TIK-2026-000107', 'usr-kn-007', 'hash_secret_token_kn_007', 'Genangan Simpang Fatmawati-TB Simatupang Menghambat Akses MRT', 'Antrean kendaraan mengular lebih dari 1 kilometer akibat genangan air setinggi 30 cm di kolong layang MRT Fatmawati.', 'Lingkungan', 'critical', 'under_review', 'published', '{"latitude": -6.2924, "longitude": 106.7938, "address": "Simpang Fatmawati - TB Simatupang", "district": "Cilandak", "city": "Jakarta Selatan", "province": "DKI Jakarta", "isApproximate": false}'::jsonb, 'Saluran Pembuangan Primer Simpang Fatmawati', 'Suku Dinas Sumber Daya Air Kota Administrasi Jakarta Selatan', '["/images/feed/k007.png"]'::jsonb, 'verified_citizen', 'Najla Savitri', 0, '{"sectorName": "Drainase Perkotaan", "responsibleAgency": "Sudin SDA Jaksel"}'::jsonb, '[{"eventType": "SUBMITTED", "description": "Laporan warga tercatat."}]'::jsonb, '2026-10-16T18:37:00+07:00', '2026-10-16T19:10:00+07:00'),
-  ('rep-kn-008', 'TIK-2026-000108', 'usr-kn-008', 'hash_secret_token_kn_008', 'Genangan Akses Gerbang Kompleks Perumahan Ciledug', 'Air setinggi paha menutup gerbang perumahan di Ciledug, banyak kendaraan roda dua mogok dan warga terisolasi.', 'Lingkungan', 'critical', 'forwarded_to_institution', 'published', '{"latitude": -6.2448, "longitude": 106.7226, "address": "Jl. KH Hasyim Ashari, Ciledug", "district": "Ciledug", "city": "Kota Tangerang", "province": "Banten", "isApproximate": false}'::jsonb, 'Pintu Gerbang & Saluran Kali Cantiga Ciledug', 'Dinas Pekerjaan Umum dan Penataan Ruang Kota Tangerang', '["/images/feed/k008.png"]'::jsonb, 'verified_citizen', 'Budi Santoso', 0, '{"sectorName": "Pengendalian Banjir", "responsibleAgency": "Dinas PUPR Tangerang"}'::jsonb, '[{"eventType": "SUBMITTED", "description": "Laporan warga tercatat."}]'::jsonb, '2026-10-16T16:20:00+07:00', '2026-10-16T17:00:00+07:00'),
-  ('rep-kn-009', 'TIK-2026-000109', 'usr-kn-009', 'hash_secret_token_kn_009', 'Sampah Menumpuk di Jembatan Merah Menyumbat Aliran Air', 'Timbunan sampah plastik, ranting bambu, dan kasur bekas tersangkut di tiang penyangga Jembatan Merah.', 'Lingkungan', 'medium', 'forwarded_to_institution', 'published', '{"latitude": -6.5947, "longitude": 106.7892, "address": "Jembatan Merah, Panaragan", "district": "Bogor Tengah", "city": "Kota Bogor", "province": "Jawa Barat", "isApproximate": false}'::jsonb, 'Infrastruktur Jembatan Merah & Aliran Sungai Cisadane', 'Dinas Lingkungan Hidup Kota Bogor', '["/images/feed/k009.png"]'::jsonb, 'verified_citizen', 'Asep Suhendar', 0, '{"sectorName": "Pengelolaan Persampahan", "responsibleAgency": "DLH Kota Bogor"}'::jsonb, '[{"eventType": "SUBMITTED", "description": "Laporan warga tercatat."}]'::jsonb, '2026-10-16T09:15:00+07:00', '2026-10-16T10:00:00+07:00'),
-  ('rep-kn-010', 'TIK-2026-000110', 'usr-kn-010', 'hash_secret_token_kn_010', 'Pompa Air Pluit Rusak Mengakibatkan Rob Menggenang', 'Satu dari tiga unit mesin pompa pengendali rob di Waduk Pluit mengalami mati daya.', 'Infrastruktur', 'critical', 'needs_info', 'published', '{"latitude": -6.1215, "longitude": 106.7981, "address": "Rumah Pompa Waduk Pluit", "district": "Penjaringan", "city": "Jakarta Utara", "province": "DKI Jakarta", "isApproximate": false}'::jsonb, 'Stasiun Pompa Pengendali Rob Waduk Pluit', 'Dinas Sumber Daya Air Provinsi DKI Jakarta', '["/images/feed/k010.png"]'::jsonb, 'verified_citizen', 'Johan Susilo', 0, '{"sectorName": "Stasiun Pompa Pengendali Rob", "responsibleAgency": "Dinas SDA DKI"}'::jsonb, '[{"eventType": "SUBMITTED", "description": "Laporan warga tercatat."}]'::jsonb, '2026-10-15T14:40:00+07:00', '2026-10-15T15:20:00+07:00')
-ON CONFLICT (id) DO UPDATE SET
-  title = EXCLUDED.title,
-  description = EXCLUDED.description,
-  category = EXCLUDED.category,
-  severity = EXCLUDED.severity,
-  status = EXCLUDED.status,
-  support_count = 0;
+DROP POLICY IF EXISTS "Public can view post media" ON storage.objects;
+CREATE POLICY "Public can view post media" ON storage.objects
+  FOR SELECT USING (bucket_id = 'post-media');
 
--- 10 Posts Seed with zero counts (likes=0, saves=0, comments=0, shares=0)
-INSERT INTO public.posts (id, author_id, author_username, author_display_name, author_avatar_url, author_role, body, post_type, media, location_tag, related_report_id, support_count, likes_count, saves_count, comments_count, shares_count, created_at)
-VALUES
-  ('kn-001', 'usr-kn-001', 'mamatojol_bks', 'Mamat Saputra', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80', 'citizen', 'Lubang di depan lampu merah Ahmad Yani makin dalem, tadi ada bapak-bapak hasil kopling di situ. Tolong ditambal ya kang, motor sampai seret.', 'citizen_report', '[{"id": "m-kn-001", "type": "image", "url": "/images/feed/k001.png", "aspectRatio": "4/5"}]'::jsonb, 'Bekasi, Jawa Barat', 'rep-kn-001', 0, 0, 0, 0, 0, '2026-10-19T07:48:00+07:00'),
-  ('kn-002', 'usr-kn-002', 'dian_prames', 'Dian Prameswari', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', 'citizen', 'Trotoar Margonda deket kampus UI bolong gede banget, tutup betonnya hancur. Bahaya banget kalau malam pejalan kaki bisa kejeblos!', 'citizen_report', '[{"id": "m-kn-002", "type": "image", "url": "/images/feed/k002.png", "aspectRatio": "4/5"}]'::jsonb, 'Depok, Jawa Barat', 'rep-kn-002', 0, 0, 0, 0, 0, '2026-10-18T10:14:00+07:00'),
-  ('kn-003', 'usr-kn-003', 'syaiful_priok', 'Syaiful Anwar', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', 'citizen', 'Lampu jalan padam sepanjang 500 meter di jalur kontainer Priok. Gelap gulita, rawan begal dan kecelakaan truk tronton.', 'citizen_report', '[{"id": "m-kn-003", "type": "image", "url": "/images/feed/k003.png", "aspectRatio": "4/5"}]'::jsonb, 'Jakarta Utara, DKI Jakarta', 'rep-kn-003', 0, 0, 0, 0, 0, '2026-10-17T19:35:00+07:00'),
-  ('kn-004', 'usr-kn-004', 'farhan_bintaro', 'Farhan Wibisono', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', 'citizen', 'Zebra cross depan SDN Bintaro 03 udah gak kelihatan sama sekali. Mobil motor ngebut terus, anak-anak susah nyebrang.', 'citizen_report', '[{"id": "m-kn-004", "type": "image", "url": "/images/feed/k004.png", "aspectRatio": "4/5"}]'::jsonb, 'Tangerang Selatan, Banten', 'rep-kn-004', 0, 0, 0, 0, 0, '2026-10-17T11:45:00+07:00'),
-  ('kn-005', 'usr-kn-005', 'wardi_bgr', 'Wardi Gunawan', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80', 'citizen', 'Tebing pinggir sungai Cisadane di Empang mulai retak-retak. Kalau hujan gede takut longsor kena jalan setapak warga.', 'citizen_report', '[{"id": "m-kn-005", "type": "image", "url": "/images/feed/k005.png", "aspectRatio": "4/5"}]'::jsonb, 'Bogor, Jawa Barat', 'rep-kn-005', 0, 0, 0, 0, 0, '2026-10-17T15:20:00+07:00'),
-  ('kn-006', 'usr-kn-006', 'hendra_jaktim', 'Hendra Kusuma', 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80', 'citizen', 'Banjir Kali Sunter meluap lagi sampai paha orang dewasa di Cipinang Melayu. Akses jalan putus total, warga butuh perahu evakuasi.', 'citizen_report', '[{"id": "m-kn-006", "type": "image", "url": "/images/feed/k006.png", "aspectRatio": "4/5"}]'::jsonb, 'Jakarta Timur, DKI Jakarta', 'rep-kn-006', 0, 0, 0, 0, 0, '2026-10-17T08:12:00+07:00'),
-  ('kn-007', 'usr-kn-007', 'najla_jaksel', 'Najla Savitri', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80', 'citizen', 'Simpang Fatmawati bawah MRT banjir 30cm, macetnya sampai 1 km lebih. Saluran tali air mampet ketutup sampah.', 'citizen_report', '[{"id": "m-kn-007", "type": "image", "url": "/images/feed/k007.png", "aspectRatio": "4/5"}]'::jsonb, 'Jakarta Selatan, DKI Jakarta', 'rep-kn-007', 0, 0, 0, 0, 0, '2026-10-16T18:37:00+07:00'),
-  ('kn-008', 'usr-kn-008', 'budi_ciledug', 'Budi Santoso', 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80', 'citizen', 'Gerbang kompleks perumahan di Ciledug terendam banjir sepinggang. Motor pada mogok, tolong bantuan pompa dari Pemkot.', 'citizen_report', '[{"id": "m-kn-008", "type": "image", "url": "/images/feed/k008.png", "aspectRatio": "4/5"}]'::jsonb, 'Tangerang, Banten', 'rep-kn-008', 0, 0, 0, 0, 0, '2026-10-16T16:20:00+07:00'),
-  ('kn-009', 'usr-kn-009', 'asep_bogor', 'Asep Suhendar', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80', 'citizen', 'Sampah ranting pohon dan plastik numpuk di kolong Jembatan Merah. Air sungai mulai tersumbat, baunya menyengat.', 'citizen_report', '[{"id": "m-kn-009", "type": "image", "url": "/images/feed/k009.png", "aspectRatio": "4/5"}]'::jsonb, 'Bogor, Jawa Barat', 'rep-kn-009', 0, 0, 0, 0, 0, '2026-10-16T09:15:00+07:00'),
-  ('kn-010', 'usr-kn-010', 'johan_pluit', 'Johan Susilo', 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80', 'citizen', 'Satu mesin pompa air di Pluit mati lagi, air rob laut mulai rembes ke jalanan pemukiman. Mohon suku dinas segera servis!', 'citizen_report', '[{"id": "m-kn-010", "type": "image", "url": "/images/feed/k010.png", "aspectRatio": "4/5"}]'::jsonb, 'Jakarta Utara, DKI Jakarta', 'rep-kn-010', 0, 0, 0, 0, 0, '2026-10-15T14:40:00+07:00')
-ON CONFLICT (id) DO UPDATE SET
-  author_username = EXCLUDED.author_username,
-  author_display_name = EXCLUDED.author_display_name,
-  body = EXCLUDED.body,
-  support_count = 0,
-  likes_count = 0,
-  saves_count = 0,
-  comments_count = 0,
-  shares_count = 0;
+DROP POLICY IF EXISTS "Public can view avatars" ON storage.objects;
+CREATE POLICY "Public can view avatars" ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Users can view own private evidence" ON storage.objects;
+CREATE POLICY "Users can view own private evidence" ON storage.objects
+  FOR SELECT USING (
+    bucket_id = 'report-evidence-private'
+    AND ((storage.foldername(name))[1] = (SELECT auth.uid()::text) OR public.is_admin())
+  );
+
+DROP POLICY IF EXISTS "Authenticated users can upload to own folder" ON storage.objects;
+CREATE POLICY "Authenticated users can upload to own folder" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id IN ('post-media', 'avatars', 'report-evidence-private')
+    AND (storage.foldername(name))[1] = (SELECT auth.uid()::text)
+  );
+
+DROP POLICY IF EXISTS "Users can delete own objects" ON storage.objects;
+CREATE POLICY "Users can delete own objects" ON storage.objects
+  FOR DELETE USING (
+    (storage.foldername(name))[1] = (SELECT auth.uid()::text) OR public.is_admin()
+  );

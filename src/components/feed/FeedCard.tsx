@@ -43,12 +43,26 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
   const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [commentsDelta, setCommentsDelta] = useState(0);
+  const [shareCopied, setShareCopied] = useState(false);
   const [prevPostId, setPrevPostId] = useState(post.id);
+  const [prevIsActive, setPrevIsActive] = useState(isActive);
 
   if (post.id !== prevPostId) {
     setPrevPostId(post.id);
     setCommentsDelta(0);
     setActiveMediaIndex(0);
+    setIsSaved(post.isSavedByMe ?? false);
+    setIsFollowed(false);
+    setShareCopied(false);
+  }
+
+  // Reset overlays when swiping away from active card
+  if (prevIsActive !== isActive) {
+    setPrevIsActive(isActive);
+    if (!isActive) {
+      setIsCommentsOpen(false);
+      setIsCaptionExpanded(false);
+    }
   }
 
   const MAX_CAPTION_CHARS = 80;
@@ -56,14 +70,6 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
   const truncatedCaption = isCaptionLong
     ? post.body.slice(0, MAX_CAPTION_CHARS).replace(/\s+\S*$/, '')
     : post.body;
-
-  // Reset overlays when swiping away from active card
-  useEffect(() => {
-    if (!isActive) {
-      setIsCommentsOpen(false);
-      setIsCaptionExpanded(false);
-    }
-  }, [isActive]);
 
   const media = post.media[activeMediaIndex] || post.media[0];
   const isVideo = media?.type === 'video';
@@ -131,6 +137,38 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
     if (videoRef.current && Number.isFinite(videoRef.current.duration)) {
       setDuration(videoRef.current.duration);
     }
+  };
+
+  const handleSaveToggle = () => {
+    const next = !isSaved;
+    setIsSaved(next);
+    if (!togglePostSave) return;
+    togglePostSave(post.id).catch(() => setIsSaved(!next));
+  };
+
+  const handleShare = async () => {
+    const shareUrl = post.relatedReport
+      ? `${window.location.origin}/report/${post.relatedReport.publicReference}`
+      : `${window.location.origin}/`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'TITIK.', text: post.body || 'Lihat ini di TITIK.', url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2000);
+      }
+    } catch {
+      // user dismissed the share sheet — nothing to do
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+      return;
+    }
+    videoRef.current?.requestFullscreen?.().catch(() => {});
   };
 
   const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -310,25 +348,27 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         <div className="flex flex-col items-center">
           <button
             type="button"
-            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/45 backdrop-blur-md text-white hover:bg-black/65 flex items-center justify-center transition-all active:scale-90"
-            title="Bagikan laporan ini"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleShare();
+            }}
+            aria-label="Bagikan"
+            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center backdrop-blur-md transition-all active:scale-90 ${
+              shareCopied ? 'bg-emerald-500 text-[#20221D]' : 'bg-black/45 text-white hover:bg-black/65'
+            }`}
+            title={shareCopied ? 'Tautan disalin!' : 'Bagikan'}
           >
-            <Share2 className="w-5 h-5" />
+            {shareCopied ? <Check className="w-5 h-5 stroke-[3]" /> : <Share2 className="w-5 h-5" />}
           </button>
-          <span className="text-[11px] font-semibold mt-1 drop-shadow-md whitespace-nowrap tabular-nums select-none text-center">
-            {formatEngagementMetric(post.sharesCount)}
-          </span>
         </div>
 
         {/* Bookmark / Save Action */}
         <div className="flex flex-col items-center">
           <button
             type="button"
-            onClick={() => {
-              setIsSaved(!isSaved);
-              if (togglePostSave) {
-                togglePostSave(post.id);
-              }
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSaveToggle();
             }}
             className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center backdrop-blur-md transition-all active:scale-90 ${
               isSaved ? 'bg-amber-400 text-[#20221D]' : 'bg-black/45 text-white hover:bg-black/65'
@@ -488,7 +528,15 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
                 >
                   {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 </button>
-                <button type="button" className="hover:text-white transition-colors">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFullscreen();
+                  }}
+                  aria-label="Layar penuh"
+                  className="hover:text-white transition-colors"
+                >
                   <Maximize2 className="w-4 h-4" />
                 </button>
               </div>

@@ -186,7 +186,7 @@ export const ReportModal: React.FC = () => {
         address: address.trim(),
         latitude,
         longitude,
-        reporterUserId: isAuthenticated ? profile.id : undefined,
+        reporterUserId: (reporterType !== 'anonymous' && isAuthenticated) ? profile.id : undefined,
         facilityName: facilityName.trim() || undefined,
         estimatedCost: estimatedCost ? Number(estimatedCost) : undefined,
         supportingDocuments,

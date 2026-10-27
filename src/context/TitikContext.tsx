@@ -2,8 +2,9 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { Post, Report, ReportStatus, Facility, BudgetSectorContext } from '../types/domain';
 import { dataService } from '../services/dataService';
 import { FeedComment, NewReportInput, ReportSubmitResult } from '../services/adapters/types';
+import { useAuth } from './AuthContext';
 
-interface TitikContextType {
+export interface TitikContextType {
   posts: Post[];
   activePost: Post | null;
   activeFeedTab: 'for_you' | 'following' | 'nearby';
@@ -46,6 +47,9 @@ interface TitikContextType {
 export const TitikContext = createContext<TitikContextType | undefined>(undefined);
 
 export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, profile, isAuthenticated } = useAuth();
+  const currentUserId = user?.id || (isAuthenticated ? profile.id : undefined);
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [activePostId, setActivePostIdState] = useState<string>('');
   const [activeFeedTab, setActiveFeedTab] = useState<'for_you' | 'following' | 'nearby'>('for_you');
@@ -94,8 +98,8 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     // Initial fetch of facilities & budget sectors
-    dataService.getFacilities().then(setFacilities);
-    dataService.getBudgetSectors().then(setBudgetSectors);
+    dataService.getFacilities().then(setFacilities).catch((err) => console.warn('Facilities load:', err));
+    dataService.getBudgetSectors().then(setBudgetSectors).catch((err) => console.warn('Budget load:', err));
   }, []);
 
   const activePost = posts.find((p) => p.id === activePostId) || posts[0] || null;
@@ -116,8 +120,6 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setReportDetailOpen(false);
     setSelectedReport(null);
   };
-
-  const currentUserId = 'usr-citizen-default-001';
 
   const toggleSupport = async (reportId: string) => {
     setPosts((prev) =>
@@ -166,13 +168,13 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id === postId) {
-          const wasLiked = p.isSupportedByMe ?? false;
+          const wasLiked = p.isLikedByMe ?? false;
           const isLiked = !wasLiked;
-          const supportCount = isLiked ? p.supportCount + 1 : Math.max(0, p.supportCount - 1);
+          const likesCount = isLiked ? (p.likesCount || 0) + 1 : Math.max(0, (p.likesCount || 0) - 1);
           return {
             ...p,
-            isSupportedByMe: isLiked,
-            supportCount,
+            isLikedByMe: isLiked,
+            likesCount,
           };
         }
         return p;
@@ -192,10 +194,12 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     avatarUrl?: string,
     parentId?: string
   ) => {
-    const finalAuthor = authorName || 'Warga Anda';
+    const finalAuthor = authorName || (isAuthenticated ? profile.displayName : 'Warga Anonim');
     const finalAvatar =
       avatarUrl ||
-      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
+      (isAuthenticated
+        ? profile.avatarUrl
+        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80');
     const created = await dataService.addComment(postId, finalAuthor, finalAvatar, body, parentId);
     setPosts((prev) =>
       prev.map((p) => (p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p))

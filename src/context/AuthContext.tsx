@@ -1,18 +1,21 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { UserProfile } from '../types/domain';
 import { PRESET_PERSONAS } from '../services/accountGenerator';
+import { clearPersistedReports } from '../services/reportPersistence';
 
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null;
   profile: UserProfile;
   session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isLiveMode: boolean;
   signIn: (email: string, password?: string) => Promise<{ success: boolean; error?: string; role?: UserProfile['role'] }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,7 +23,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const LOCAL_STORAGE_ACTIVE_PROFILE = 'titik_active_profile_v1';
 const LOCAL_STORAGE_AUTHENTICATED = 'titik_authenticated_v2';
 
+const isLiveMode = isSupabaseConfigured && import.meta.env.VITE_DATA_MODE !== 'demo';
+
 function getStoredAuthentication(): boolean {
+  if (isLiveMode) return false;
   try {
     return localStorage.getItem(LOCAL_STORAGE_AUTHENTICATED) === 'true';
   } catch {
@@ -28,79 +34,155 @@ function getStoredAuthentication(): boolean {
   }
 }
 
+function getStoredProfile(): UserProfile {
+  if (isLiveMode) return PRESET_PERSONAS.anonymous;
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_ACTIVE_PROFILE);
+    if (saved) {
+      const savedProfile = JSON.parse(saved) as UserProfile;
+      return {
+        ...savedProfile,
+        role: savedProfile.role === 'admin' ? 'admin' : 'citizen',
+      };
+    }
+  } catch (err) {
+    console.warn('Failed to parse cached profile:', err);
+  }
+  return PRESET_PERSONAS.citizen;
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<UserProfile>(() => {
-    // Restore previous active profile from localStorage if present
+  const [profile, setProfile] = useState<UserProfile>(getStoredProfile);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(getStoredAuthentication);
+  const [isLoading, setIsLoading] = useState<boolean>(isLiveMode);
+
+  const fetchRealProfileAndRole = useCallback(async (currentSession: Session): Promise<UserProfile> => {
+    const currentUserId = currentSession.user.id;
+    const userEmail = currentSession.user.email || '';
+    const userMeta = currentSession.user.user_metadata || {};
+
+    let role: 'admin' | 'citizen' = 'citizen';
+
+    // 1. Inquire database role strictly via SECURITY DEFINER RPC or user_roles query
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_ACTIVE_PROFILE);
-      if (saved) {
-        const savedProfile = JSON.parse(saved) as UserProfile;
-        return {
-          ...savedProfile,
-          role: savedProfile.role === 'admin' ? 'admin' : 'citizen',
+      const { data: roleData, error: roleError } = await supabase.rpc('get_my_role');
+      if (!roleError && roleData === 'admin') {
+        role = 'admin';
+      } else {
+        const { data: roleRow } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+        if (roleRow?.role === 'admin') {
+          role = 'admin';
+        }
+      }
+    } catch {
+      // Fallback: stay as citizen, never escalate
+      role = 'citizen';
+    }
+
+    // 2. Fetch profile from public.profiles
+    let dbProfile: Partial<UserProfile> | null = null;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUserId)
+        .maybeSingle();
+      if (!error && data) {
+        dbProfile = {
+          displayName: data.display_name,
+          username: data.username,
+          avatarUrl: data.avatar_url,
+          bio: data.bio,
+          district: data.district,
+          isVerified: Boolean(data.is_verified),
+          verifiedAgency: data.verified_agency,
         };
       }
     } catch (err) {
-      console.warn('Failed to parse cached profile:', err);
+      console.warn('Could not fetch DB profile:', err);
     }
-    // Default to verified citizen demo persona
-    return PRESET_PERSONAS.citizen;
-  });
-  const [isAuthenticated, setIsAuthenticated] = useState(getStoredAuthentication);
-  const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
+
+    const resolvedProfile: UserProfile = {
+      id: currentUserId,
+      email: userEmail,
+      displayName: dbProfile?.displayName || userMeta.display_name || userMeta.full_name || (userEmail ? userEmail.split('@')[0] : 'Warga TITIK'),
+      username: dbProfile?.username || userMeta.username || (userEmail ? userEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '') : 'warga'),
+      avatarUrl: dbProfile?.avatarUrl || userMeta.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      role,
+      district: dbProfile?.district || userMeta.district || 'Bogor Tengah',
+      isVerified: dbProfile?.isVerified ?? false,
+      bio: dbProfile?.bio || 'Warga terdaftar di portal TITIK.',
+      verifiedAgency: dbProfile?.verifiedAgency,
+    };
+
+    return resolvedProfile;
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (session) {
+      const refreshed = await fetchRealProfileAndRole(session);
+      setProfile(refreshed);
+    }
+  }, [session, fetchRealProfileAndRole]);
 
   // Initialize Supabase Auth Listener
   useEffect(() => {
     let isMounted = true;
 
     if (isSupabaseConfigured) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
+      supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
         if (!isMounted) return;
-        setSession(session);
-        setUser(session?.user ?? null);
-        setIsAuthenticated(Boolean(session) || getStoredAuthentication());
-        if (session?.user) {
-          const userMeta = session.user.user_metadata || {};
-          setProfile((prev) => ({
-            ...prev,
-            id: session.user.id,
-            email: session.user.email || prev.email,
-            displayName: userMeta.display_name || userMeta.full_name || prev.displayName,
-            username: userMeta.username || prev.username,
-          }));
-        }
-        setIsLoading(false);
-      });
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session) {
+        if (initialSession?.user) {
           setIsAuthenticated(true);
-          localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
-        } else if (event === 'SIGNED_OUT') {
-          setIsAuthenticated(false);
-          localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'false');
+          const resolved = await fetchRealProfileAndRole(initialSession);
+          if (isMounted) {
+            setProfile(resolved);
+            if (!isLiveMode) {
+              localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(resolved));
+              localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
+            }
+          }
         } else {
           setIsAuthenticated(getStoredAuthentication());
+          if (isLiveMode) {
+            setProfile(PRESET_PERSONAS.anonymous);
+          }
         }
-        if (session?.user) {
-          const userMeta = session.user.user_metadata || {};
-          const newProfile: UserProfile = {
-            id: session.user.id,
-            email: session.user.email,
-            displayName: userMeta.display_name || userMeta.full_name || 'Warga Terdaftar',
-            username: userMeta.username || (session.user.email ? session.user.email.split('@')[0] : 'warga'),
-            avatarUrl: userMeta.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-            role: userMeta.role === 'admin' ? 'admin' : 'citizen',
-            district: userMeta.district || 'Bogor Tengah',
-            isVerified: true,
-            bio: userMeta.bio || 'Warga terdaftar di portal TITIK.',
-          };
-          setProfile(newProfile);
-          localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(newProfile));
+        if (isMounted) setIsLoading(false);
+      }).catch((err) => {
+        console.error('Session retrieval failed:', err);
+        if (isMounted) setIsLoading(false);
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+        if (!isMounted) return;
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        if (newSession?.user) {
+          setIsAuthenticated(true);
+          const resolved = await fetchRealProfileAndRole(newSession);
+          if (isMounted) {
+            setProfile(resolved);
+            if (!isLiveMode) {
+              localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(resolved));
+              localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
+            }
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setIsAuthenticated(false);
+          setProfile(PRESET_PERSONAS.anonymous);
+        } else {
+          setIsAuthenticated(getStoredAuthentication());
         }
       });
 
@@ -109,62 +191,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subscription.unsubscribe();
       };
     }
-  }, []);
+  }, [fetchRealProfileAndRole]);
 
   // Standard Email & Password Login
   const signIn = async (
     email: string,
-    password = 'password123'
+    password?: string
   ): Promise<{ success: boolean; error?: string; role?: UserProfile['role'] }> => {
     setIsLoading(true);
 
-    // 1. Check if email matches any of the demo personas
-    const normalizedLogin = email.trim().toLowerCase();
-    const matchedPersona = normalizedLogin === 'admin'
-      ? PRESET_PERSONAS.admin
-      : [PRESET_PERSONAS.citizen, PRESET_PERSONAS.admin].find(
-          (persona) =>
-            persona.email?.toLowerCase() === normalizedLogin ||
-            persona.username.toLowerCase() === normalizedLogin
-        );
+    const normalizedEmail = email.trim();
 
-    if (matchedPersona) {
-      if (password !== matchedPersona.passwordHint) {
+    // 1. In DEMO mode only, check preset personas
+    if (!isLiveMode) {
+      const normalizedLogin = normalizedEmail.toLowerCase();
+      const matchedPersona = normalizedLogin === 'admin'
+        ? PRESET_PERSONAS.admin
+        : [PRESET_PERSONAS.citizen, PRESET_PERSONAS.admin].find(
+            (persona) =>
+              persona.email?.toLowerCase() === normalizedLogin ||
+              persona.username.toLowerCase() === normalizedLogin
+          );
+
+      if (matchedPersona) {
+        if (password && password !== matchedPersona.passwordHint) {
+          setIsLoading(false);
+          return { success: false, error: 'Username atau password demo tidak sesuai.' };
+        }
+        setProfile(matchedPersona);
+        localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(matchedPersona));
+        setIsAuthenticated(true);
+        localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
         setIsLoading(false);
-        return { success: false, error: 'Username atau password demo tidak sesuai.' };
+        return { success: true, role: matchedPersona.role };
       }
-      setProfile(matchedPersona);
-      localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(matchedPersona));
-      setIsAuthenticated(true);
-      localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
-      setIsLoading(false);
-      return { success: true, role: matchedPersona.role };
     }
 
-    // 2. Try Supabase Auth if online
+    // 2. In Live mode or when querying Supabase Auth
     if (isSupabaseConfigured) {
+      if (!password) {
+        setIsLoading(false);
+        return { success: false, error: 'Password wajib diisi.' };
+      }
+
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
+          email: normalizedEmail,
           password,
         });
 
         if (error) {
           setIsLoading(false);
-          return { success: false, error: 'Username atau password salah. Gunakan akun demo yang tersedia atau akun TITIK terdaftar.' };
+          return { success: false, error: error.message || 'Username atau password salah.' };
         }
 
-        if (data.session) {
+        if (data.session && data.user) {
           setSession(data.session);
           setUser(data.user);
           setIsAuthenticated(true);
-          localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
+          const resolved = await fetchRealProfileAndRole(data.session);
+          setProfile(resolved);
+          setIsLoading(false);
+          return { success: true, role: resolved.role };
         }
+
         setIsLoading(false);
-        if (!data.session || !data.user) {
-          return { success: false, error: 'Login tidak berhasil. Periksa kembali akun dan password Anda.' };
-        }
-        return { success: true, role: data.user.user_metadata?.role === 'admin' ? 'admin' : 'citizen' };
+        return { success: false, error: 'Login tidak berhasil. Periksa kembali akun dan kata sandi Anda.' };
       } catch (err: unknown) {
         setIsLoading(false);
         const errorMsg = err instanceof Error ? err.message : String(err);
@@ -175,7 +267,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
     return {
       success: false,
-      error: 'Akun tidak ditemukan. Silakan masuk menggunakan salah satu akun demo yang tersedia.',
+      error: 'Akun tidak ditemukan. Silakan periksa kembali email dan kata sandi Anda.',
     };
   };
 
@@ -189,15 +281,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (isSupabaseConfigured) {
       try {
+        const cleanedUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '');
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: {
             data: {
-              display_name: displayName,
-              username: email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '_'),
+              display_name: displayName.trim(),
+              username: cleanedUsername,
               district: 'Bogor Tengah',
-              role: 'citizen',
             },
           },
         });
@@ -207,9 +299,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { success: false, error: error.message };
         }
 
-        if (data.user) {
+        if (data.session) {
+          setSession(data.session);
           setUser(data.user);
+          setIsAuthenticated(true);
+          const resolved = await fetchRealProfileAndRole(data.session);
+          setProfile(resolved);
         }
+
+        setIsLoading(false);
+        return { success: true };
       } catch (err: unknown) {
         setIsLoading(false);
         const errorMsg = err instanceof Error ? err.message : String(err);
@@ -217,15 +316,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
+    // Demo mode fallback only
     const newProfile: UserProfile = {
       id: `usr-${Date.now()}`,
       email,
       displayName,
-      username: email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '_'),
+      username: email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, ''),
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
       role: 'citizen',
       district: 'Bogor Tengah',
-      isVerified: true,
+      isVerified: false,
       bio: 'Warga baru terdaftar di portal TITIK.',
     };
 
@@ -243,15 +343,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         await supabase.auth.signOut();
       } catch (err) {
-        console.warn('Sign-out note:', err);
+        console.warn('Sign-out error:', err);
       }
     }
     setUser(null);
     setSession(null);
     setProfile(PRESET_PERSONAS.anonymous);
     setIsAuthenticated(false);
-    localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(PRESET_PERSONAS.anonymous));
-    localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'false');
+
+    // Clear all localStorage keys starting with titik_
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('titik_')) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch (e) {
+      console.warn('Error clearing localStorage keys:', e);
+    }
+
+    // Clear IndexedDB evidence
+    await clearPersistedReports();
   };
 
   return (
@@ -262,9 +377,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         session,
         isLoading,
         isAuthenticated,
+        isLiveMode,
         signIn,
         signUp,
         signOut,
+        refreshProfile,
       }}
     >
       {children}

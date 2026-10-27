@@ -9,7 +9,7 @@ export const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { openReportModal, setActiveFeedTab } = useTitik();
-  const { profile } = useAuth();
+  const { profile, isAuthenticated } = useAuth();
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollTop = useRef(0);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,14 +127,18 @@ export const BottomNav: React.FC = () => {
       <ThemeToggle className="w-9 h-9 border-white/20 bg-white/10 text-white hover:bg-white/20" />
 
       <a
-        href="/login"
+        href={isAuthenticated ? '/laporan-saya' : '/login'}
         onClick={(e) => {
           e.preventDefault();
-          if (location.pathname !== '/login') navigate('/login');
+          const target = isAuthenticated ? '/laporan-saya' : '/login';
+          if (location.pathname !== target) navigate(target);
         }}
         className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
-          currentPath === '/login' ? 'text-emerald-400 font-bold' : 'text-white/70 hover:text-white'
+          currentPath === '/laporan-saya' || (!isAuthenticated && currentPath === '/login')
+            ? 'text-emerald-400 font-bold'
+            : 'text-white/70 hover:text-white'
         }`}
+        title={isAuthenticated ? 'Laporan saya' : 'Masuk'}
       >
         <img
           src={profile.avatarUrl}

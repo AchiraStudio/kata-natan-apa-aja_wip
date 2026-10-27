@@ -21,7 +21,11 @@ const AuthenticatedRoute: React.FC<{ children: React.ReactElement }> = ({ childr
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-[#686B65]">Memeriksa sesi...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-[#686B65]">
+        Memeriksa sesi...
+      </div>
+    );
   }
 
   return isAuthenticated ? children : <Navigate to="/login" replace />;
@@ -31,7 +35,11 @@ const AdminOnlyRoute: React.FC<{ children: React.ReactElement }> = ({ children }
   const { profile, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-[#686B65]">Memeriksa akses...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-[#686B65]">
+        Memeriksa akses...
+      </div>
+    );
   }
 
   return isAuthenticated && profile.role === 'admin'
@@ -42,20 +50,23 @@ const AdminOnlyRoute: React.FC<{ children: React.ReactElement }> = ({ children }
 export default function App() {
   return (
     <ThemeProvider>
-      <TitikProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <TitikProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<AuthenticatedRoute><HomeView /></AuthenticatedRoute>} />
+              {/* Public Routes: Civic feed, Map, Public Reports, Alur, and Anonymous Tracking */}
+              <Route path="/" element={<HomeView />} />
               <Route path="/login" element={<LoginView />} />
               <Route path="/masuk" element={<Navigate to="/login" replace />} />
-              <Route path="/alur" element={<AuthenticatedRoute><WorkflowView /></AuthenticatedRoute>} />
+              <Route path="/alur" element={<WorkflowView />} />
               <Route path="/workflow" element={<Navigate to="/alur" replace />} />
-              <Route path="/report/:id" element={<AuthenticatedRoute><ReportDetailView /></AuthenticatedRoute>} />
-              <Route path="/laporan/:id" element={<AuthenticatedRoute><ReportDetailView /></AuthenticatedRoute>} />
-              <Route path="/explore" element={<AuthenticatedRoute><ExploreView /></AuthenticatedRoute>} />
-              <Route path="/map" element={<AuthenticatedRoute><MapView /></AuthenticatedRoute>} />
-              <Route path="/track" element={<AuthenticatedRoute><TrackReportView /></AuthenticatedRoute>} />
+              <Route path="/report/:id" element={<ReportDetailView />} />
+              <Route path="/laporan/:id" element={<ReportDetailView />} />
+              <Route path="/explore" element={<ExploreView />} />
+              <Route path="/map" element={<MapView />} />
+              <Route path="/track" element={<TrackReportView />} />
+
+              {/* Protected Routes */}
               <Route path="/laporan-saya" element={<AuthenticatedRoute><MyReportsView /></AuthenticatedRoute>} />
               <Route path="/admin" element={<AdminOnlyRoute><AdminView /></AdminOnlyRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
@@ -66,8 +77,8 @@ export default function App() {
             <ReportDetailDrawer />
             <GlobalSearchModal />
           </BrowserRouter>
-        </AuthProvider>
-      </TitikProvider>
+        </TitikProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
