@@ -1,72 +1,53 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Home, Compass, MapPin, Plus } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Compass, Plus, MapPin } from 'lucide-react';
-import { useTitik } from '../../context/TitikContext';
+import { useTitik } from '../../context/useTitik';
 import { useAuth } from '../../context/AuthContext';
-import { ThemeToggle } from '../common/ThemeToggle';
 
 export const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { openReportModal, setActiveFeedTab } = useTitik();
+  const { openComposer, setActiveFeedTab } = useTitik();
   const { profile, isAuthenticated } = useAuth();
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollTop = useRef(0);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    const handleScroll = (scrollTop: number) => {
-      const delta = scrollTop - lastScrollTop.current;
+  const currentPath = location.pathname;
 
-      // Scrolling down by more than 10px -> hide floating nav
-      if (delta > 10 && scrollTop > 30) {
+  useEffect(() => {
+    const handleScroll = () => {
+      const st = window.pageYOffset || document.documentElement.scrollTop;
+
+      if (Math.abs(lastScrollTop.current - st) <= 10) return;
+
+      if (st > lastScrollTop.current && st > 60) {
         setIsVisible(false);
-      } else if (delta < -10 || scrollTop <= 15) {
-        // Scrolling up or near top -> reveal floating nav
+      } else {
         setIsVisible(true);
       }
 
-      lastScrollTop.current = scrollTop;
+      lastScrollTop.current = st <= 0 ? 0 : st;
 
-      // Auto-reveal after scrolling stops
       if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
       hideTimeoutRef.current = setTimeout(() => {
         setIsVisible(true);
-      }, 1200);
+      }, 1500);
     };
 
-    const onWindowScroll = () => handleScroll(window.scrollY);
-
-    const onElementScroll = (e: Event) => {
-      const target = e.target as HTMLElement;
-      if (target && typeof target.scrollTop === 'number') {
-        handleScroll(target.scrollTop);
-      }
-    };
-
-    const onScreenTap = () => {
-      setIsVisible(true);
-    };
-
-    window.addEventListener('scroll', onWindowScroll, { passive: true });
-    window.addEventListener('scroll', onElementScroll, { capture: true, passive: true });
-    window.addEventListener('touchstart', onScreenTap, { passive: true });
-
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
-      window.removeEventListener('scroll', onWindowScroll);
-      window.removeEventListener('scroll', onElementScroll, { capture: true });
-      window.removeEventListener('touchstart', onScreenTap);
+      window.removeEventListener('scroll', handleScroll);
       if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
     };
   }, []);
 
-  const currentPath = location.pathname;
-
   return (
     <nav
-      className={`lg:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-[340px] rounded-full bg-[#20221D]/85 backdrop-blur-xl border border-white/20 shadow-[0_12px_32px_rgba(0,0,0,0.35)] px-4 py-2 flex items-center justify-between transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      aria-label="Navigasi Utama Mobile"
+      className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-40 lg:hidden flex items-center justify-around w-[92%] max-w-sm px-4 py-2 bg-[#20221D]/90 dark:bg-[#131916]/95 backdrop-blur-md rounded-full shadow-2xl border border-white/10 dark:border-[#26352E] text-white transition-all duration-300 ${
         isVisible
-          ? 'translate-y-0 opacity-100 pointer-events-auto scale-100'
+          ? 'translate-y-0 opacity-100 scale-100'
           : 'translate-y-24 opacity-0 pointer-events-none scale-95'
       }`}
     >
@@ -100,12 +81,13 @@ export const BottomNav: React.FC = () => {
         <span>Explore</span>
       </a>
 
-      {/* Center Report Action (+) */}
+      {/* Center Create Action (+) */}
       <button
         type="button"
-        onClick={openReportModal}
+        onClick={() => openComposer('post')}
         className="flex items-center justify-center -my-1 w-11 h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-[#20221D] shadow-lg shadow-emerald-500/30 transition-transform active:scale-90 cursor-pointer"
-        title="Laporkan Masalah"
+        title="Buat Postingan atau Laporan"
+        aria-label="Buat"
       >
         <Plus className="w-6 h-6 stroke-[2.8]" />
       </button>
@@ -124,21 +106,19 @@ export const BottomNav: React.FC = () => {
         <span>Peta</span>
       </a>
 
-      <ThemeToggle className="w-9 h-9 border-white/20 bg-white/10 text-white hover:bg-white/20" />
-
       <a
-        href={isAuthenticated ? '/laporan-saya' : '/login'}
+        href={isAuthenticated ? `/u/${profile.username}` : '/login'}
         onClick={(e) => {
           e.preventDefault();
-          const target = isAuthenticated ? '/laporan-saya' : '/login';
+          const target = isAuthenticated ? `/u/${profile.username}` : '/login';
           if (location.pathname !== target) navigate(target);
         }}
         className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
-          currentPath === '/laporan-saya' || (!isAuthenticated && currentPath === '/login')
+          currentPath.startsWith('/u/') || (!isAuthenticated && currentPath === '/login')
             ? 'text-emerald-400 font-bold'
             : 'text-white/70 hover:text-white'
         }`}
-        title={isAuthenticated ? 'Laporan saya' : 'Masuk'}
+        title={isAuthenticated ? 'Profil Saya' : 'Masuk'}
       >
         <img
           src={profile.avatarUrl}

@@ -11,7 +11,7 @@ import { WorkflowView } from './views/WorkflowView';
 import { ReportDetailView } from './views/ReportDetailView';
 import { LoginView } from './views/LoginView';
 import { MyReportsView } from './views/MyReportsView';
-import { ReportModal } from './components/reporting/ReportModal';
+import { CreateModal } from './components/composer/CreateModal';
 import { ReportDetailDrawer } from './components/reporting/ReportDetailDrawer';
 import { GlobalSearchModal } from './components/modals/GlobalSearchModal';
 import { ThemeProvider } from '@/context/ThemeContext';
@@ -54,7 +54,7 @@ export default function App() {
         <TitikProvider>
           <BrowserRouter>
             <Routes>
-              {/* Public Routes: Civic feed, Map, Public Reports, Alur, and Anonymous Tracking */}
+              {/* Public Routes */}
               <Route path="/" element={<HomeView />} />
               <Route path="/login" element={<LoginView />} />
               <Route path="/masuk" element={<Navigate to="/login" replace />} />
@@ -67,13 +67,27 @@ export default function App() {
               <Route path="/track" element={<TrackReportView />} />
 
               {/* Protected Routes */}
-              <Route path="/laporan-saya" element={<AuthenticatedRoute><MyReportsView /></AuthenticatedRoute>} />
-              <Route path="/admin" element={<AdminOnlyRoute><AdminView /></AdminOnlyRoute>} />
+              <Route
+                path="/laporan-saya"
+                element={
+                  <AuthenticatedRoute>
+                    <MyReportsView />
+                  </AuthenticatedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <AdminOnlyRoute>
+                    <AdminView />
+                  </AdminOnlyRoute>
+                }
+              />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
 
             {/* Global Overlays & Modals */}
-            <ReportModal />
+            <CreateModal />
             <ReportDetailDrawer />
             <GlobalSearchModal />
           </BrowserRouter>

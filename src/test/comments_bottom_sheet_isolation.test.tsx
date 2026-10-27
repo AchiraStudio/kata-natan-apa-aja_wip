@@ -46,6 +46,11 @@ function createMockContext(overrides: Partial<any> = {}) {
     facilities: [],
     budgetSectors: [],
     reportModalOpen: false,
+    composerOpen: false,
+    composerTab: 'post' as const,
+    openComposer: vi.fn(),
+    closeComposer: vi.fn(),
+
     reportDetailOpen: false,
     selectedReport: null,
     searchModalOpen: false,

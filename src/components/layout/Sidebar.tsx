@@ -33,7 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
 
   const { profile, isAuthenticated } = useAuth();
   const {
-    openReportModal,
+    openComposer,
     selectedCategory,
     setSelectedCategory,
     activeFeedTab,
@@ -184,11 +184,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
         <div>
           <button
             type="button"
-            onClick={openReportModal}
+            onClick={() => openComposer('post')}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-xl font-bold text-xs hover:bg-[#1d3129] dark:hover:bg-[#34D399] active:scale-[0.98] transition-all shadow-sm dark:shadow-md dark:shadow-emerald-950/40 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.8]" />
-            <span>Buat Laporan Warga</span>
+            <span>Buat</span>
           </button>
         </div>
 
@@ -308,16 +308,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
       {/* Bottom Section: Citizen Profile Card & Theme Toggle */}
       <div className="pt-3 border-t border-[#E4E2DA] dark:border-[#26352E] flex items-center gap-2">
         <a
-          href={isAuthenticated ? '/laporan-saya' : '/login'}
+          href={isAuthenticated ? `/u/${profile.username}` : '/login'}
           onClick={(e) => {
             e.preventDefault();
-            const target = isAuthenticated ? '/laporan-saya' : '/login';
+            const target = isAuthenticated ? `/u/${profile.username}` : '/login';
             if (location.pathname !== target) {
               navigate(target);
             }
           }}
           className="flex min-w-0 flex-1 items-center justify-between p-2.5 bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-xl shadow-xs hover:border-[#263F35]/40 dark:hover:border-[#10B981]/40 transition-all group"
-          title={isAuthenticated ? 'Laporan Saya' : 'Masuk'}
+          title={isAuthenticated ? 'Profil Saya' : 'Masuk'}
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <img

@@ -11,7 +11,13 @@ export interface TitikContextType {
   selectedCategory: string;
   facilities: Facility[];
   budgetSectors: BudgetSectorContext[];
+  composerOpen: boolean;
+  composerTab: 'post' | 'report';
+  openComposer: (tab?: 'post' | 'report') => void;
+  closeComposer: () => void;
   reportModalOpen: boolean;
+  openReportModal: () => void;
+  closeReportModal: () => void;
   reportDetailOpen: boolean;
   selectedReport: Report | null;
   searchModalOpen: boolean;
@@ -20,8 +26,6 @@ export interface TitikContextType {
   setActivePostId: (id: string) => void;
   setActiveFeedTab: (tab: 'for_you' | 'following' | 'nearby') => void;
   setSelectedCategory: (category: string) => void;
-  openReportModal: () => void;
-  closeReportModal: () => void;
   openReportDetail: (report: Report) => void;
   closeReportDetail: () => void;
   setSearchModalOpen: (open: boolean) => void;
@@ -57,12 +61,27 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [budgetSectors, setBudgetSectors] = useState<BudgetSectorContext[]>([]);
 
-  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerTab, setComposerTab] = useState<'post' | 'report'>('post');
+
   const [reportDetailOpen, setReportDetailOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [landingBannerOpen, setLandingBannerOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+
+  const openComposer = (tab: 'post' | 'report' = 'post') => {
+    setComposerTab(tab);
+    setComposerOpen(true);
+  };
+
+  const closeComposer = () => {
+    setComposerOpen(false);
+  };
+
+  const openReportModal = () => openComposer('report');
+  const closeReportModal = closeComposer;
+  const reportModalOpen = composerOpen && composerTab === 'report';
 
   const refreshFeed = useCallback(async () => {
     setIsLoading(true);
@@ -107,9 +126,6 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setActivePostId = (id: string) => {
     setActivePostIdState(id);
   };
-
-  const openReportModal = () => setReportModalOpen(true);
-  const closeReportModal = () => setReportModalOpen(false);
 
   const openReportDetail = (report: Report) => {
     setSelectedReport(report);
@@ -258,7 +274,13 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         selectedCategory,
         facilities,
         budgetSectors,
+        composerOpen,
+        composerTab,
+        openComposer,
+        closeComposer,
         reportModalOpen,
+        openReportModal,
+        closeReportModal,
         reportDetailOpen,
         selectedReport,
         searchModalOpen,
@@ -267,8 +289,6 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setActivePostId,
         setActiveFeedTab,
         setSelectedCategory,
-        openReportModal,
-        closeReportModal,
         openReportDetail,
         closeReportDetail,
         setSearchModalOpen,

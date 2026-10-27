@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ReportDetailDrawer } from '../components/reporting/ReportDetailDrawer';
@@ -20,6 +20,11 @@ function createMockContextValue(report: Report | null, isOpen = true) {
     facilities: [],
     budgetSectors: [],
     reportModalOpen: false,
+    composerOpen: false,
+    composerTab: 'post' as const,
+    openComposer: vi.fn(),
+    closeComposer: vi.fn(),
+
     reportDetailOpen: isOpen,
     selectedReport: report,
     searchModalOpen: false,
