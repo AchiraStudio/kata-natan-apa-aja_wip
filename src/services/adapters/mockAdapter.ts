@@ -12,6 +12,7 @@ import {
   ReportEvent,
   Facility,
   BudgetSectorContext,
+  UserProfile,
 } from '../../types/domain';
 import { FeedComment, IDataAdapter, NewReportInput, RejectedReportEdits, ReportSubmitResult } from './types';
 import { getReportMediaType } from '../../utils/reportEvidence';
@@ -554,5 +555,66 @@ export class MockDataAdapter implements IDataAdapter {
 
   async getBudgetSectors(): Promise<BudgetSectorContext[]> {
     return [...this.budgetSectors];
+  }
+
+  async getProfileByUsername(username: string): Promise<UserProfile | null> {
+    const clean = username.trim().toLowerCase().replace(/^@/, '');
+    const foundPost = this.posts.find((p) => p.author.username.toLowerCase() === clean);
+    if (foundPost) {
+      return {
+        id: foundPost.author.id,
+        username: foundPost.author.username,
+        displayName: foundPost.author.displayName,
+        avatarUrl: foundPost.author.avatarUrl,
+        role: foundPost.author.role,
+        bio: 'Warga aktif Kota Bogor peduli transparansi dan kenyamanan fasilitas publik.',
+        district: 'Bogor Tengah',
+        isVerified: true,
+        createdAt: '2026-01-15T08:00:00Z',
+      };
+    }
+    return {
+      id: 'usr-' + clean,
+      username: clean,
+      displayName: clean.charAt(0).toUpperCase() + clean.slice(1),
+      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+      role: 'citizen',
+      bio: 'Warga Kota Bogor',
+      district: 'Kota Bogor',
+      isVerified: false,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  async getUserPosts(userId: string): Promise<Post[]> {
+    return this.posts.filter((p) => p.author.id === userId || p.author.username === userId);
+  }
+
+  async getUserReports(userId: string): Promise<Report[]> {
+    return this.reports.filter((r) => r.reporterUserId === userId && r.reporterType !== 'anonymous');
+  }
+
+  async getPostById(postId: string): Promise<Post | null> {
+    return this.posts.find((p) => p.id === postId) || null;
+  }
+
+  async updateProfile(payload: {
+    displayName?: string;
+    username?: string;
+    avatarUrl?: string;
+    bio?: string;
+    district?: string;
+  }): Promise<UserProfile> {
+    return {
+      id: 'usr-current',
+      username: payload.username || 'warga_bogor',
+      displayName: payload.displayName || 'Warga Bogor',
+      avatarUrl: payload.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+      role: 'citizen',
+      bio: payload.bio,
+      district: payload.district,
+      isVerified: false,
+      createdAt: new Date().toISOString(),
+    };
   }
 }

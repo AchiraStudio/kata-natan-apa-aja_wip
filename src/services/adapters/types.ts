@@ -1,4 +1,4 @@
-import { Post, Report, ReportAttachment, ReportStatus, Facility, BudgetSectorContext } from '../../types/domain';
+import { Post, Report, ReportAttachment, ReportStatus, Facility, BudgetSectorContext, UserProfile } from '../../types/domain';
 
 export interface NewReportInput {
   title: string;
@@ -67,4 +67,9 @@ export interface IDataAdapter {
   getComments(postId: string): Promise<FeedComment[]>;
   getFacilities(query?: string, category?: string): Promise<Facility[]>;
   getBudgetSectors(): Promise<BudgetSectorContext[]>;
+  getProfileByUsername(username: string): Promise<UserProfile | null>;
+  getUserPosts(userId: string): Promise<Post[]>;
+  getUserReports(userId: string): Promise<Report[]>;
+  getPostById(postId: string): Promise<Post | null>;
+  updateProfile(payload: { displayName?: string; username?: string; avatarUrl?: string; bio?: string; district?: string }): Promise<UserProfile>;
 }

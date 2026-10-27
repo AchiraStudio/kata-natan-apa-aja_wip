@@ -147,9 +147,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
   };
 
   const handleShare = async () => {
-    const shareUrl = post.relatedReport
-      ? `${window.location.origin}/report/${post.relatedReport.publicReference}`
-      : `${window.location.origin}/`;
+    const shareUrl = `${window.location.origin}/post/${post.id}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: 'TITIK.', text: post.body || 'Lihat ini di TITIK.', url: shareUrl });
@@ -288,22 +286,34 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
       <div className="absolute right-3.5 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:bottom-20 z-20 flex flex-col items-center gap-3.5 sm:gap-4">
         {/* Author Avatar with Follow Badge */}
         <div className="relative">
-          <img
-            src={post.author.avatarUrl}
-            alt={post.author.displayName}
-            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-white shadow-md"
-          />
-          <button
-            type="button"
-            onClick={() => setIsFollowed(!isFollowed)}
-            className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center text-white transition-transform active:scale-90 ${
-              isFollowed
-                ? 'bg-[#263F35] dark:bg-[#10B981] dark:text-[#0A1610]'
-                : 'bg-[#263F35] dark:bg-[#10B981] dark:text-[#0A1610] hover:bg-[#1f332b] dark:hover:bg-[#34D399]'
-            }`}
+          <a
+            href={`/u/${post.author.username}`}
+            className="block cursor-pointer"
+            onClick={(e) => e.stopPropagation()}
+            title={`Lihat profil @${post.author.username}`}
           >
-            {isFollowed ? <Check className="w-3 h-3 stroke-[3]" /> : <Plus className="w-3 h-3 stroke-[3]" />}
-          </button>
+            <img
+              src={post.author.avatarUrl}
+              alt={post.author.displayName}
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-white shadow-md hover:scale-105 transition-transform"
+            />
+          </a>
+          {post.isSampleData && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFollowed(!isFollowed);
+              }}
+              className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center text-white transition-transform active:scale-90 ${
+                isFollowed
+                  ? 'bg-[#263F35] dark:bg-[#10B981] dark:text-[#0A1610]'
+                  : 'bg-[#263F35] dark:bg-[#10B981] dark:text-[#0A1610] hover:bg-[#1f332b] dark:hover:bg-[#34D399]'
+              }`}
+            >
+              {isFollowed ? <Check className="w-3 h-3 stroke-[3]" /> : <Plus className="w-3 h-3 stroke-[3]" />}
+            </button>
+          )}
         </div>
 
         {/* "Saya terdampak juga / Dukung Laporan" Action */}
@@ -387,9 +397,13 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
       <div className="relative z-10 p-4 sm:p-5 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-5 pr-16 space-y-2">
         {/* Author Handle */}
         <div className="flex items-center gap-2">
-          <span className="font-bold text-sm tracking-tight drop-shadow-md">
+          <a
+            href={`/u/${post.author.username}`}
+            onClick={(e) => e.stopPropagation()}
+            className="font-bold text-sm tracking-tight drop-shadow-md hover:underline"
+          >
             @{post.author.username}
-          </span>
+          </a>
           <span className="text-xs text-white/70 font-mono">• {post.createdAt}</span>
         </div>
 

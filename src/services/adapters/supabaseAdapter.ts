@@ -7,7 +7,7 @@ import {
   FeedComment,
 } from './types';
 import { formatIndonesianTimeAgo } from '../../utils/timeAgo';
-import { Post, Report, ReportStatus, Facility, BudgetSectorContext } from '../../types/domain';
+import { Post, Report, ReportStatus, Facility, BudgetSectorContext, UserProfile } from '../../types/domain';
 import { DataError } from '../errors/DataError';
 
 function mapPostgrestError(error: unknown, fallbackMessage: string): DataError {
@@ -664,6 +664,129 @@ export class SupabaseDataAdapter implements IDataAdapter {
     } catch (err) {
       if (err instanceof DataError) throw err;
       throw mapPostgrestError(err, 'Gagal memuat sektor anggaran.');
+    }
+  }
+
+  async getProfileByUsername(username: string): Promise<UserProfile | null> {
+    try {
+      const cleanUsername = username.trim().toLowerCase().replace(/^@/, '');
+      const { data, error } = await supabase
+        .from('public_profiles')
+        .select('*')
+        .eq('username', cleanUsername)
+        .maybeSingle();
+
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal memuat profil pengguna.');
+      }
+      if (!data) return null;
+
+      return {
+        id: data.id,
+        username: data.username,
+        displayName: data.display_name,
+        avatarUrl: data.avatar_url,
+        role: data.role === 'admin' ? 'admin' : 'citizen',
+        bio: data.bio || undefined,
+        district: data.district || undefined,
+        isVerified: Boolean(data.is_verified),
+        createdAt: data.created_at,
+      };
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal memuat profil pengguna.');
+    }
+  }
+
+  async getUserPosts(userId: string): Promise<Post[]> {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*, relatedReport:reports(*)')
+        .eq('author_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal memuat postingan pengguna.');
+      }
+      return (data || []).map((row) => mapPostRow(row, false, false, false));
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal memuat postingan pengguna.');
+    }
+  }
+
+  async getUserReports(userId: string): Promise<Report[]> {
+    try {
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .eq('reporter_user_id', userId)
+        .neq('reporter_type', 'anonymous')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal memuat laporan pengguna.');
+      }
+      return (data || []).map((row) => mapReportRow(row));
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal memuat laporan pengguna.');
+    }
+  }
+
+  async getPostById(postId: string): Promise<Post | null> {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*, relatedReport:reports(*)')
+        .eq('id', postId)
+        .maybeSingle();
+
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal memuat postingan.');
+      }
+      if (!data) return null;
+      return mapPostRow(data, false, false, false);
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal memuat postingan.');
+    }
+  }
+
+  async updateProfile(payload: {
+    displayName?: string;
+    username?: string;
+    avatarUrl?: string;
+    bio?: string;
+    district?: string;
+  }): Promise<UserProfile> {
+    try {
+      const { data, error } = await supabase.rpc('update_my_profile', {
+        p_display_name: payload.displayName?.trim() || null,
+        p_username: payload.username?.trim().toLowerCase() || null,
+        p_avatar_url: payload.avatarUrl || null,
+        p_bio: payload.bio || null,
+        p_district: payload.district || null,
+      });
+
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal memperbarui profil.');
+      }
+      return {
+        id: data.id,
+        username: data.username,
+        displayName: data.display_name,
+        avatarUrl: data.avatar_url,
+        role: data.role === 'admin' ? 'admin' : 'citizen',
+        bio: data.bio || undefined,
+        district: data.district || undefined,
+        isVerified: Boolean(data.is_verified),
+        createdAt: data.created_at,
+      };
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal memperbarui profil.');
     }
   }
 }

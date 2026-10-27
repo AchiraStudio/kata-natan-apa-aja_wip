@@ -15,6 +15,7 @@ export interface UserProfile {
   email?: string;
   district?: string;
   isVerified?: boolean;
+  createdAt?: string;
 }
 
 export type AspectRatio =
