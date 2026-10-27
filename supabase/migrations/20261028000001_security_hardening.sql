@@ -123,6 +123,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DE
 ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE public.comments ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.facilities ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Profile update guard: prevent non-admins from changing role or verification, enforce username rules
 CREATE OR REPLACE FUNCTION public.check_profile_update()
@@ -989,3 +990,9 @@ CREATE POLICY "Users can delete own objects" ON storage.objects
   FOR DELETE USING (
     (storage.foldername(name))[1] = (SELECT auth.uid()::text) OR public.is_admin()
   );
+
+-- -----------------------------------------------------------------------------
+-- 9. RELOAD SCHEMA CACHE
+-- -----------------------------------------------------------------------------
+-- Ensure PostgREST immediately discovers new columns, RPCs, and relations
+NOTIFY pgrst, 'reload schema';
