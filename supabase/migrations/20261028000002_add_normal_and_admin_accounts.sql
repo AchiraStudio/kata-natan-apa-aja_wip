@@ -34,34 +34,28 @@ BEGIN
     SET
       encrypted_password = v_encrypted_admin_pw,
       email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+      aud = 'authenticated',
+      role = 'authenticated',
+      raw_app_meta_data = '{"provider":"email","providers":["email"]}'::jsonb,
       raw_user_meta_data = '{"username":"admin.pupr","display_name":"Administrator Dinas PUPR","district":"Bogor Tengah"}'::jsonb,
+      confirmation_token = COALESCE(confirmation_token, ''),
+      email_change = COALESCE(email_change, ''),
+      email_change_token_new = COALESCE(email_change_token_new, ''),
+      recovery_token = COALESCE(recovery_token, ''),
       updated_at = NOW()
     WHERE id = v_admin_id;
   ELSE
     INSERT INTO auth.users (
-      instance_id,
-      id,
-      aud,
-      role,
-      email,
-      encrypted_password,
-      email_confirmed_at,
-      raw_app_meta_data,
-      raw_user_meta_data,
-      created_at,
-      updated_at
+      instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+      raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+      confirmation_token, email_change, email_change_token_new, recovery_token
     ) VALUES (
-      '00000000-0000-0000-0000-000000000000',
-      v_admin_id,
-      'authenticated',
-      'authenticated',
-      'admin@titik.id',
-      v_encrypted_admin_pw,
-      NOW(),
+      '00000000-0000-0000-0000-000000000000', v_admin_id, 'authenticated', 'authenticated',
+      'admin@titik.id', v_encrypted_admin_pw, NOW(),
       '{"provider":"email","providers":["email"]}'::jsonb,
       '{"username":"admin.pupr","display_name":"Administrator Dinas PUPR","district":"Bogor Tengah"}'::jsonb,
-      NOW(),
-      NOW()
+      NOW(), NOW(),
+      '', '', '', ''
     );
   END IF;
 
@@ -73,36 +67,66 @@ BEGIN
     SET
       encrypted_password = v_encrypted_citizen_pw,
       email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+      aud = 'authenticated',
+      role = 'authenticated',
+      raw_app_meta_data = '{"provider":"email","providers":["email"]}'::jsonb,
       raw_user_meta_data = '{"username":"budi.santoso","display_name":"Budi Santoso","district":"Bogor Selatan"}'::jsonb,
+      confirmation_token = COALESCE(confirmation_token, ''),
+      email_change = COALESCE(email_change, ''),
+      email_change_token_new = COALESCE(email_change_token_new, ''),
+      recovery_token = COALESCE(recovery_token, ''),
       updated_at = NOW()
     WHERE id = v_citizen_id;
   ELSE
     INSERT INTO auth.users (
-      instance_id,
-      id,
-      aud,
-      role,
-      email,
-      encrypted_password,
-      email_confirmed_at,
-      raw_app_meta_data,
-      raw_user_meta_data,
-      created_at,
-      updated_at
+      instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+      raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+      confirmation_token, email_change, email_change_token_new, recovery_token
     ) VALUES (
-      '00000000-0000-0000-0000-000000000000',
-      v_citizen_id,
-      'authenticated',
-      'authenticated',
-      'warga@titik.id',
-      v_encrypted_citizen_pw,
-      NOW(),
+      '00000000-0000-0000-0000-000000000000', v_citizen_id, 'authenticated', 'authenticated',
+      'warga@titik.id', v_encrypted_citizen_pw, NOW(),
       '{"provider":"email","providers":["email"]}'::jsonb,
       '{"username":"budi.santoso","display_name":"Budi Santoso","district":"Bogor Selatan"}'::jsonb,
-      NOW(),
-      NOW()
+      NOW(), NOW(),
+      '', '', '', ''
     );
   END IF;
+
+  -- CRITICAL: auth.identities mapping for GoTrue password sign-in
+  DELETE FROM auth.identities
+  WHERE user_id IN (v_admin_id, v_citizen_id)
+     OR provider_id IN (v_admin_id::text, v_citizen_id::text);
+
+  INSERT INTO auth.identities (
+    id,
+    user_id,
+    identity_data,
+    provider,
+    provider_id,
+    last_sign_in_at,
+    created_at,
+    updated_at
+  ) VALUES
+  (
+    gen_random_uuid(),
+    v_admin_id,
+    jsonb_build_object('sub', v_admin_id::text, 'email', 'admin@titik.id'),
+    'email',
+    v_admin_id::text,
+    NOW(),
+    NOW(),
+    NOW()
+  ),
+  (
+    gen_random_uuid(),
+    v_citizen_id,
+    jsonb_build_object('sub', v_citizen_id::text, 'email', 'warga@titik.id'),
+    'email',
+    v_citizen_id::text,
+    NOW(),
+    NOW(),
+    NOW()
+  );
 
   -- 3. Upsert Profile for Administrator
   INSERT INTO public.profiles (
