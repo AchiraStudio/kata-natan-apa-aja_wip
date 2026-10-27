@@ -6,7 +6,7 @@ import { FeedContainer } from '../components/feed/FeedContainer';
 import { FeedCard } from '../components/feed/FeedCard';
 import * as AuthContextModule from '../context/AuthContext';
 import * as TitikContextModule from '../context/TitikContext';
-import { PostItem, UserProfile } from '../types/domain';
+import { Post, UserProfile } from '../types/domain';
 
 const mockCitizen: UserProfile = {
   id: 'usr-1',
@@ -18,18 +18,20 @@ const mockCitizen: UserProfile = {
   district: 'Bogor Selatan',
 };
 
-const mockPost: PostItem = {
+const mockPost: Post = {
   id: 'post-test-1',
   author: mockCitizen,
-  description: 'Jalan berlubang parah di depan halte Sukasari.',
-  location: { address: 'Jl. Pajajaran No. 12', district: 'Bogor Selatan', coordinates: [-6.6, 106.8] },
-  media: [{ id: 'm1', type: 'image', url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957' }],
+  body: 'Jalan berlubang parah di depan halte Sukasari.',
+  locationTag: 'Bogor Selatan',
+  media: [{ id: 'm1', type: 'image', url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957', aspectRatio: '9:16' }],
+  supportCount: 0,
   likesCount: 0,
   commentsCount: 0,
   savesCount: 0,
   sharesCount: 0,
   createdAt: new Date().toISOString(),
   postType: 'citizen_report',
+  isSampleData: false,
 };
 
 describe('Mobile Top Navigation Optimization Suite', () => {
@@ -126,3 +128,4 @@ describe('Mobile Top Navigation Optimization Suite', () => {
     expect(html).toContain('aria-label="Menu opsi lainnya"');
   });
 });
+

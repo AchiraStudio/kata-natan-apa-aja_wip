@@ -15,7 +15,6 @@ import {
   Sparkles,
   Search,
   ShieldAlert,
-  LogIn,
 } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
@@ -308,16 +307,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
       {/* Bottom Section: Citizen Profile Card & Theme Toggle */}
       <div className="pt-3 border-t border-[#E4E2DA] dark:border-[#26352E] flex items-center gap-2">
         <a
-          href={isAuthenticated ? `/u/${profile.username}` : '/login'}
+          href={`/u/${profile.username}`}
           onClick={(e) => {
             e.preventDefault();
-            const target = isAuthenticated ? `/u/${profile.username}` : '/login';
+            const target = `/u/${profile.username}`;
             if (location.pathname !== target) {
               navigate(target);
             }
           }}
-          className="flex min-w-0 flex-1 items-center justify-between p-2.5 bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-xl shadow-xs hover:border-[#263F35]/40 dark:hover:border-[#10B981]/40 transition-all group"
-          title={isAuthenticated ? 'Profil Saya' : 'Masuk'}
+          className={`flex min-w-0 flex-1 items-center justify-between p-2.5 rounded-xl border shadow-xs transition-all cursor-pointer group ${
+            currentPath === `/u/${profile.username}` || currentPath === '/me'
+              ? 'bg-[#E7EBDD] dark:bg-[#1A2E24] border-[#263F35]/40 dark:border-[#34D399]/40'
+              : 'bg-white dark:bg-[#1A221E] border-[#E4E2DA] dark:border-[#26352E] hover:border-[#263F35]/40 dark:hover:border-[#10B981]/40'
+          }`}
+          title="Profil Saya"
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <img
@@ -337,12 +340,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
                   : 'Warga Kota Bogor'}
               </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <span className="p-1 rounded-lg text-[#686B65] dark:text-[#9EACA3] group-hover:text-[#20221D] dark:group-hover:text-[#F3F6F4] group-hover:bg-[#F7F6F1] dark:group-hover:bg-[#131916] transition-colors">
-              <LogIn className="w-4 h-4" />
-            </span>
           </div>
         </a>
         <ThemeToggle className="shrink-0" />
