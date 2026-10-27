@@ -13,7 +13,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLiveMode: boolean;
   signIn: (email: string, password?: string) => Promise<{ success: boolean; error?: string; role?: UserProfile['role'] }>;
-  signUp: (email: string, password: string, displayName: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string, displayName: string, username?: string) => Promise<{ success: boolean; error?: string; needsEmailConfirmation?: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -275,13 +275,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (
     email: string,
     password: string,
-    displayName: string
-  ): Promise<{ success: boolean; error?: string }> => {
+    displayName: string,
+    username?: string
+  ): Promise<{ success: boolean; error?: string; needsEmailConfirmation?: boolean }> => {
     setIsLoading(true);
+
+    const cleanedUsername =
+      username?.trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_.]/g, '') ||
+      email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '');
 
     if (isSupabaseConfigured) {
       try {
-        const cleanedUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '');
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
@@ -308,7 +312,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         setIsLoading(false);
-        return { success: true };
+        // No session means the project requires email confirmation before sign-in
+        return { success: true, needsEmailConfirmation: !data.session };
       } catch (err: unknown) {
         setIsLoading(false);
         const errorMsg = err instanceof Error ? err.message : String(err);
@@ -321,7 +326,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: `usr-${Date.now()}`,
       email,
       displayName,
-      username: email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, ''),
+      username: cleanedUsername,
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
       role: 'citizen',
       district: 'Bogor Tengah',

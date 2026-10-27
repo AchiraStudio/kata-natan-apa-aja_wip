@@ -86,7 +86,7 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const refreshFeed = useCallback(async () => {
     setIsLoading(true);
     try {
-      const feed = await dataService.getFeedPosts(activeFeedTab, selectedCategory);
+      const feed = await dataService.getFeedPosts(activeFeedTab, selectedCategory, currentUserId);
       setPosts(feed);
       if (feed.length > 0) {
         setActivePostIdState((prev) => prev || feed[0].id);
@@ -94,11 +94,11 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setIsLoading(false);
     }
-  }, [activeFeedTab, selectedCategory]);
+  }, [activeFeedTab, selectedCategory, currentUserId]);
 
   useEffect(() => {
     let isMounted = true;
-    dataService.getFeedPosts(activeFeedTab, selectedCategory).then((feed) => {
+    dataService.getFeedPosts(activeFeedTab, selectedCategory, currentUserId).then((feed) => {
       if (isMounted) {
         setPosts(feed);
         if (feed.length > 0) {
@@ -113,7 +113,7 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => {
       isMounted = false;
     };
-  }, [activeFeedTab, selectedCategory]);
+  }, [activeFeedTab, selectedCategory, currentUserId]);
 
   useEffect(() => {
     // Initial fetch of facilities & budget sectors
@@ -138,12 +138,15 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const toggleSupport = async (reportId: string) => {
+    const postWithReport = posts.find((p) => p.relatedReportId === reportId);
+    const wasSupported = postWithReport?.isSupportedByMe ?? false;
+    const prevCount = postWithReport?.supportCount ?? 0;
+
     setPosts((prev) =>
       prev.map((p) => {
         if (p.relatedReportId === reportId && p.relatedReport) {
-          const wasSupported = p.isSupportedByMe ?? false;
           const isSupported = !wasSupported;
-          const supportCount = isSupported ? p.supportCount + 1 : Math.max(0, p.supportCount - 1);
+          const supportCount = isSupported ? prevCount + 1 : Math.max(0, prevCount - 1);
           return {
             ...p,
             isSupportedByMe: isSupported,
@@ -158,16 +161,58 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return p;
       })
     );
-    await dataService.toggleReportSupport(reportId, currentUserId);
+
+    try {
+      const res = await dataService.toggleReportSupport(reportId, currentUserId);
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.relatedReportId === reportId && p.relatedReport) {
+            return {
+              ...p,
+              isSupportedByMe: res.isSupported,
+              supportCount: res.supportCount,
+              relatedReport: {
+                ...p.relatedReport,
+                isSupportedByMe: res.isSupported,
+                supportCount: res.supportCount,
+              },
+            };
+          }
+          return p;
+        })
+      );
+    } catch (err) {
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.relatedReportId === reportId && p.relatedReport) {
+            return {
+              ...p,
+              isSupportedByMe: wasSupported,
+              supportCount: prevCount,
+              relatedReport: {
+                ...p.relatedReport,
+                isSupportedByMe: wasSupported,
+                supportCount: prevCount,
+              },
+            };
+          }
+          return p;
+        })
+      );
+      throw err;
+    }
   };
 
   const togglePostSave = async (postId: string) => {
+    const post = posts.find((p) => p.id === postId);
+    const wasSaved = post?.isSavedByMe ?? false;
+    const prevCount = post?.savesCount ?? 0;
+
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id === postId) {
-          const wasSaved = p.isSavedByMe ?? false;
           const isSaved = !wasSaved;
-          const savesCount = isSaved ? p.savesCount + 1 : Math.max(0, p.savesCount - 1);
+          const savesCount = isSaved ? prevCount + 1 : Math.max(0, prevCount - 1);
           return {
             ...p,
             isSavedByMe: isSaved,
@@ -177,16 +222,38 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return p;
       })
     );
-    await dataService.togglePostSave(postId, currentUserId);
+
+    try {
+      const res = await dataService.togglePostSave(postId, currentUserId);
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, isSavedByMe: res.isSaved, savesCount: res.savesCount }
+            : p
+        )
+      );
+    } catch (err) {
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, isSavedByMe: wasSaved, savesCount: prevCount }
+            : p
+        )
+      );
+      throw err;
+    }
   };
 
   const togglePostLike = async (postId: string) => {
+    const post = posts.find((p) => p.id === postId);
+    const wasLiked = post?.isLikedByMe ?? false;
+    const prevCount = post?.likesCount ?? 0;
+
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id === postId) {
-          const wasLiked = p.isLikedByMe ?? false;
           const isLiked = !wasLiked;
-          const likesCount = isLiked ? (p.likesCount || 0) + 1 : Math.max(0, (p.likesCount || 0) - 1);
+          const likesCount = isLiked ? prevCount + 1 : Math.max(0, prevCount - 1);
           return {
             ...p,
             isLikedByMe: isLiked,
@@ -196,7 +263,26 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return p;
       })
     );
-    await dataService.togglePostLike(postId, currentUserId);
+
+    try {
+      const res = await dataService.togglePostLike(postId, currentUserId);
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, isLikedByMe: res.isLiked, likesCount: res.likesCount }
+            : p
+        )
+      );
+    } catch (err) {
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, isLikedByMe: wasLiked, likesCount: prevCount }
+            : p
+        )
+      );
+      throw err;
+    }
   };
 
   const getComments = async (postId: string) => {

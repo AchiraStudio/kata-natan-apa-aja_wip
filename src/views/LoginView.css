@@ -627,6 +627,7 @@
   cursor: pointer;
   border: none;
   margin-top: 0.5rem;
+  text-decoration: none;
 }
 
 .login-submit-button:hover {

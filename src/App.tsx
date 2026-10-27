@@ -6,6 +6,7 @@ import { HomeView } from './views/HomeView';
 import { LoginView } from './views/LoginView';
 
 const ExploreView = React.lazy(() => import('./views/ExploreView').then((m) => ({ default: m.ExploreView })));
+const RegisterView = React.lazy(() => import('./views/RegisterView').then((m) => ({ default: m.RegisterView })));
 const MapView = React.lazy(() => import('./views/MapView').then((m) => ({ default: m.MapView })));
 const TrackReportView = React.lazy(() => import('./views/TrackReportView').then((m) => ({ default: m.TrackReportView })));
 const AdminView = React.lazy(() => import('./views/AdminView').then((m) => ({ default: m.AdminView })));
@@ -88,6 +89,8 @@ export default function App() {
               {/* Public Routes */}
               <Route path="/" element={<HomeView />} />
               <Route path="/login" element={<LoginView />} />
+              <Route path="/daftar" element={<RegisterView />} />
+              <Route path="/register" element={<Navigate to="/daftar" replace />} />
               <Route path="/masuk" element={<Navigate to="/login" replace />} />
               <Route path="/alur" element={<WorkflowView />} />
               <Route path="/workflow" element={<Navigate to="/alur" replace />} />

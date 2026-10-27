@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   AlertCircle,
   CheckCircle2,
@@ -106,7 +106,12 @@ export const LoginView: React.FC = () => {
                   <h3 className="login-form-heading">hello!</h3>
                 </div>
 
-                <span className="login-mode-track login-mode-tab login-mode-tab--active">Masuk</span>
+                <span className="login-mode-track">
+                  <span className="login-mode-tab login-mode-tab--active">Masuk</span>
+                  <Link to="/daftar" className="login-mode-tab">
+                    Daftar
+                  </Link>
+                </span>
               </div>
 
               <p className="login-form-desc">
@@ -137,7 +142,7 @@ export const LoginView: React.FC = () => {
                   type="text"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder={isLiveMode ? 'Email atau username Anda' : 'Username atau email demo'}
+                  placeholder={isLiveMode ? 'Email Anda' : 'Username atau email demo'}
                   className="login-input-field"
                   autoComplete="username"
                   required
@@ -171,11 +176,22 @@ export const LoginView: React.FC = () => {
               </button>
             </form>
 
-            <div className="mt-5 space-y-1 border-t border-[#E4E2DA] pt-4 text-center text-[10px] text-[#686B65]" aria-label="Akun demo TITIK">
-              <p className="mb-2 text-xs font-bold text-[#263F35]">Gunakan akun demo yang tersedia</p>
-              <p>Warga: <strong>sahabatbogor</strong> / <strong>titik2026</strong></p>
-              <p>Admin: <strong>admin.pupr</strong> / <strong>adminpupr2026</strong></p>
+            <div className="mt-5 border-t border-[#E4E2DA] dark:border-[#26352E] pt-4 text-center text-[11px] text-[#686B65] dark:text-[#9EACA3]">
+              <p>
+                Belum punya akun?{' '}
+                <Link to="/daftar" className="font-bold text-[#263F35] dark:text-[#34D399] hover:underline">
+                  Daftar sekarang
+                </Link>
+              </p>
             </div>
+
+            {!isLiveMode && (
+              <div className="mt-5 space-y-1 border-t border-[#E4E2DA] pt-4 text-center text-[10px] text-[#686B65]" aria-label="Akun demo TITIK">
+                <p className="mb-2 text-xs font-bold text-[#263F35]">Gunakan akun demo yang tersedia</p>
+                <p>Warga: <strong>sahabatbogor</strong> / <strong>titik2026</strong></p>
+                <p>Admin: <strong>admin.pupr</strong> / <strong>adminpupr2026</strong></p>
+              </div>
+            )}
           </div>
         </div>
       </div>
