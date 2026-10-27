@@ -1,14 +1,10 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, ChevronUp, ChevronDown, ShieldAlert } from 'lucide-react';
+import { Search, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
-import { useAuth } from '../../context/AuthContext';
 import { FeedCard } from './FeedCard';
 import { TitikLogo } from '../common/TitikLogo';
 
 export const FeedContainer: React.FC = () => {
-  const navigate = useNavigate();
-  const { profile } = useAuth();
   const {
     posts,
     activeFeedTab,
@@ -251,9 +247,9 @@ export const FeedContainer: React.FC = () => {
 
   return (
     <div className="relative w-full h-[100dvh] lg:h-screen flex flex-col items-center max-w-none lg:max-w-4xl xl:max-w-5xl mx-auto p-0 overflow-hidden">
-      {/* 1. Centered Feed Tabs Header */}
-      <div className="absolute top-0 inset-x-0 z-30 pt-3 sm:pt-4 pb-2 px-4 flex items-center justify-between pointer-events-none lg:static lg:w-full lg:max-w-none lg:h-12 lg:shrink-0 lg:bg-[#F7F6F1] dark:lg:bg-[#0C100E] lg:pt-2 lg:pb-1 lg:border-b lg:border-[#E4E2DA]/60 dark:lg:border-[#26352E] lg:pointer-events-auto">
-        {/* Left: Mobile Brand Mark (SVG Titik Logo) */}
+      {/* 1. Centered Feed Tabs Header (Optimized for Mobile with Clean Segmented Pill) */}
+      <div className="absolute top-0 inset-x-0 z-30 pt-[max(0.75rem,env(safe-area-inset-top))] pb-1 px-3.5 flex items-center justify-between pointer-events-none lg:static lg:w-full lg:max-w-none lg:h-12 lg:shrink-0 lg:bg-[#F7F6F1] dark:lg:bg-[#0C100E] lg:pt-2 lg:pb-1 lg:border-b lg:border-[#E4E2DA]/60 dark:lg:border-[#26352E] lg:pointer-events-auto">
+        {/* Left: Minimal Mobile Brand Mark */}
         <div className="lg:hidden pointer-events-auto flex items-center">
           <a
             href="/"
@@ -261,15 +257,15 @@ export const FeedContainer: React.FC = () => {
               e.preventDefault();
               scrollToIndex(0);
             }}
-            className="flex items-center gap-1.5 p-1 rounded-full bg-black/30 backdrop-blur-md border border-white/15 hover:bg-black/50 transition-colors cursor-pointer"
-            title="TITIK."
+            className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-xl border border-white/15 hover:bg-black/60 transition-colors cursor-pointer flex items-center justify-center text-white shadow-xs"
+            title="Kembali ke atas"
           >
-            <TitikLogo className="w-6 h-6" />
+            <TitikLogo className="w-4 h-4" />
           </a>
         </div>
 
-        {/* Center: Centered Tabs (Mengikuti | Untuk Anda | Terdekat) */}
-        <div className="pointer-events-auto flex items-center justify-center gap-5 sm:gap-7 mx-auto">
+        {/* Center: Sleek Segmented Pill Tabs (Mobile) / Clean Navigation Bar (Desktop) */}
+        <div className="pointer-events-auto flex items-center bg-black/40 backdrop-blur-xl border border-white/15 rounded-full p-0.5 shadow-md lg:bg-transparent lg:backdrop-blur-none lg:border-none lg:shadow-none lg:p-0 lg:gap-7 mx-auto">
           {tabs.map((tab) => {
             const isActive = activeFeedTab === tab.key;
             return (
@@ -285,42 +281,29 @@ export const FeedContainer: React.FC = () => {
                   isRestoringScrollRef.current = false;
                   setActiveFeedTab(tab.key);
                 }}
-                className={`text-sm font-bold relative pb-1 transition-all cursor-pointer ${
+                className={`text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-full transition-all cursor-pointer lg:text-sm lg:font-bold lg:rounded-none lg:px-0 lg:py-0 lg:pb-1 lg:relative ${
                   isActive
-                    ? 'text-white lg:text-[#20221D] dark:lg:text-[#F3F6F4] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] lg:drop-shadow-none'
-                    : 'text-white/70 lg:text-[#686B65] dark:lg:text-[#9EACA3] hover:text-white lg:hover:text-[#20221D] dark:lg:hover:text-[#F3F6F4] drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] lg:drop-shadow-none'
+                    ? 'bg-white/20 text-white font-bold backdrop-blur-xs shadow-xs lg:bg-transparent lg:text-[#20221D] dark:lg:text-[#F3F6F4]'
+                    : 'text-white/70 hover:text-white lg:text-[#686B65] dark:lg:text-[#9EACA3] hover:lg:text-[#20221D] dark:hover:lg:text-[#F3F6F4]'
                 }`}
               >
                 <span>{tab.label}</span>
                 {isActive && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-emerald-400 lg:bg-[#20221D] dark:lg:bg-[#10B981] rounded-full shadow-xs"></span>
+                  <span className="hidden lg:block absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[#20221D] dark:bg-[#10B981] rounded-full shadow-xs"></span>
                 )}
               </button>
             );
           })}
         </div>
 
-        {/* Right: Search Action and Admin Mobile Shortcut */}
-        <div className="pointer-events-auto flex items-center gap-2">
-          {profile?.role === 'admin' && (
-            <a
-              href="/admin"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate('/admin');
-              }}
-              className="lg:hidden p-1.5 sm:p-2 rounded-full bg-amber-600/90 hover:bg-amber-600 border border-white/20 backdrop-blur-md text-amber-100 hover:text-white transition-colors cursor-pointer flex items-center justify-center shadow-xs"
-              title="Portal Tinjauan Admin PUPR"
-              aria-label="Portal Admin"
-            >
-              <ShieldAlert className="w-4 h-4" />
-            </a>
-          )}
+        {/* Right: Minimalist Search Action Button */}
+        <div className="pointer-events-auto flex items-center">
           <button
             type="button"
             onClick={() => setSearchModalOpen(true)}
-            className="p-1.5 sm:p-2 rounded-full bg-black/30 lg:bg-transparent backdrop-blur-md lg:backdrop-blur-none border border-white/15 lg:border-transparent text-white lg:text-[#686B65] dark:lg:text-[#9EACA3] hover:text-white lg:hover:text-[#20221D] dark:lg:hover:text-[#F3F6F4] hover:bg-black/50 lg:hover:bg-white dark:lg:hover:bg-[#1A221E] transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full bg-black/40 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border border-white/15 lg:border-transparent text-white/90 lg:text-[#686B65] dark:lg:text-[#9EACA3] hover:text-white hover:bg-black/60 lg:hover:bg-white dark:lg:hover:bg-[#1A221E] transition-colors cursor-pointer flex items-center justify-center shadow-xs"
             title="Cari laporan atau fasilitas"
+            aria-label="Cari"
           >
             <Search className="w-4 h-4" />
           </button>

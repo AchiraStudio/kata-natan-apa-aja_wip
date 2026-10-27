@@ -268,29 +268,30 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
       )}
 
       {/* 2. Top Header Overlay */}
-      <div className="relative z-10 pt-16 lg:pt-4 px-4 pb-2 flex items-center justify-between">
+      <div className="relative z-10 pt-[calc(max(0.75rem,env(safe-area-inset-top))+2.75rem)] lg:pt-4 px-3.5 sm:px-4 pb-2 flex items-center justify-between pointer-events-none">
         {/* Post Type Badge */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-[#20221D] text-xs font-semibold shadow-xs">
+        <div className="pointer-events-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15 text-white/90 text-[11px] font-medium shadow-xs">
           {post.postType === 'citizen_report' ? (
             <>
-              <Megaphone className="w-3.5 h-3.5 text-[#263F35]" />
+              <Megaphone className="w-3 h-3 text-emerald-400" />
               <span>Warga melaporkan</span>
             </>
           ) : (
             <>
-              <MessageSquare className="w-3.5 h-3.5 text-[#263F35]" />
+              <MessageSquare className="w-3 h-3 text-emerald-400" />
               <span>Diskusi warga</span>
             </>
           )}
         </div>
 
         {/* Top Right Action Button */}
-        <div className="flex items-center gap-2">
+        <div className="pointer-events-auto flex items-center gap-2">
           <button
             type="button"
-            className="p-1.5 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 transition-colors"
+            aria-label="Menu opsi lainnya"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/15 text-white/90 hover:bg-black/60 transition-colors flex items-center justify-center cursor-pointer shadow-xs"
           >
-            <MoreHorizontal className="w-4 h-4" />
+            <MoreHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>
