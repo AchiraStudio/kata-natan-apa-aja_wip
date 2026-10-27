@@ -523,9 +523,9 @@ export const ProfileView: React.FC = () => {
           <div className="space-y-6">
                         {/* Profile Card Header with Dynamic Theme & Banner */}
             <div className={`relative ${currentTheme.cardBg} border ${currentTheme.cardBorder} rounded-3xl shadow-sm overflow-hidden transition-colors duration-300`}>
-              {/* Cover Banner */}
+              {/* Cover Banner (Expanded Proportions for Panoramic View) */}
               <div
-                className={`h-36 sm:h-48 relative overflow-hidden bg-gradient-to-r ${currentTheme.bannerGradient}`}
+                className={`h-48 sm:h-64 relative overflow-hidden bg-gradient-to-r ${currentTheme.bannerGradient}`}
               >
                 {profile.bannerUrl && (
                   <img
@@ -535,7 +535,7 @@ export const ProfileView: React.FC = () => {
                   />
                 )}
                 {/* Visual Depth Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
                 <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#F7F6F1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
 
                 {isOwnProfile && (
@@ -550,7 +550,7 @@ export const ProfileView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => bannerInputRef.current?.click()}
-                      className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 backdrop-blur-md text-white text-[11px] font-bold shadow-md transition-all active:scale-95 cursor-pointer border border-white/20"
+                      className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 hover:bg-black/75 backdrop-blur-md text-white text-[11px] font-semibold shadow-md transition-all active:scale-95 cursor-pointer border border-white/20"
                       title="Ubah Foto Sampul Langsung"
                     >
                       <Camera className="w-3.5 h-3.5" />
@@ -562,13 +562,13 @@ export const ProfileView: React.FC = () => {
 
               {/* Identity Row */}
               <div className="px-5 sm:px-8 pb-6 pt-0 relative">
-                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-16 sm:-mt-20 mb-5">
-                  {/* Avatar */}
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-14 sm:-mt-18 mb-5">
+                  {/* Avatar with Refined Ring & Floating Action */}
                   <div className="relative group self-start">
                     <img
                       src={profile.avatarUrl}
                       alt={profile.displayName}
-                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white dark:border-[#131916] shadow-md bg-stone-100"
+                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover ring-4 ring-white dark:ring-[#131916] shadow-xl bg-stone-100"
                     />
                     <input
                       ref={avatarInputRef}
@@ -581,15 +581,16 @@ export const ProfileView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => avatarInputRef.current?.click()}
-                        className="absolute bottom-1 right-1 p-2 rounded-full bg-[#263F35] hover:bg-[#1d3129] text-white shadow-md transition-transform active:scale-90 cursor-pointer"
+                        className="absolute bottom-0 right-0 p-2 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-white shadow-md transition-transform active:scale-90 cursor-pointer"
                         title="Ubah Foto Profil Langsung"
+                        aria-label="Ubah Foto Profil"
                       >
                         <Camera className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
 
-                  {/* Actions (Owner vs Visitor) */}
+                  {/* Actions (Owner vs Visitor - Clean & Focused) */}
                   <div className="flex items-center gap-2">
                     {isOwnProfile ? (
                       <>
@@ -613,12 +614,12 @@ export const ProfileView: React.FC = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={handleLogout}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#E4E2DA] dark:border-[#26352E] bg-white dark:bg-[#1A221E] hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-xs font-bold transition-all shadow-xs cursor-pointer"
-                          title="Keluar dari Akun"
+                          onClick={() => setActiveTab('settings')}
+                          className="inline-flex items-center justify-center p-2 rounded-xl border border-[#E4E2DA] dark:border-[#26352E] bg-white dark:bg-[#1A221E] hover:bg-[#F7F6F1] dark:hover:bg-[#26352E] text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] text-xs font-bold transition-all shadow-xs cursor-pointer"
+                          title="Pengaturan Akun"
+                          aria-label="Pengaturan Akun"
                         >
-                          <LogOut className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">Keluar</span>
+                          <Settings className="w-4 h-4" />
                         </button>
                       </>
                     ) : (
@@ -724,46 +725,54 @@ export const ProfileView: React.FC = () => {
                   )}
                 </div>
 
-                {/* Stats Summary Bar */}
-                <div className={`grid grid-cols-3 gap-3 pt-5 mt-5 border-t ${currentTheme.cardBorder}`}>
-                  <div className={`text-center p-3 rounded-2xl ${currentTheme.statBg} border ${currentTheme.cardBorder} transition-colors duration-300`}>
-                    <div className="text-base sm:text-lg font-black text-[#20221D] dark:text-[#F3F6F4]">
+                {/* Stats Summary Bar (Editorial Civic Ribbon) */}
+                <div className={`grid grid-cols-3 divide-x divide-[#E4E2DA]/80 dark:divide-[#26352E] pt-3 pb-3 mt-5 rounded-2xl border ${currentTheme.cardBorder} ${currentTheme.statBg} transition-colors duration-300`}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('posts')}
+                    className="flex flex-col items-center py-1 px-2 text-center group cursor-pointer transition-opacity hover:opacity-80"
+                  >
+                    <span className="text-lg sm:text-xl font-black text-[#20221D] dark:text-[#F3F6F4] tracking-tight group-hover:text-[#263F35] dark:group-hover:text-[#34D399] transition-colors">
                       {posts.length}
-                    </div>
-                    <div className="text-[10px] sm:text-[11px] font-semibold text-[#686B65] dark:text-[#9EACA3] uppercase tracking-wider">
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-[#686B65] dark:text-[#9EACA3] uppercase tracking-wider">
                       Postingan
-                    </div>
-                  </div>
+                    </span>
+                  </button>
 
-                  <div className={`text-center p-3 rounded-2xl ${currentTheme.statBg} border ${currentTheme.cardBorder} transition-colors duration-300`}>
-                    <div className="text-base sm:text-lg font-black text-[#20221D] dark:text-[#F3F6F4]">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('reports')}
+                    className="flex flex-col items-center py-1 px-2 text-center group cursor-pointer transition-opacity hover:opacity-80"
+                  >
+                    <span className="text-lg sm:text-xl font-black text-[#20221D] dark:text-[#F3F6F4] tracking-tight group-hover:text-[#263F35] dark:group-hover:text-[#34D399] transition-colors">
                       {reports.length}
-                    </div>
-                    <div className="text-[10px] sm:text-[11px] font-semibold text-[#686B65] dark:text-[#9EACA3] uppercase tracking-wider">
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-[#686B65] dark:text-[#9EACA3] uppercase tracking-wider">
                       Laporan
-                    </div>
-                  </div>
+                    </span>
+                  </button>
 
-                  <div className={`text-center p-3 rounded-2xl ${currentTheme.statBg} border ${currentTheme.cardBorder} transition-colors duration-300`}>
-                    <div className="text-base sm:text-lg font-black text-[#20221D] dark:text-[#F3F6F4]">
+                  <div className="flex flex-col items-center py-1 px-2 text-center">
+                    <span className="text-lg sm:text-xl font-black text-[#20221D] dark:text-[#F3F6F4] tracking-tight">
                       {totalSupportAndLikes}
-                    </div>
-                    <div className="text-[10px] sm:text-[11px] font-semibold text-[#686B65] dark:text-[#9EACA3] uppercase tracking-wider">
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-[#686B65] dark:text-[#9EACA3] uppercase tracking-wider">
                       Dukungan
-                    </div>
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Profile Navigation Tabs */}
-            <div className="flex items-center gap-2 border-b border-[#E4E2DA] dark:border-[#26352E] pb-2 overflow-x-auto no-scrollbar">
+            {/* Profile Navigation Tabs (Segmented Pill Bar) */}
+            <div className="p-1 bg-[#EBE9DF]/70 dark:bg-[#131916] rounded-2xl border border-[#E4E2DA] dark:border-[#26352E] flex items-center gap-1 overflow-x-auto no-scrollbar">
               <button
                 type="button"
                 onClick={() => setActiveTab('posts')}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 min-w-fit inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'posts'
-                    ? 'bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] shadow-xs'
+                    ? 'bg-white dark:bg-[#1E2E25] text-[#263F35] dark:text-[#34D399] shadow-xs border border-[#E4E2DA]/80 dark:border-[#2D4537]'
                     : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4]'
                 }`}
               >
@@ -774,9 +783,9 @@ export const ProfileView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab('reports')}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 min-w-fit inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'reports'
-                    ? 'bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] shadow-xs'
+                    ? 'bg-white dark:bg-[#1E2E25] text-[#263F35] dark:text-[#34D399] shadow-xs border border-[#E4E2DA]/80 dark:border-[#2D4537]'
                     : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4]'
                 }`}
               >
@@ -788,9 +797,9 @@ export const ProfileView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setActiveTab('saved')}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex-1 min-w-fit inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'saved'
-                      ? 'bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] shadow-xs'
+                      ? 'bg-white dark:bg-[#1E2E25] text-[#263F35] dark:text-[#34D399] shadow-xs border border-[#E4E2DA]/80 dark:border-[#2D4537]'
                       : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4]'
                   }`}
                 >
@@ -803,9 +812,9 @@ export const ProfileView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setActiveTab('settings')}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex-1 min-w-fit inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'settings'
-                      ? 'bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] shadow-xs'
+                      ? 'bg-white dark:bg-[#1E2E25] text-[#263F35] dark:text-[#34D399] shadow-xs border border-[#E4E2DA]/80 dark:border-[#2D4537]'
                       : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4]'
                   }`}
                 >

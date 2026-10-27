@@ -109,3 +109,4 @@ describe('Sidebar Profile Navigation Suite', () => {
     expect(html).toContain('title="Profil Saya"');
   });
 });
+
