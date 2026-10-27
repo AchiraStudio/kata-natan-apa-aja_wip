@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -19,6 +19,7 @@ import { useTitik } from '../context/TitikContext';
 import { dataService } from '../services/dataService';
 import { Post, Report } from '../types/domain';
 import { FeedComment } from '../services/adapters/types';
+import { sortCommentsForUser, isCommentAuthoredByUser } from '../utils/commentSorting';
 import { Sidebar } from '../components/layout/Sidebar';
 import { BottomNav } from '../components/layout/BottomNav';
 import { formatIndonesianTimeAgo } from '../utils/timeAgo';
@@ -205,6 +206,10 @@ export const PostDetailView: React.FC = () => {
       setIsSubmittingComment(false);
     }
   };
+
+  const sortedComments = useMemo(() => {
+    return sortCommentsForUser(comments, profile);
+  }, [comments, profile]);
 
   return (
     <div className="min-h-screen bg-[#F7F6F1] dark:bg-[#0A100D] text-[#20221D] dark:text-[#F3F6F4] flex flex-col lg:flex-row pb-24 lg:pb-0">
@@ -491,7 +496,9 @@ export const PostDetailView: React.FC = () => {
                     Belum ada komentar. Jadilah warga pertama yang menanggapi!
                   </p>
                 ) : (
-                  comments.map((comment) => (
+                  sortedComments.map((comment) => {
+                    const isMyComment = isCommentAuthoredByUser(comment, profile);
+                    return (
                     <div
                       key={comment.id}
                       data-comment-id={comment.id}
@@ -514,6 +521,11 @@ export const PostDetailView: React.FC = () => {
                           <span className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] group-hover:text-[#263F35] dark:group-hover:text-[#34D399]">
                             {comment.authorName}
                           </span>
+                          {isMyComment && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 shrink-0">
+                              Anda
+                            </span>
+                          )}
                         </Link>
                         <span className="text-[10px] text-[#686B65] dark:text-[#9EACA3]">
                           {comment.timeAgo}
@@ -537,7 +549,8 @@ export const PostDetailView: React.FC = () => {
                         <span>{comment.likes || 0} Suka</span>
                       </div>
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </section>

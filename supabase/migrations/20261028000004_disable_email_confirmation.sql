@@ -37,3 +37,4 @@ CREATE TRIGGER on_auth_user_updated_auto_confirm
   BEFORE UPDATE ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.auto_confirm_new_user();
+

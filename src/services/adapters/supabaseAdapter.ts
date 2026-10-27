@@ -567,9 +567,12 @@ export class SupabaseDataAdapter implements IDataAdapter {
     const nowIso = new Date().toISOString();
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const currentUserId = user?.id || null;
       const { data, error } = await supabase
         .from('comments')
         .insert({
+          author_id: currentUserId,
           id: newId,
           post_id: postId,
           author_name: authorName,
@@ -588,6 +591,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
 
       return {
         id: data.id,
+        authorId: data.author_id || currentUserId || undefined,
         authorName: data.author_name,
         avatarUrl: data.avatar_url,
         body: data.body,
@@ -615,6 +619,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
 
       return (data || []).map((row: any) => ({
         id: row.id,
+        authorId: row.author_id || undefined,
         authorName: row.author_name,
         avatarUrl:
           row.avatar_url ||

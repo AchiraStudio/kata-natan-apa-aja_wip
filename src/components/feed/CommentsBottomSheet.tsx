@@ -3,6 +3,7 @@ import { X, Heart, Send, MessageSquare, Loader2, RotateCw } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
 import { FeedComment } from '../../services/adapters/types';
+import { sortCommentsForUser, isCommentAuthoredByUser } from '../../utils/commentSorting';
 
 export type CommentItem = FeedComment;
 
@@ -282,11 +283,12 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
               </button>
             </div>
           ) : (
-            comments.filter((item) => !item.parentId).map((item) => {
+            sortCommentsForUser(comments.filter((item) => !item.parentId), profile).map((item) => {
+              const isMyComment = isCommentAuthoredByUser(item, profile);
               const isLiked = likedCommentIds.has(item.id);
               const delta = likesDeltaMap[item.id] || 0;
               const currentLikes = Math.max(0, (item.likes || 0) + delta);
-              const replies = comments.filter((comment) => comment.parentId === item.id);
+              const replies = sortCommentsForUser(comments.filter((comment) => comment.parentId === item.id), profile);
 
               return (
                 <div key={item.id} data-comment-id={item.id} className="flex items-start gap-3 group scroll-mt-2">
@@ -329,6 +331,11 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
                       >
                         {item.authorName}
                       </a>
+                      {isMyComment && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                          Anda
+                        </span>
+                      )}
                       <span className="text-[10px] text-white/45 font-mono shrink-0">
                         • {item.timeAgo}
                       </span>
@@ -402,6 +409,11 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
                                     >
                                       {reply.authorName}
                                     </a>
+                                    {isCommentAuthoredByUser(reply, profile) && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                                        Anda
+                                      </span>
+                                    )}
                                     <span className="text-[10px] text-white/45 font-mono shrink-0">
                                       • {reply.timeAgo}
                                     </span>

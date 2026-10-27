@@ -33,6 +33,8 @@ import { Sidebar } from '../components/layout/Sidebar';
 import { BottomNav } from '../components/layout/BottomNav';
 import { dataService } from '../services/dataService';
 import { useTitik } from '../context/TitikContext';
+import { useAuth } from '../context/AuthContext';
+import { sortCommentsForUser, isCommentAuthoredByUser } from '../utils/commentSorting';
 import { Report } from '../types/domain';
 
 import { createCivicTileLayer } from '../utils/mapTiles';
@@ -53,6 +55,7 @@ export const ReportDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toggleSupport } = useTitik();
+  const { profile } = useAuth();
 
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,6 +71,10 @@ export const ReportDetailView: React.FC = () => {
   const [authorNameInput, setAuthorNameInput] = useState('');
   const [isSubmittingTestimony, setIsSubmittingTestimony] = useState(false);
   const [isRefreshingTestimonies, setIsRefreshingTestimonies] = useState(false);
+
+  const sortedTestimonies = React.useMemo(() => {
+    return sortCommentsForUser(testimonies, profile);
+  }, [testimonies, profile]);
 
   // Leaflet Map Reference
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -884,7 +891,9 @@ export const ReportDetailView: React.FC = () => {
                       Belum ada kesaksian warga di titik ini. Jadilah yang pertama memberikan konfirmasi lapangan!
                     </div>
                   ) : (
-                    testimonies.map((testimony) => (
+                    sortedTestimonies.map((testimony) => {
+                      const isMyTestimony = isCommentAuthoredByUser(testimony, profile);
+                      return (
                       <div
                         key={testimony.id}
                         className="p-4 rounded-2xl border border-[#E4E2DA]/80 bg-white hover:border-[#263F35]/30 transition-colors space-y-2"
@@ -917,6 +926,11 @@ export const ReportDetailView: React.FC = () => {
                             >
                               {testimony.authorName}
                             </a>
+                            {isMyTestimony && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 shrink-0">
+                                Anda
+                              </span>
+                            )}
                             <span className="text-[10px] text-[#686B65]">• {testimony.timeAgo}</span>
                           </div>
 
@@ -937,7 +951,8 @@ export const ReportDetailView: React.FC = () => {
                           {testimony.body}
                         </p>
                       </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>

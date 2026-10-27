@@ -39,6 +39,7 @@ export interface FeedComment {
   timeAgo: string;
   likes: number;
   parentId?: string;
+  authorId?: string;
 }
 
 export interface IDataAdapter {
