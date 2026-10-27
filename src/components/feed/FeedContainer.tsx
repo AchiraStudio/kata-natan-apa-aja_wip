@@ -23,6 +23,46 @@ export const FeedContainer: React.FC = () => {
   const accumulatedDeltaRef = useRef(0);
   const activePostIndexRef = useRef(0);
   const firstPostIdRef = useRef(posts[0]?.id);
+  const isRestoringScrollRef = useRef(true);
+
+  // Scroll Restoration: Restore feed to activePost or saved post when returning from other views
+  useEffect(() => {
+    if (!posts || posts.length === 0) {
+      isRestoringScrollRef.current = false;
+      return;
+    }
+
+    const savedTargetId =
+      activePost?.id ||
+      (typeof window !== 'undefined' ? sessionStorage.getItem('titik_feed_active_post_id') : null);
+
+    if (!savedTargetId) {
+      isRestoringScrollRef.current = false;
+      return;
+    }
+
+    const targetIdx = posts.findIndex((p) => p.id === savedTargetId);
+    if (targetIdx <= 0) {
+      isRestoringScrollRef.current = false;
+      return;
+    }
+
+    activePostIndexRef.current = targetIdx;
+
+    const restoreScroll = () => {
+      const targetEl = cardRefs.current.get(savedTargetId);
+      const container = scrollContainerRef.current;
+      if (targetEl && container) {
+        container.scrollTo({ top: targetEl.offsetTop, behavior: 'instant' as ScrollBehavior });
+      }
+      setTimeout(() => {
+        isRestoringScrollRef.current = false;
+      }, 150);
+    };
+
+    const timer = setTimeout(restoreScroll, 25);
+    return () => clearTimeout(timer);
+  }, [posts, activePost?.id]);
 
   useEffect(() => {
     const firstPostId = posts[0]?.id;
@@ -66,11 +106,18 @@ export const FeedContainer: React.FC = () => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
+        if (isRestoringScrollRef.current) return;
+
         entries.forEach((entry) => {
           if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
             const id = entry.target.getAttribute('data-post-id');
             if (id) {
               setActivePostId(id);
+              try {
+                sessionStorage.setItem('titik_feed_active_post_id', id);
+              } catch {
+                // ignore
+              }
               const idx = posts.findIndex((p) => p.id === id);
               if (idx !== -1) {
                 activePostIndexRef.current = idx;
@@ -85,6 +132,22 @@ export const FeedContainer: React.FC = () => {
     cardRefs.current.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, [posts, setActivePostId]);
+
+  // Support intentional tap-to-top on home icon
+  useEffect(() => {
+    const handleScrollTop = () => {
+      isRestoringScrollRef.current = false;
+      try {
+        sessionStorage.removeItem('titik_feed_active_post_id');
+      } catch {
+        // ignore
+      }
+      scrollToIndex(0);
+    };
+
+    window.addEventListener('titik-scroll-top', handleScrollTop);
+    return () => window.removeEventListener('titik-scroll-top', handleScrollTop);
+  }, [scrollToIndex]);
 
   // Keyboard navigation: ArrowUp, ArrowDown, PageUp, PageDown
   useEffect(() => {
@@ -195,7 +258,15 @@ export const FeedContainer: React.FC = () => {
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => setActiveFeedTab(tab.key)}
+                onClick={() => {
+                  try {
+                    sessionStorage.removeItem('titik_feed_active_post_id');
+                  } catch {
+                    // ignore
+                  }
+                  isRestoringScrollRef.current = false;
+                  setActiveFeedTab(tab.key);
+                }}
                 className={`text-sm font-bold relative pb-1 transition-all cursor-pointer ${
                   isActive
                     ? 'text-white lg:text-[#20221D] dark:lg:text-[#F3F6F4] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] lg:drop-shadow-none'

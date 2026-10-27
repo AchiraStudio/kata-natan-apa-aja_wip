@@ -171,13 +171,15 @@ export const PostDetailView: React.FC = () => {
     setIsSubmittingComment(true);
     setCommentError(null);
 
+    const targetParentId = replyTarget?.id;
+
     try {
       const newComment = await dataService.addComment(
         post.id,
         profile.displayName,
         profile.avatarUrl,
         commentText.trim(),
-        replyTarget?.id
+        targetParentId
       );
 
       setComments((prev) => [...prev, newComment]);
@@ -188,6 +190,13 @@ export const PostDetailView: React.FC = () => {
           ...post,
           commentsCount: (post.commentsCount || 0) + 1,
         });
+      }
+
+      if (targetParentId) {
+        setTimeout(() => {
+          const el = document.querySelector(`[data-comment-id="${targetParentId}"]`);
+          el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 80);
       }
     } catch (err: unknown) {
       console.error('Add comment error:', err);
@@ -485,7 +494,8 @@ export const PostDetailView: React.FC = () => {
                   comments.map((comment) => (
                     <div
                       key={comment.id}
-                      className={`p-3.5 rounded-2xl border transition-all ${
+                      data-comment-id={comment.id}
+                      className={`p-3.5 rounded-2xl border transition-all scroll-mt-4 ${
                         comment.parentId
                           ? 'ml-6 bg-[#F7F6F1]/50 dark:bg-[#1A221E]/50 border-[#E4E2DA]/60 dark:border-[#26352E]/60'
                           : 'bg-white dark:bg-[#131916] border-[#E4E2DA] dark:border-[#26352E]'

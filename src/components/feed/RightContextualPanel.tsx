@@ -97,12 +97,14 @@ export const RightContextualPanel: React.FC = () => {
       'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
 
     try {
+      const targetParentId = replyTarget?.id;
+
       const created = await addComment(
         activePost.id,
         trimmed,
         authorName,
         avatarUrl,
-        replyTarget?.id
+        targetParentId
       );
 
       if (created) {
@@ -115,7 +117,7 @@ export const RightContextualPanel: React.FC = () => {
           body: trimmed,
           timeAgo: 'Baru saja',
           likes: 0,
-          ...(replyTarget ? { parentId: replyTarget.id } : {}),
+          ...(targetParentId ? { parentId: targetParentId } : {}),
         };
         setComments((prev) => [optimistic, ...prev]);
       }
@@ -123,9 +125,19 @@ export const RightContextualPanel: React.FC = () => {
       setCommentText('');
       setReplyTarget(null);
 
-      // Scroll to top of comments list smoothly
-      if (commentsListRef.current) {
-        commentsListRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      if (targetParentId) {
+        // When replying to a comment, maintain scroll at that comment instead of jumping to top!
+        setTimeout(() => {
+          const parentEl = commentsListRef.current?.querySelector(`[data-comment-id="${targetParentId}"]`);
+          if (parentEl) {
+            parentEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 80);
+      } else {
+        // Only brand-new top-level comments scroll to top
+        if (commentsListRef.current) {
+          commentsListRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       }
     } catch (err) {
       console.error('Failed to submit comment:', err);
@@ -291,7 +303,7 @@ export const RightContextualPanel: React.FC = () => {
                 const replies = comments.filter((reply) => reply.parentId === c.id);
 
                 return (
-                  <div key={c.id} className="space-y-2.5">
+                  <div key={c.id} data-comment-id={c.id} className="space-y-2.5 scroll-mt-2">
                     {/* Top-Level Comment */}
                     <div className="flex items-start gap-2.5 text-xs group">
                       <a
@@ -349,6 +361,8 @@ export const RightContextualPanel: React.FC = () => {
                             onClick={() => {
                               setReplyTarget({ id: c.id, authorName: c.authorName });
                               inputRef.current?.focus();
+                              const el = commentsListRef.current?.querySelector(`[data-comment-id="${c.id}"]`);
+                              el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                             }}
                             className="hover:text-[#263F35] dark:hover:text-[#34D399] font-medium transition-colors cursor-pointer"
                           >
@@ -367,7 +381,7 @@ export const RightContextualPanel: React.FC = () => {
                           const currentReplyLikes = Math.max(0, (reply.likes || 0) + replyDelta);
 
                           return (
-                            <div key={reply.id} className="flex items-start gap-2 text-xs">
+                            <div key={reply.id} data-comment-id={reply.id} className="flex items-start gap-2 text-xs scroll-mt-2">
                               <a
                                 href={`/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
                                 onClick={(e) => {

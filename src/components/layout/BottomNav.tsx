@@ -70,8 +70,11 @@ export const BottomNav: React.FC = () => {
         onClick={(e) => {
           e.preventDefault();
           setActiveFeedTab('for_you');
-          if (location.pathname !== '/') navigate('/');
-          else window.scrollTo({ top: 0, behavior: 'smooth' });
+          if (location.pathname !== '/') {
+            navigate('/');
+          } else {
+            window.dispatchEvent(new CustomEvent('titik-scroll-top'));
+          }
         }}
         className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
           currentPath === '/' ? 'text-emerald-400 font-bold' : 'text-white/70 hover:text-white'

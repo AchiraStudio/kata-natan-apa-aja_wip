@@ -122,8 +122,10 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
       profile?.avatarUrl ||
       'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
 
+    const targetParentId = replyTarget?.id;
+
     try {
-      const created = await addComment(postId, trimmed, authorName, avatarUrl, replyTarget?.id);
+      const created = await addComment(postId, trimmed, authorName, avatarUrl, targetParentId);
       if (created) {
         setComments((prev) => [created, ...prev]);
       } else {
@@ -135,7 +137,7 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
           body: trimmed,
           timeAgo: 'Baru saja',
           likes: 0,
-          ...(replyTarget ? { parentId: replyTarget.id } : {}),
+          ...(targetParentId ? { parentId: targetParentId } : {}),
         };
         setComments((prev) => [optimistic, ...prev]);
       }
@@ -144,9 +146,19 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
       setReplyTarget(null);
       onCommentAdded?.();
 
-      // Scroll to top of comments list smoothly
-      if (commentsListRef.current) {
-        commentsListRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      if (targetParentId) {
+        // When replying to a comment, maintain scroll at that comment instead of jumping to top!
+        setTimeout(() => {
+          const targetEl = commentsListRef.current?.querySelector(`[data-comment-id="${targetParentId}"]`);
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 80);
+      } else {
+        // Only brand-new top-level comments scroll to top where the comment was prepended
+        if (commentsListRef.current) {
+          commentsListRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       }
     } catch (err) {
       console.error('Failed to add comment:', err);
@@ -277,7 +289,7 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
               const replies = comments.filter((comment) => comment.parentId === item.id);
 
               return (
-                <div key={item.id} className="flex items-start gap-3 group">
+                <div key={item.id} data-comment-id={item.id} className="flex items-start gap-3 group scroll-mt-2">
                   <a
                     href={`/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
                     onClick={(e) => {
@@ -332,6 +344,8 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
                         onClick={() => {
                           setReplyTarget({ id: item.id, authorName: item.authorName });
                           inputRef.current?.focus();
+                          const el = commentsListRef.current?.querySelector(`[data-comment-id="${item.id}"]`);
+                          el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         }}
                         className="text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer transition-colors"
                       >
@@ -347,7 +361,7 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
                           const currentReplyLikes = Math.max(0, (reply.likes || 0) + replyDelta);
 
                           return (
-                            <div key={reply.id} className="flex items-start gap-2 justify-between">
+                            <div key={reply.id} data-comment-id={reply.id} className="flex items-start gap-2 justify-between scroll-mt-2">
                               <div className="flex items-start gap-2 min-w-0 flex-1">
                                 <a
                                   href={`/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
