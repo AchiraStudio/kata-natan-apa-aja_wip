@@ -43,3 +43,4 @@ describe('Profile Layout Improvements Static & Structural Suite', () => {
     expect(src).toContain('activeTab === \'reports\'');
   });
 });
+
