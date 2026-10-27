@@ -59,7 +59,7 @@ export const BottomNav: React.FC = () => {
   return (
     <nav
       aria-label="Navigasi Utama Mobile"
-      className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom,16px))] left-1/2 -translate-x-1/2 z-40 lg:hidden flex items-center justify-around w-[92%] max-w-sm px-4 py-2 bg-[#20221D]/90 dark:bg-[#131916]/95 backdrop-blur-md rounded-full shadow-2xl border border-white/10 dark:border-[#26352E] text-white transition-all duration-300 ${
+      className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom,16px))] left-1/2 -translate-x-1/2 z-40 lg:hidden grid grid-cols-5 items-center w-[92%] max-w-sm px-2 py-2 bg-[#20221D]/90 dark:bg-[#131916]/95 backdrop-blur-md rounded-full shadow-2xl border border-white/10 dark:border-[#26352E] text-white transition-all duration-300 ${
         isVisible && !isCommentsSheetOpen
           ? 'translate-y-0 opacity-100 scale-100'
           : 'translate-y-28 opacity-0 pointer-events-none scale-95'
@@ -73,7 +73,7 @@ export const BottomNav: React.FC = () => {
           if (location.pathname !== '/') navigate('/');
           else window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
+        className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
           currentPath === '/' ? 'text-emerald-400 font-bold' : 'text-white/70 hover:text-white'
         }`}
       >
@@ -87,7 +87,7 @@ export const BottomNav: React.FC = () => {
           e.preventDefault();
           if (location.pathname !== '/explore') navigate('/explore');
         }}
-        className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
+        className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
           currentPath === '/explore' ? 'text-emerald-400 font-bold' : 'text-white/70 hover:text-white'
         }`}
       >
@@ -95,16 +95,18 @@ export const BottomNav: React.FC = () => {
         <span>Explore</span>
       </a>
 
-      {/* Center Create Action (+) */}
-      <button
-        type="button"
-        onClick={() => openComposer('post')}
-        className="flex items-center justify-center -my-1 w-11 h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-[#20221D] shadow-lg shadow-emerald-500/30 transition-transform active:scale-90 cursor-pointer"
-        title="Buat Postingan atau Laporan"
-        aria-label="Buat"
-      >
-        <Plus className="w-6 h-6 stroke-[2.8]" />
-      </button>
+      {/* Center Create Action (+) - strictly centered at column 3 */}
+      <div className="flex items-center justify-center">
+        <button
+          type="button"
+          onClick={() => openComposer('post')}
+          className="flex items-center justify-center -my-1 w-11 h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-[#20221D] shadow-lg shadow-emerald-500/30 transition-transform active:scale-90 cursor-pointer"
+          title="Buat Postingan atau Laporan"
+          aria-label="Buat"
+        >
+          <Plus className="w-6 h-6 stroke-[2.8]" />
+        </button>
+      </div>
 
       <a
         href="/map"
@@ -112,7 +114,7 @@ export const BottomNav: React.FC = () => {
           e.preventDefault();
           if (location.pathname !== '/map') navigate('/map');
         }}
-        className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
+        className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
           currentPath === '/map' ? 'text-emerald-400 font-bold' : 'text-white/70 hover:text-white'
         }`}
       >
@@ -128,7 +130,7 @@ export const BottomNav: React.FC = () => {
             const target = `/u/${profile.username}`;
             if (location.pathname !== target) navigate(target);
           }}
-          className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
             currentPath === `/u/${profile.username}` || currentPath === '/me'
               ? 'text-emerald-400 font-bold'
               : 'text-white/70 hover:text-white'
@@ -140,7 +142,7 @@ export const BottomNav: React.FC = () => {
             alt={profile.displayName}
             className="w-5 h-5 rounded-full object-cover border border-white/30"
           />
-          <span className="truncate max-w-[46px]">{profile.displayName.split(' ')[0]}</span>
+          <span className="truncate max-w-[50px] text-center">{profile.displayName.split(' ')[0]}</span>
         </a>
       ) : (
         <a
@@ -149,7 +151,7 @@ export const BottomNav: React.FC = () => {
             e.preventDefault();
             if (location.pathname !== '/login') navigate('/login');
           }}
-          className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
             currentPath === '/login' ? 'text-emerald-400 font-bold' : 'text-white/70 hover:text-white'
           }`}
           title="Masuk ke Akun"
