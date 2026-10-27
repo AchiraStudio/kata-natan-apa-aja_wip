@@ -1,11 +1,21 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SupabaseDataAdapter } from '../services/adapters/supabaseAdapter';
+import { supabase } from '../services/supabaseClient';
+import { DataError } from '../services/errors/DataError';
 
 describe('SupabaseDataAdapter Comments Integration', () => {
   let adapter: SupabaseDataAdapter;
+  const createdCommentIds: string[] = [];
 
   beforeEach(() => {
     adapter = new SupabaseDataAdapter();
+  });
+
+  afterEach(async () => {
+    if (createdCommentIds.length > 0) {
+      await supabase.from('comments').delete().in('id', [...createdCommentIds]);
+      createdCommentIds.length = 0;
+    }
   });
 
   it('retrieves an empty array when a post has no comments', async () => {
@@ -16,38 +26,27 @@ describe('SupabaseDataAdapter Comments Integration', () => {
     expect(comments.length).toBe(0);
   });
 
-  it('preserves threaded replies with valid parentId', async () => {
-    const testPostId = `test-thread-${Date.now()}`;
-    const parent = await adapter.addComment(
-      testPostId,
-      'Warga Pengetes',
-      'https://example.com/avatar.jpg',
-      'Induk komentar'
-    );
-    const reply = await adapter.addComment(
-      testPostId,
-      'Warga Pembalas',
-      'https://example.com/avatar2.jpg',
-      'Balasan komentar',
-      parent.id
-    );
-
-    const comments = await adapter.getComments(testPostId);
-    expect(comments.length).toBe(2);
-
-    const foundReply = comments.find((c) => c.id === reply.id);
-    expect(foundReply).toBeDefined();
-    expect(foundReply?.parentId).toBe(parent.id);
+  it('throws typed DataError when inserting a comment on a nonexistent post', async () => {
+    const nonexistentPostId = `nonexistent-post-${Date.now()}`;
+    await expect(
+      adapter.addComment(
+        nonexistentPostId,
+        'Warga Pengetes',
+        'https://example.com/avatar.jpg',
+        'Komentar ini harus gagal'
+      )
+    ).rejects.toThrow(DataError);
   });
 
-  it('adds a new comment and returns properly formatted FeedComment', async () => {
-    const testPostId = `test-add-${Date.now()}`;
+  it('adds a new comment on a valid post and returns properly formatted FeedComment', async () => {
+    const validPostId = 'kn-001';
     const newComment = await adapter.addComment(
-      testPostId,
+      validPostId,
       'Warga Pengetes',
       'https://example.com/avatar.jpg',
       'Test tanggapan warga di Supabase adapter'
     );
+    createdCommentIds.push(newComment.id);
 
     expect(newComment).toBeDefined();
     expect(newComment.id).toMatch(/^c-/);
@@ -57,28 +56,37 @@ describe('SupabaseDataAdapter Comments Integration', () => {
     expect(newComment.likes).toBe(0);
 
     // Verify it is present in subsequent queries
-    const comments = await adapter.getComments(testPostId);
+    const comments = await adapter.getComments(validPostId);
     const found = comments.find((c) => c.id === newComment.id);
     expect(found).toBeDefined();
+    expect(found?.body).toBe('Test tanggapan warga di Supabase adapter');
   });
 
-  it('adds a threaded reply with parentId successfully', async () => {
-    const testPostId = `test-reply-${Date.now()}`;
+  it('preserves threaded replies with valid parentId', async () => {
+    const validPostId = 'kn-001';
     const parent = await adapter.addComment(
-      testPostId,
-      'Warga Utama',
+      validPostId,
+      'Warga Pengetes',
       'https://example.com/avatar.jpg',
-      'Laporan awal'
+      'Induk komentar'
     );
+    createdCommentIds.push(parent.id);
+
     const reply = await adapter.addComment(
-      testPostId,
+      validPostId,
       'Warga Pembalas',
       'https://example.com/avatar2.jpg',
-      'Setuju sekali pak!',
+      'Balasan komentar',
       parent.id
     );
+    createdCommentIds.push(reply.id);
 
-    expect(reply.parentId).toBe(parent.id);
-    expect(reply.authorName).toBe('Warga Pembalas');
+    const comments = await adapter.getComments(validPostId);
+    const foundParent = comments.find((c) => c.id === parent.id);
+    const foundReply = comments.find((c) => c.id === reply.id);
+
+    expect(foundParent).toBeDefined();
+    expect(foundReply).toBeDefined();
+    expect(foundReply?.parentId).toBe(parent.id);
   });
 });
