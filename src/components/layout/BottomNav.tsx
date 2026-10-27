@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Compass, MapPin, Plus } from 'lucide-react';
+import { Home, Compass, MapPin, Plus, LogIn } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTitik } from '../../context/useTitik';
 import { useAuth } from '../../context/AuthContext';
@@ -10,10 +10,24 @@ export const BottomNav: React.FC = () => {
   const { openComposer, setActiveFeedTab } = useTitik();
   const { profile, isAuthenticated } = useAuth();
   const [isVisible, setIsVisible] = useState(true);
+  const [isCommentsSheetOpen, setIsCommentsSheetOpen] = useState(false);
   const lastScrollTop = useRef(0);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentPath = location.pathname;
+
+  // Listen to comments bottom sheet open/close to avoid overlaying input controls
+  useEffect(() => {
+    const handleCommentsToggle = (e: Event) => {
+      const customEvent = e as CustomEvent<{ open?: boolean }>;
+      setIsCommentsSheetOpen(Boolean(customEvent.detail?.open));
+    };
+
+    window.addEventListener('titik-comments-toggle', handleCommentsToggle);
+    return () => {
+      window.removeEventListener('titik-comments-toggle', handleCommentsToggle);
+    };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -46,9 +60,9 @@ export const BottomNav: React.FC = () => {
     <nav
       aria-label="Navigasi Utama Mobile"
       className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom,16px))] left-1/2 -translate-x-1/2 z-40 lg:hidden flex items-center justify-around w-[92%] max-w-sm px-4 py-2 bg-[#20221D]/90 dark:bg-[#131916]/95 backdrop-blur-md rounded-full shadow-2xl border border-white/10 dark:border-[#26352E] text-white transition-all duration-300 ${
-        isVisible
+        isVisible && !isCommentsSheetOpen
           ? 'translate-y-0 opacity-100 scale-100'
-          : 'translate-y-24 opacity-0 pointer-events-none scale-95'
+          : 'translate-y-28 opacity-0 pointer-events-none scale-95'
       }`}
     >
       <a
@@ -106,28 +120,44 @@ export const BottomNav: React.FC = () => {
         <span>Peta</span>
       </a>
 
-      <a
-        href={isAuthenticated ? `/u/${profile.username}` : '/login'}
-        onClick={(e) => {
-          e.preventDefault();
-          const target = isAuthenticated ? `/u/${profile.username}` : '/login';
-          if (location.pathname !== target) navigate(target);
-        }}
-        className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
-          (isAuthenticated && (currentPath === `/u/${profile.username}` || currentPath === '/me')) ||
-          (!isAuthenticated && currentPath === '/login')
-            ? 'text-emerald-400 font-bold'
-            : 'text-white/70 hover:text-white'
-        }`}
-        title={isAuthenticated ? 'Profil Saya' : 'Masuk'}
-      >
-        <img
-          src={profile.avatarUrl}
-          alt={profile.displayName}
-          className="w-5 h-5 rounded-full object-cover border border-white/30"
-        />
-        <span className="truncate max-w-[46px]">{profile.displayName.split(' ')[0]}</span>
-      </a>
+      {isAuthenticated ? (
+        <a
+          href={`/u/${profile.username}`}
+          onClick={(e) => {
+            e.preventDefault();
+            const target = `/u/${profile.username}`;
+            if (location.pathname !== target) navigate(target);
+          }}
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
+            currentPath === `/u/${profile.username}` || currentPath === '/me'
+              ? 'text-emerald-400 font-bold'
+              : 'text-white/70 hover:text-white'
+          }`}
+          title="Profil Saya"
+        >
+          <img
+            src={profile.avatarUrl}
+            alt={profile.displayName}
+            className="w-5 h-5 rounded-full object-cover border border-white/30"
+          />
+          <span className="truncate max-w-[46px]">{profile.displayName.split(' ')[0]}</span>
+        </a>
+      ) : (
+        <a
+          href="/login"
+          onClick={(e) => {
+            e.preventDefault();
+            if (location.pathname !== '/login') navigate('/login');
+          }}
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
+            currentPath === '/login' ? 'text-emerald-400 font-bold' : 'text-white/70 hover:text-white'
+          }`}
+          title="Masuk ke Akun"
+        >
+          <LogIn className="w-5 h-5" />
+          <span>Masuk</span>
+        </a>
+      )}
     </nav>
   );
 };

@@ -90,6 +90,21 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Dispatch comments open/close event for bottom nav hiding & global isolation
+  useEffect(() => {
+    if (isOpen) {
+      document.body.dataset.commentsOpen = 'true';
+      window.dispatchEvent(new CustomEvent('titik-comments-toggle', { detail: { open: true } }));
+    } else {
+      delete document.body.dataset.commentsOpen;
+      window.dispatchEvent(new CustomEvent('titik-comments-toggle', { detail: { open: false } }));
+    }
+    return () => {
+      delete document.body.dataset.commentsOpen;
+      window.dispatchEvent(new CustomEvent('titik-comments-toggle', { detail: { open: false } }));
+    };
+  }, [isOpen]);
+
   // Focus input when opened
   useEffect(() => {
     if (isOpen) {
@@ -403,7 +418,7 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
         {/* Sticky Input Bar at Bottom */}
         <form
           onSubmit={handleSubmit}
-          className="p-3 sm:p-4 bg-[#111412]/95 backdrop-blur-md border-t border-white/10 shrink-0"
+          className="p-3 sm:p-4 pb-[max(1rem,env(safe-area-inset-bottom,16px))] bg-[#111412]/95 backdrop-blur-md border-t border-white/10 shrink-0 relative z-10"
         >
           {replyTarget && (
             <div className="flex items-center justify-between mb-2 px-1 text-[11px] text-white/55">

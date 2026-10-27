@@ -73,6 +73,13 @@ export const ProfileView: React.FC = () => {
         currentAuthProfile.username.toLowerCase() === profile.username.toLowerCase())
   );
 
+  const handleLogout = async () => {
+    const confirmed = window.confirm('Apakah Anda yakin ingin keluar dari akun?');
+    if (!confirmed) return;
+    await signOut();
+    navigate('/login');
+  };
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
@@ -89,7 +96,16 @@ export const ProfileView: React.FC = () => {
         return;
       }
 
-      const fetchedProfile = await dataService.getProfileByUsername(targetUsername);
+      let fetchedProfile = await dataService.getProfileByUsername(targetUsername);
+      if (
+        !fetchedProfile &&
+        isAuthenticated &&
+        currentAuthProfile.username &&
+        targetUsername.toLowerCase() === currentAuthProfile.username.toLowerCase()
+      ) {
+        fetchedProfile = currentAuthProfile;
+      }
+
       if (!fetchedProfile) {
         setError('Profil tidak ditemukan.');
         setIsLoading(false);
@@ -127,7 +143,7 @@ export const ProfileView: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [username, currentAuthProfile.username, currentAuthProfile.id, isAuthenticated]);
+  }, [username, currentAuthProfile, isAuthenticated]);
 
   useEffect(() => {
     loadProfileData();
@@ -360,10 +376,7 @@ export const ProfileView: React.FC = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={async () => {
-                            await signOut();
-                            navigate('/login');
-                          }}
+                          onClick={handleLogout}
                           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#E4E2DA] dark:border-[#26352E] bg-white dark:bg-[#1A221E] hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-xs font-bold transition-all shadow-xs cursor-pointer"
                           title="Keluar dari Akun"
                         >
@@ -844,10 +857,7 @@ export const ProfileView: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={async () => {
-                      await signOut();
-                      navigate('/login');
-                    }}
+                    onClick={handleLogout}
                     className="w-full flex items-center justify-between p-4 bg-white dark:bg-[#131916] hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer text-left group"
                   >
                     <div className="flex items-center gap-3">
