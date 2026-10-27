@@ -18,7 +18,7 @@ export interface AuthContextType {
   refreshProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_ACTIVE_PROFILE = 'titik_active_profile_v1';
 const LOCAL_STORAGE_AUTHENTICATED = 'titik_authenticated_v2';
