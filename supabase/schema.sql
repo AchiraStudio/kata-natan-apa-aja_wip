@@ -87,6 +87,11 @@ BEGIN
     v_cleaned_username := 'warga_' || substr(md5(random()::text), 1, 6);
   END IF;
 
+  -- Ensure username is unique so it never trips profiles_username_key
+  IF EXISTS (SELECT 1 FROM public.profiles WHERE username = v_cleaned_username AND id <> new.id::text) THEN
+    v_cleaned_username := v_cleaned_username || '_' || substr(md5(random()::text), 1, 4);
+  END IF;
+
   INSERT INTO public.profiles (
     id,
     username,

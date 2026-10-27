@@ -40,17 +40,17 @@ export async function seedProfiles(): Promise<number> {
     }
   }
 
-  // Also include PUPR official admin profile
-  uniqueProfilesMap.set('usr-pupr-admin', {
-    id: 'usr-pupr-admin',
+  // Also include PUPR official admin profile aligned with migration ID
+  uniqueProfilesMap.set('a0000000-0000-0000-0000-000000000001', {
+    id: 'a0000000-0000-0000-0000-000000000001',
     username: 'admin.pupr',
-    display_name: 'Verifikator Dinas PUPR',
+    display_name: 'Administrator Dinas PUPR',
     avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
     bio: 'Akun resmi verifikasi dan tindak lanjut laporan infrastruktur dinas PUPR.',
     district: 'Bogor Tengah',
     role: 'admin',
     is_verified: true,
-    is_demo: true,
+    is_demo: false,
   });
 
   const profileRows = Array.from(uniqueProfilesMap.values());

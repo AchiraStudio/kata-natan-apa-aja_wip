@@ -11,6 +11,8 @@ DO $$
 DECLARE
   v_admin_id UUID := 'a0000000-0000-0000-0000-000000000001';
   v_citizen_id UUID := 'c0000000-0000-0000-0000-000000000001';
+  v_existing_admin_id UUID;
+  v_existing_citizen_id UUID;
   v_encrypted_admin_pw TEXT;
   v_encrypted_citizen_pw TEXT;
 BEGIN
@@ -18,8 +20,24 @@ BEGIN
   v_encrypted_admin_pw := crypt('admin2026', gen_salt('bf'));
   v_encrypted_citizen_pw := crypt('titik2026', gen_salt('bf'));
 
+  -- 0. Clean up conflicting pre-existing profiles with duplicate usernames
+  -- (e.g. from prior demo seeding with unlinked string IDs)
+  DELETE FROM public.profiles
+  WHERE username IN ('admin.pupr', 'budi.santoso')
+    AND id NOT IN (SELECT id::text FROM auth.users WHERE email IN ('admin@titik.id', 'warga@titik.id'));
+
   -- 1. Create or update Administrator (admin@titik.id / admin2026)
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'admin@titik.id') THEN
+  SELECT id INTO v_existing_admin_id FROM auth.users WHERE email = 'admin@titik.id' LIMIT 1;
+  IF v_existing_admin_id IS NOT NULL THEN
+    v_admin_id := v_existing_admin_id;
+    UPDATE auth.users
+    SET
+      encrypted_password = v_encrypted_admin_pw,
+      email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+      raw_user_meta_data = '{"username":"admin.pupr","display_name":"Administrator Dinas PUPR","district":"Bogor Tengah"}'::jsonb,
+      updated_at = NOW()
+    WHERE id = v_admin_id;
+  ELSE
     INSERT INTO auth.users (
       instance_id,
       id,
@@ -45,18 +63,20 @@ BEGIN
       NOW(),
       NOW()
     );
-  ELSE
-    UPDATE auth.users
-    SET
-      encrypted_password = v_encrypted_admin_pw,
-      email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
-      raw_user_meta_data = '{"username":"admin.pupr","display_name":"Administrator Dinas PUPR","district":"Bogor Tengah"}'::jsonb,
-      updated_at = NOW()
-    WHERE email = 'admin@titik.id';
   END IF;
 
   -- 2. Create or update Normal Citizen (warga@titik.id / titik2026)
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'warga@titik.id') THEN
+  SELECT id INTO v_existing_citizen_id FROM auth.users WHERE email = 'warga@titik.id' LIMIT 1;
+  IF v_existing_citizen_id IS NOT NULL THEN
+    v_citizen_id := v_existing_citizen_id;
+    UPDATE auth.users
+    SET
+      encrypted_password = v_encrypted_citizen_pw,
+      email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+      raw_user_meta_data = '{"username":"budi.santoso","display_name":"Budi Santoso","district":"Bogor Selatan"}'::jsonb,
+      updated_at = NOW()
+    WHERE id = v_citizen_id;
+  ELSE
     INSERT INTO auth.users (
       instance_id,
       id,
@@ -82,14 +102,6 @@ BEGIN
       NOW(),
       NOW()
     );
-  ELSE
-    UPDATE auth.users
-    SET
-      encrypted_password = v_encrypted_citizen_pw,
-      email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
-      raw_user_meta_data = '{"username":"budi.santoso","display_name":"Budi Santoso","district":"Bogor Selatan"}'::jsonb,
-      updated_at = NOW()
-    WHERE email = 'warga@titik.id';
   END IF;
 
   -- 3. Upsert Profile for Administrator
@@ -105,8 +117,8 @@ BEGIN
     bio,
     is_demo
   )
-  SELECT
-    u.id::text,
+  VALUES (
+    v_admin_id::text,
     'admin.pupr',
     'Administrator Dinas PUPR',
     'admin@titik.id',
@@ -116,7 +128,7 @@ BEGIN
     true,
     'Akun resmi verifikator dan pengawas infrastruktur Dinas PUPR Kota Bogor.',
     false
-  FROM auth.users u WHERE u.email = 'admin@titik.id'
+  )
   ON CONFLICT (id) DO UPDATE SET
     role = 'admin',
     display_name = 'Administrator Dinas PUPR',
@@ -137,8 +149,8 @@ BEGIN
     bio,
     is_demo
   )
-  SELECT
-    u.id::text,
+  VALUES (
+    v_citizen_id::text,
     'budi.santoso',
     'Budi Santoso',
     'warga@titik.id',
@@ -148,7 +160,7 @@ BEGIN
     true,
     'Warga aktif pemerhati fasilitas umum dan transparansi APBD Kota Bogor.',
     false
-  FROM auth.users u WHERE u.email = 'warga@titik.id'
+  )
   ON CONFLICT (id) DO UPDATE SET
     role = 'citizen',
     display_name = 'Budi Santoso',
@@ -158,8 +170,7 @@ BEGIN
 
   -- 5. Grant Admin Role in public.user_roles
   INSERT INTO public.user_roles (user_id, role)
-  SELECT u.id::text, 'admin'
-  FROM auth.users u WHERE u.email = 'admin@titik.id'
+  VALUES (v_admin_id::text, 'admin')
   ON CONFLICT (user_id) DO UPDATE SET role = 'admin';
 
   -- Also grant admin to achira@studio.id if exists
