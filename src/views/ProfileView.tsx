@@ -17,6 +17,7 @@ import {
   Loader2,
   X,
   ShieldCheck,
+  ShieldAlert,
   Settings,
   ChevronRight,
   Globe,
@@ -574,6 +575,16 @@ export const ProfileView: React.FC = () => {
                   <div className="flex items-center gap-2">
                     {isOwnProfile ? (
                       <>
+                        {profile.role === 'admin' && (
+                          <Link
+                            to="/admin"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                            title="Buka Portal Tinjauan Admin PUPR"
+                          >
+                            <ShieldAlert className="w-3.5 h-3.5" />
+                            <span>Portal Admin</span>
+                          </Link>
+                        )}
                         <button
                           type="button"
                           onClick={handleOpenEdit}
@@ -665,6 +676,34 @@ export const ProfileView: React.FC = () => {
                       <span>Bergabung {formatIndonesianTimeAgo(profile.createdAt || '2026-01-01T00:00:00Z')}</span>
                     </div>
                   </div>
+
+                  {/* Admin Direct Launchpad Banner (Mobile & Desktop) */}
+                  {isOwnProfile && profile.role === 'admin' && (
+                    <div className="pt-3">
+                      <Link
+                        to="/admin"
+                        className="flex items-center justify-between p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100/70 dark:hover:bg-amber-900/40 transition-colors group cursor-pointer shadow-xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="p-2 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400 shrink-0">
+                            <ShieldAlert className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                              Portal Tinjauan Admin PUPR
+                            </p>
+                            <p className="text-[11px] text-amber-700 dark:text-amber-400 truncate">
+                              Verifikasi bukti laporan warga dan perbarui disposisi dinas
+                            </p>
+                          </div>
+                        </div>
+                        <span className="shrink-0 text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                          <span>Buka</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </span>
+                      </Link>
+                    </div>
+                  )}
                 </div>
 
                 {/* Stats Summary Bar */}

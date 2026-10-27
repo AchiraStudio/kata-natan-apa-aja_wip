@@ -1,16 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
-import { MapPin, ArrowRight } from 'lucide-react';
+import { MapPin, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { BottomNav } from '../components/layout/BottomNav';
 import { useTitik } from '../context/TitikContext';
+import { useAuth } from '../context/AuthContext';
 import { Report, Facility } from '../types/domain';
 import { createCivicTileLayer } from '../utils/mapTiles';
 import './MapView.css';
 
 export const MapView: React.FC = () => {
   const navigate = useNavigate();
+  const { profile, isAuthenticated } = useAuth();
   const { posts, facilities, openReportModal } = useTitik();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -117,11 +120,32 @@ export const MapView: React.FC = () => {
           <span className="w-2 h-2 rounded-full bg-[#263F35] dark:bg-[#10B981]"></span>
         </a>
         <div className="flex items-center gap-2">
-          <img
-            src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
-            alt="Avatar"
-            className="w-7 h-7 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E]"
-          />
+          {isAuthenticated && profile.role === 'admin' && (
+            <Link
+              to="/admin"
+              className="p-1.5 rounded-full bg-amber-600/90 text-amber-100 hover:text-white transition-colors cursor-pointer"
+              title="Portal Admin PUPR"
+              aria-label="Portal Admin"
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+            </Link>
+          )}
+          {isAuthenticated ? (
+            <Link to={'/u/' + profile.username} className="flex items-center" title={'Profil ' + profile.displayName}>
+              <img
+                src={profile.avatarUrl}
+                alt={profile.displayName}
+                className="w-7 h-7 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E]"
+              />
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              className="px-2.5 py-1 rounded-xl bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] text-xs font-bold"
+            >
+              Masuk
+            </Link>
+          )}
         </div>
       </header>
 

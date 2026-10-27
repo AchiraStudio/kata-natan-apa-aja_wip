@@ -1,10 +1,14 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import { Search, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Sparkles, ChevronUp, ChevronDown, ShieldAlert } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
+import { useAuth } from '../../context/AuthContext';
 import { FeedCard } from './FeedCard';
 import { TitikLogo } from '../common/TitikLogo';
 
 export const FeedContainer: React.FC = () => {
+  const navigate = useNavigate();
+  const { profile } = useAuth();
   const {
     posts,
     activeFeedTab,
@@ -282,8 +286,22 @@ export const FeedContainer: React.FC = () => {
           })}
         </div>
 
-        {/* Right: Search Action on mobile & desktop */}
+        {/* Right: Search Action and Admin Mobile Shortcut */}
         <div className="pointer-events-auto flex items-center gap-2">
+          {profile?.role === 'admin' && (
+            <a
+              href="/admin"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/admin');
+              }}
+              className="lg:hidden p-1.5 sm:p-2 rounded-full bg-amber-600/90 hover:bg-amber-600 border border-white/20 backdrop-blur-md text-amber-100 hover:text-white transition-colors cursor-pointer flex items-center justify-center shadow-xs"
+              title="Portal Tinjauan Admin PUPR"
+              aria-label="Portal Admin"
+            >
+              <ShieldAlert className="w-4 h-4" />
+            </a>
+          )}
           <button
             type="button"
             onClick={() => setSearchModalOpen(true)}

@@ -102,3 +102,4 @@ describe('Comment Sorting & Elevation for Active User', () => {
     expect(sorted).toEqual(mockComments);
   });
 });
+

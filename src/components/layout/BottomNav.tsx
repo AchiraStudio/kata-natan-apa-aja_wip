@@ -134,18 +134,30 @@ export const BottomNav: React.FC = () => {
             if (location.pathname !== target) navigate(target);
           }}
           className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
-            currentPath === `/u/${profile.username}` || currentPath === '/me'
-              ? 'text-emerald-400 font-bold'
+            currentPath === `/u/${profile.username}` || currentPath === '/me' || (profile.role === 'admin' && currentPath === '/admin')
+              ? (currentPath === '/admin' ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold')
               : 'text-white/70 hover:text-white'
           }`}
-          title="Profil Saya"
+          title={profile.role === 'admin' ? 'Profil & Admin PUPR' : 'Profil Saya'}
         >
-          <img
-            src={profile.avatarUrl}
-            alt={profile.displayName}
-            className="w-5 h-5 rounded-full object-cover border border-white/30"
-          />
-          <span className="truncate max-w-[50px] text-center">{profile.displayName.split(' ')[0]}</span>
+          <div className="relative">
+            <img
+              src={profile.avatarUrl}
+              alt={profile.displayName}
+              className={`w-5 h-5 rounded-full object-cover border ${
+                profile.role === 'admin' ? 'border-amber-400/80 ring-1 ring-amber-400/40' : 'border-white/30'
+              }`}
+            />
+            {profile.role === 'admin' && (
+              <span
+                className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-[#20221D] dark:ring-[#131916]"
+                title="Akun Admin PUPR"
+              />
+            )}
+          </div>
+          <span className="truncate max-w-[50px] text-center">
+            {currentPath === '/admin' ? 'Admin' : profile.displayName.split(' ')[0]}
+          </span>
         </a>
       ) : (
         <a
