@@ -27,6 +27,7 @@ import {
   AlertCircle,
   FileText,
   BadgeCheck,
+  RotateCw,
 } from 'lucide-react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { BottomNav } from '../components/layout/BottomNav';
@@ -66,10 +67,38 @@ export const ReportDetailView: React.FC = () => {
   const [testimonyText, setTestimonyText] = useState('');
   const [authorNameInput, setAuthorNameInput] = useState('');
   const [isSubmittingTestimony, setIsSubmittingTestimony] = useState(false);
+  const [isRefreshingTestimonies, setIsRefreshingTestimonies] = useState(false);
 
   // Leaflet Map Reference
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+
+  const refreshTestimoniesOnly = async () => {
+    if (!report || isRefreshingTestimonies) return;
+    setIsRefreshingTestimonies(true);
+    try {
+      const matchedPostId = report.id.startsWith('rep-kn-')
+        ? report.id.replace('rep-', '')
+        : report.id === 'rep-001'
+          ? 'post-001'
+          : report.id === 'rep-002'
+            ? 'post-002'
+            : report.id === 'rep-003'
+              ? 'post-003'
+              : report.id;
+      const comments = await dataService.getComments(matchedPostId);
+      setTestimonies(
+        (comments || []).map((c) => ({
+          ...c,
+          isLiked: false,
+        }))
+      );
+    } catch (err) {
+      console.error('Failed to refresh testimonies:', err);
+    } finally {
+      setIsRefreshingTestimonies(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -803,7 +832,17 @@ export const ReportDetailView: React.FC = () => {
                       Kesaksian Lapangan & Tanggapan Warga ({testimonies.length})
                     </h3>
                   </div>
-                  <span className="text-[11px] text-[#686B65]">Partisipasi Warga Sekitar</span>
+                  <button
+                    type="button"
+                    onClick={refreshTestimoniesOnly}
+                    disabled={isRefreshingTestimonies}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-[#686B65] hover:text-[#20221D] hover:bg-[#F7F6F1] transition-all cursor-pointer disabled:opacity-40"
+                    title="Segarkan kesaksian warga"
+                    aria-label="Segarkan kesaksian warga"
+                  >
+                    <RotateCw className={`w-3 h-3 ${isRefreshingTestimonies ? 'animate-spin text-emerald-600' : ''}`} />
+                    <span>Segarkan</span>
+                  </button>
                 </div>
 
                 {/* Input Form for New Eyewitness Testimony */}

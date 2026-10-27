@@ -11,6 +11,7 @@ import {
   MessageCircle,
   X,
   Loader2,
+  RotateCw,
 } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +24,7 @@ export const RightContextualPanel: React.FC = () => {
 
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [loadedPostId, setLoadedPostId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [replyTarget, setReplyTarget] = useState<{ id: string; authorName: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,6 +33,19 @@ export const RightContextualPanel: React.FC = () => {
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const commentsListRef = useRef<HTMLDivElement | null>(null);
+
+  const refreshComments = async () => {
+    if (!activePost || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const loaded = await getComments(activePost.id);
+      setComments(loaded || []);
+    } catch (err) {
+      console.error('Failed to refresh comments in RightContextualPanel:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Load comments when active post changes
   useEffect(() => {
@@ -239,7 +254,17 @@ export const RightContextualPanel: React.FC = () => {
             <MessageCircle className="w-4 h-4 text-[#263F35] dark:text-[#34D399]" />
             <span>Komentar Warga ({comments.length || activePost.commentsCount})</span>
           </div>
-          <span className="text-xs text-[#686B65] dark:text-[#9EACA3]">Terbaru</span>
+          <button
+            type="button"
+            onClick={refreshComments}
+            disabled={isRefreshing || isLoading}
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#E4E2DA]/40 dark:hover:bg-[#26352E]/40 transition-colors cursor-pointer disabled:opacity-40"
+            title="Segarkan komentar warga"
+            aria-label="Segarkan komentar warga"
+          >
+            <RotateCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-emerald-600 dark:text-emerald-400' : ''}`} />
+            <span>Segarkan</span>
+          </button>
         </div>
 
         {/* Scrollable Comment List with Threaded Sub-Replies */}

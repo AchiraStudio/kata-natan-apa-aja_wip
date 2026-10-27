@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Heart, Send, MessageSquare, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Heart, Send, MessageSquare, Loader2, RotateCw } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
 import { FeedComment } from '../../services/adapters/types';
@@ -26,6 +26,7 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
 
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [newCommentText, setNewCommentText] = useState('');
   const [replyTarget, setReplyTarget] = useState<{ id: string; authorName: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,33 +52,28 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
     };
   }, [isOpen]);
 
+  const fetchComments = useCallback(async (isRefreshAction = false) => {
+    if (isRefreshAction) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
+    try {
+      const loaded = await getComments(postId);
+      setComments(loaded || []);
+    } catch (err) {
+      console.error('Failed to load comments:', err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [postId, getComments]);
+
   // Load comments when sheet opens
   useEffect(() => {
     if (!isOpen) return;
-
-    let isMounted = true;
-    const fetchComments = async () => {
-      setIsLoading(true);
-      try {
-        const loaded = await getComments(postId);
-        if (isMounted) {
-          setComments(loaded);
-        }
-      } catch (err) {
-        console.error('Failed to load comments:', err);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchComments();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isOpen, postId, getComments]);
+    fetchComments(false);
+  }, [isOpen, fetchComments]);
 
   // Handle ESC key to dismiss
   useEffect(() => {
@@ -213,17 +209,33 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
-              aria-label="Tutup komentar"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fetchComments(true);
+                }}
+                disabled={isLoading || isRefreshing}
+                className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer disabled:opacity-40"
+                title="Segarkan komentar"
+                aria-label="Segarkan komentar"
+              >
+                <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                }}
+                className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
+                aria-label="Tutup komentar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -247,6 +259,15 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
               <p className="text-xs text-white/50 mt-1 max-w-[240px]">
                 Sampaikan kesaksian, kondisi terkini, atau tanggapan Anda mengenai titik laporan ini.
               </p>
+              <button
+                type="button"
+                onClick={() => fetchComments(true)}
+                disabled={isRefreshing}
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 text-xs text-white/80 hover:text-white transition-colors cursor-pointer disabled:opacity-40"
+              >
+                <RotateCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
+                <span>Cek Komentar Baru</span>
+              </button>
             </div>
           ) : (
             comments.filter((item) => !item.parentId).map((item) => {

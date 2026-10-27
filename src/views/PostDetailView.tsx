@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Check,
   CornerDownRight,
+  RotateCw,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTitik } from '../context/TitikContext';
@@ -31,6 +32,7 @@ export const PostDetailView: React.FC = () => {
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshingComments, setIsRefreshingComments] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Engagement state
@@ -78,6 +80,19 @@ export const PostDetailView: React.FC = () => {
   useEffect(() => {
     loadPostAndComments();
   }, [loadPostAndComments]);
+
+  const refreshCommentsOnly = async () => {
+    if (!id || isRefreshingComments) return;
+    setIsRefreshingComments(true);
+    try {
+      const fetched = await dataService.getComments(id);
+      setComments(fetched || []);
+    } catch (err) {
+      console.error('Failed to refresh comments:', err);
+    } finally {
+      setIsRefreshingComments(false);
+    }
+  };
 
   const handleToggleLike = async () => {
     if (!post) return;
@@ -376,9 +391,22 @@ export const PostDetailView: React.FC = () => {
 
             {/* Comments Section */}
             <section className="bg-white dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
-              <h3 className="text-sm font-bold text-[#20221D] dark:text-[#F3F6F4]">
-                Komentar Warga ({comments.length})
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-[#20221D] dark:text-[#F3F6F4]">
+                  Komentar Warga ({comments.length})
+                </h3>
+                <button
+                  type="button"
+                  onClick={refreshCommentsOnly}
+                  disabled={isRefreshingComments}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#1E2621] transition-all cursor-pointer disabled:opacity-40"
+                  title="Segarkan komentar saja"
+                  aria-label="Segarkan komentar saja"
+                >
+                  <RotateCw className={`w-3.5 h-3.5 ${isRefreshingComments ? 'animate-spin text-emerald-600 dark:text-emerald-400' : ''}`} />
+                  <span>Segarkan</span>
+                </button>
+              </div>
 
               {/* Comment Input */}
               {isAuthenticated ? (
