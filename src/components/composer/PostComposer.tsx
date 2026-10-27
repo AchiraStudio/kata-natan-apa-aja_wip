@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTitik } from '../../context/useTitik';
 import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 import { Post, PostMedia } from '../../types/domain';
+import { generatePostId } from '../../utils/idGenerator';
 
 interface PostComposerProps {
   onSuccess: (newPost: Post) => void;
@@ -108,7 +109,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
       } else {
         // Local / demo creation
         createdPost = {
-          id: `post-local-${Date.now()}`,
+          id: generatePostId(),
           author: profile,
           body: draft.caption.trim(),
           postType,

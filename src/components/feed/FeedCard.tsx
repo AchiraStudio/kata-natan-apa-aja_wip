@@ -19,6 +19,7 @@ import {
   Video as VideoIcon,
 } from 'lucide-react';
 import { Post } from '../../types/domain';
+import { useAuth } from '../../context/AuthContext';
 import { useTitik } from '../../context/TitikContext';
 import { CommentsBottomSheet } from './CommentsBottomSheet';
 import { formatEngagementMetric } from '../../utils/formatters';
@@ -30,7 +31,19 @@ interface FeedCardProps {
 }
 
 export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive = true }) => {
-  const { toggleSupport, togglePostSave, openReportDetail, updatePostCommentsCount } = useTitik();
+  const { isAuthenticated } = useAuth();
+  const { toggleSupport, togglePostSave, togglePostLike, openReportDetail, updatePostCommentsCount } = useTitik();
+
+  const redirectToLogin = () => {
+    if (typeof window !== 'undefined') {
+      if (window.history && typeof window.history.pushState === 'function') {
+        window.history.pushState({}, '', '/login');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      } else {
+        window.location.href = '/login';
+      }
+    }
+  };
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -323,22 +336,34 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
           )}
         </div>
 
-        {/* "Saya terdampak juga / Dukung Laporan" Action */}
+        {/* "Saya terdampak juga / Dukung Laporan / Sukai" Action */}
         <div className="flex flex-col items-center">
           <button
             type="button"
-            onClick={() => post.relatedReportId && toggleSupport(post.relatedReportId)}
-            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center backdrop-blur-md transition-all active:scale-90 ${
-              post.isSupportedByMe
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isAuthenticated) {
+                redirectToLogin();
+                return;
+              }
+              if (post.relatedReportId) {
+                toggleSupport(post.relatedReportId);
+              } else if (togglePostLike) {
+                togglePostLike(post.id);
+              }
+            }}
+            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center backdrop-blur-md transition-all active:scale-90 cursor-pointer ${
+              (post.relatedReportId ? post.isSupportedByMe : post.isLikedByMe)
                 ? 'bg-[#DC2626] text-white shadow-lg shadow-red-600/30'
                 : 'bg-black/45 text-white hover:bg-black/65'
             }`}
-            title="Dukung laporan ini / Saya terdampak juga"
+            title={post.relatedReportId ? 'Dukung laporan ini / Saya terdampak juga' : 'Sukai postingan ini'}
           >
-            <Heart className={`w-5 h-5 ${post.isSupportedByMe ? 'fill-current' : ''}`} />
+            <Heart className={`w-5 h-5 ${(post.relatedReportId ? post.isSupportedByMe : post.isLikedByMe) ? 'fill-current' : ''}`} />
           </button>
+          {/* Civic support metric: formatEngagementMetric(post.supportCount) */}
           <span className="text-[11px] font-semibold mt-1 drop-shadow-md whitespace-nowrap tabular-nums select-none text-center">
-            {formatEngagementMetric(post.supportCount)}
+            {formatEngagementMetric(post.relatedReportId ? post.supportCount : (post.likesCount || 0))}
           </span>
         </div>
 
@@ -385,9 +410,13 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
             type="button"
             onClick={(e) => {
               e.stopPropagation();
+              if (!isAuthenticated) {
+                redirectToLogin();
+                return;
+              }
               handleSaveToggle();
             }}
-            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center backdrop-blur-md transition-all active:scale-90 ${
+            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center backdrop-blur-md transition-all active:scale-90 cursor-pointer ${
               isSaved ? 'bg-amber-400 text-[#20221D]' : 'bg-black/45 text-white hover:bg-black/65'
             }`}
             title="Simpan laporan"

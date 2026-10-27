@@ -66,7 +66,10 @@ function mapReportRow(row: any, isSupportedByMe = false): Report {
     supportingDocuments: Array.isArray(row.supporting_documents) ? row.supporting_documents : [],
     reporterType: row.reporter_type || 'verified_citizen',
     reporterDisplayName: row.reporter_display_name || undefined,
-    supportCount: row.support_count ?? 0,
+    supportCount:
+      Array.isArray(row.supports) && row.supports.length > 0 && typeof row.supports[0]?.count === 'number'
+        ? row.supports[0].count
+        : (row.support_count ?? 0),
     isSupportedByMe,
     budgetContext:
       row.budget_context && Object.keys(row.budget_context).length > 0
@@ -104,6 +107,27 @@ function mapPostRow(
     ? mapReportRow(row.relatedReport, isSupported)
     : undefined;
 
+  const dynamicCommentsCount =
+    Array.isArray(row.comments) && row.comments.length > 0 && typeof row.comments[0]?.count === 'number'
+      ? row.comments[0].count
+      : (row.comments_count ?? 0);
+
+  const dynamicLikesCount =
+    Array.isArray(row.likes) && row.likes.length > 0 && typeof row.likes[0]?.count === 'number'
+      ? row.likes[0].count
+      : (row.likes_count ?? 0);
+
+  const dynamicSavesCount =
+    Array.isArray(row.saves) && row.saves.length > 0 && typeof row.saves[0]?.count === 'number'
+      ? row.saves[0].count
+      : (row.saves_count ?? 0);
+
+  const dynamicSupportCount = relatedReport
+    ? relatedReport.supportCount
+    : (Array.isArray(row.supports) && row.supports.length > 0 && typeof row.supports[0]?.count === 'number'
+        ? row.supports[0].count
+        : (row.support_count ?? 0));
+
   return {
     id: row.id,
     author: {
@@ -121,16 +145,13 @@ function mapPostRow(
     locationTag: row.location_tag || 'Kota Bogor',
     relatedReportId: row.related_report_id || undefined,
     relatedReport,
-    supportCount: row.support_count ?? (relatedReport ? relatedReport.supportCount : 0),
+    supportCount: dynamicSupportCount,
     isSupportedByMe: isSupported,
-    likesCount: row.likes_count ?? 0,
+    likesCount: dynamicLikesCount,
     isLikedByMe: isLiked,
-    commentsCount:
-      Array.isArray(row.comments) && row.comments.length > 0 && typeof row.comments[0]?.count === 'number'
-        ? row.comments[0].count
-        : (row.comments_count ?? 0),
+    commentsCount: dynamicCommentsCount,
     sharesCount: row.shares_count ?? 0,
-    savesCount: row.saves_count ?? 0,
+    savesCount: dynamicSavesCount,
     isSavedByMe: isSaved,
     createdAt: row.created_at,
     isSampleData: Boolean(row.is_demo),
@@ -187,7 +208,13 @@ export class SupabaseDataAdapter implements IDataAdapter {
     try {
       let query = supabase
         .from('posts')
-        .select('*, relatedReport:reports(*), comments:comments(count)');
+        .select(`
+          *,
+          relatedReport:reports(*, supports:report_supports(count)),
+          comments:comments(count),
+          likes:post_likes(count),
+          saves:post_saves(count)
+        `);
 
       if (category && category !== 'Semua') {
         query = query.ilike('category', `%${category}%`);
@@ -196,7 +223,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
       const { data, error } = await query
         .order('created_at', { ascending: false })
         .order('id', { ascending: false })
-        .limit(20);
+        .limit(100);
 
       if (error) {
         throw mapPostgrestError(error, 'Gagal memuat postingan linimasa.');
@@ -542,7 +569,16 @@ export class SupabaseDataAdapter implements IDataAdapter {
     try {
       const { data, error } = await supabase
         .from('post_saves')
-        .select('post_id, post:posts(*, relatedReport:reports(*), comments:comments(count))')
+        .select(`
+          post_id,
+          post:posts(
+            *,
+            relatedReport:reports(*, supports:report_supports(count)),
+            comments:comments(count),
+            likes:post_likes(count),
+            saves:post_saves(count)
+          )
+        `)
         .eq('user_id', userId);
 
       if (error) {
@@ -731,7 +767,13 @@ export class SupabaseDataAdapter implements IDataAdapter {
     try {
       const { data, error } = await supabase
         .from('posts')
-        .select('*, relatedReport:reports(*), comments:comments(count)')
+        .select(`
+          *,
+          relatedReport:reports(*, supports:report_supports(count)),
+          comments:comments(count),
+          likes:post_likes(count),
+          saves:post_saves(count)
+        `)
         .eq('author_id', userId)
         .order('created_at', { ascending: false });
 
@@ -749,7 +791,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
     try {
       const { data, error } = await supabase
         .from('reports')
-        .select('*')
+        .select('*, supports:report_supports(count)')
         .eq('reporter_user_id', userId)
         .neq('reporter_type', 'anonymous')
         .order('created_at', { ascending: false });
@@ -768,7 +810,13 @@ export class SupabaseDataAdapter implements IDataAdapter {
     try {
       const { data, error } = await supabase
         .from('posts')
-        .select('*, relatedReport:reports(*), comments:comments(count)')
+        .select(`
+          *,
+          relatedReport:reports(*, supports:report_supports(count)),
+          comments:comments(count),
+          likes:post_likes(count),
+          saves:post_saves(count)
+        `)
         .eq('id', postId)
         .maybeSingle();
 

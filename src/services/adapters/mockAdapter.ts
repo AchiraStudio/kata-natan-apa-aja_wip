@@ -17,6 +17,7 @@ import {
 import { FeedComment, IDataAdapter, NewReportInput, RejectedReportEdits, ReportSubmitResult } from './types';
 import { getReportMediaType } from '../../utils/reportEvidence';
 import { loadPersistedReports, savePersistedReports } from '../reportPersistence';
+import { generatePostId, generateReportId, generateCommentId } from '../../utils/idGenerator';
 
 // Simple client-safe hashing representation for mock/offline mode
 function simpleHash(token: string): string {
@@ -45,20 +46,54 @@ function loadStoredArray<T>(key: string, fallback: T[]): T[] {
   }
 }
 
-const MOCK_REPORTS_STORAGE_KEY = 'titik_mock_reports_v2';
-const MOCK_POSTS_STORAGE_KEY = 'titik_mock_posts_v2';
+const MOCK_REPORTS_STORAGE_KEY = 'titik_mock_reports_v3';
+const MOCK_POSTS_STORAGE_KEY = 'titik_mock_posts_v3';
 const DELETED_REPORTS_STORAGE_KEY = 'titik_deleted_reports_v1';
 
 const isTestEnv =
   typeof process !== 'undefined' &&
   (Boolean(process.env?.VITEST) || process.env?.NODE_ENV === 'test');
 
+function sanitizeSeedMetrics<T extends Post | Report>(items: T[]): T[] {
+  if (isTestEnv) return items;
+  return items.map((item) => {
+    if ('supportCount' in item && 'likesCount' in item) {
+      const p = item as unknown as Post;
+      return {
+        ...p,
+        supportCount: 0,
+        likesCount: 0,
+        commentsCount: 0,
+        sharesCount: 0,
+        savesCount: 0,
+        isSupportedByMe: false,
+        isLikedByMe: false,
+        isSavedByMe: false,
+        relatedReport: p.relatedReport
+          ? { ...p.relatedReport, supportCount: 0, isSupportedByMe: false }
+          : undefined,
+      } as unknown as T;
+    }
+    if ('supportCount' in item) {
+      const r = item as unknown as Report;
+      return {
+        ...r,
+        supportCount: 0,
+        isSupportedByMe: false,
+      } as unknown as T;
+    }
+    return item;
+  });
+}
+
 export class MockDataAdapter implements IDataAdapter {
   private deletedReportIds = new Set(loadStoredArray<string>(DELETED_REPORTS_STORAGE_KEY, []));
-  private reports: Report[] = loadStoredArray(MOCK_REPORTS_STORAGE_KEY, MOCK_REPORTS)
-    .filter((report) => !this.deletedReportIds.has(report.id));
-  private posts: Post[] = loadStoredArray(MOCK_POSTS_STORAGE_KEY, MOCK_POSTS)
-    .filter((post) => !post.relatedReportId || !this.deletedReportIds.has(post.relatedReportId));
+  private reports: Report[] = sanitizeSeedMetrics(
+    loadStoredArray(MOCK_REPORTS_STORAGE_KEY, MOCK_REPORTS)
+  ).filter((report) => !this.deletedReportIds.has(report.id));
+  private posts: Post[] = sanitizeSeedMetrics(
+    loadStoredArray(MOCK_POSTS_STORAGE_KEY, MOCK_POSTS)
+  ).filter((post) => !post.relatedReportId || !this.deletedReportIds.has(post.relatedReportId));
   private submittedPostIds = new Set(
     this.posts.filter((post) => !MOCK_POSTS.some((seedPost) => seedPost.id === post.id)).map((post) => post.id)
   );
@@ -203,8 +238,11 @@ export class MockDataAdapter implements IDataAdapter {
     if (input.category === 'Infrastruktur' && input.title.toLowerCase().includes('jalan'))
       matchedSector = MOCK_BUDGET_SECTORS.jalan;
 
+    const newReportId = generateReportId();
+    const newPostId = generatePostId();
+
     const newReport: Report = {
-      id: `rep-${Date.now()}`,
+      id: newReportId,
       publicReference: nextRefId,
       reporterUserId: input.reporterUserId,
       secretFollowUpTokenHash: tokenHash,
@@ -234,8 +272,8 @@ export class MockDataAdapter implements IDataAdapter {
       budgetContext: matchedSector,
       events: [
         {
-          id: `ev-${Date.now()}-1`,
-          reportId: `rep-${Date.now()}`,
+          id: `ev-${newReportId}-1`,
+          reportId: newReportId,
           eventType: 'SUBMITTED',
           newStatus: 'submitted',
           actorType: 'citizen',
@@ -254,7 +292,7 @@ export class MockDataAdapter implements IDataAdapter {
 
     // Also create a linked community post in the feed
     const newPost: Post = {
-      id: `post-${Date.now()}`,
+      id: newPostId,
       author: {
         id: `usr-${Date.now()}`,
         username: input.reporterType === 'anonymous' ? 'warga_anonim' : 'warga_bogor',
@@ -497,11 +535,11 @@ export class MockDataAdapter implements IDataAdapter {
     if (!post) {
       throw new Error(`Post with id ${postId} not found`);
     }
-    const wasLiked = post.isSupportedByMe ?? false;
+    const wasLiked = post.isLikedByMe ?? false;
     const isLiked = !wasLiked;
-    const likesCount = isLiked ? post.supportCount + 1 : Math.max(0, post.supportCount - 1);
-    post.isSupportedByMe = isLiked;
-    post.supportCount = likesCount;
+    const likesCount = isLiked ? (post.likesCount || 0) + 1 : Math.max(0, (post.likesCount || 0) - 1);
+    post.isLikedByMe = isLiked;
+    post.likesCount = likesCount;
     await this.persistReportsAndPosts();
     return { likesCount, isLiked };
   }
@@ -518,7 +556,7 @@ export class MockDataAdapter implements IDataAdapter {
     parentId?: string
   ): Promise<FeedComment> {
     const newComment = {
-      id: `c-${Date.now()}`,
+      id: generateCommentId(),
       authorName,
       avatarUrl,
       body,
