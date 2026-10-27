@@ -190,6 +190,7 @@ CREATE POLICY "Users can update own profile" ON public.profiles
   WITH CHECK (id = (SELECT auth.uid()::text) OR public.is_admin());
 
 -- RPC to update profile cleanly
+DROP FUNCTION IF EXISTS public.update_my_profile(TEXT, TEXT, TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.update_my_profile(
   p_display_name TEXT,
   p_username TEXT,
@@ -291,6 +292,7 @@ CREATE POLICY "Users can delete their own posts" ON public.posts
   FOR DELETE USING (author_id = (SELECT auth.uid()::text) OR public.is_admin());
 
 -- Atomic Post Creation RPC
+DROP FUNCTION IF EXISTS public.create_post(UUID, TEXT, TEXT, JSONB, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.create_post(
   p_request_id UUID,
   p_body TEXT,
@@ -379,6 +381,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 GRANT EXECUTE ON FUNCTION public.create_post(UUID, TEXT, TEXT, JSONB, TEXT, TEXT) TO authenticated;
 
 -- Atomic Like/Save/Support RPCs
+DROP FUNCTION IF EXISTS public.toggle_post_like(TEXT);
 CREATE OR REPLACE FUNCTION public.toggle_post_like(p_post_id TEXT)
 RETURNS JSONB AS $$
 DECLARE
@@ -406,6 +409,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 
+DROP FUNCTION IF EXISTS public.toggle_post_save(TEXT);
 CREATE OR REPLACE FUNCTION public.toggle_post_save(p_post_id TEXT)
 RETURNS JSONB AS $$
 DECLARE
@@ -433,6 +437,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 
+DROP FUNCTION IF EXISTS public.toggle_report_support(TEXT);
 CREATE OR REPLACE FUNCTION public.toggle_report_support(p_report_id TEXT)
 RETURNS JSONB AS $$
 DECLARE
@@ -615,6 +620,7 @@ ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS request_id UUID UNIQUE;
 
 CREATE SEQUENCE IF NOT EXISTS public.report_public_ref_seq START WITH 101 INCREMENT BY 1;
 
+DROP FUNCTION IF EXISTS public.submit_report(UUID, TEXT, TEXT, TEXT, TEXT, JSONB, TEXT, JSONB, JSONB, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT);
 CREATE OR REPLACE FUNCTION public.submit_report(
   p_request_id UUID,
   p_title TEXT,
@@ -816,6 +822,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, extensions;
 GRANT EXECUTE ON FUNCTION public.submit_report(UUID, TEXT, TEXT, TEXT, TEXT, JSONB, TEXT, JSONB, JSONB, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT) TO anon, authenticated;
 
 -- Constant-time tracking verification RPC
+DROP FUNCTION IF EXISTS public.get_report_by_follow_up_token(TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.get_report_by_follow_up_token(
   p_reference TEXT,
   p_token TEXT
@@ -884,6 +891,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, extensions;
 GRANT EXECUTE ON FUNCTION public.get_report_by_follow_up_token(TEXT, TEXT) TO anon, authenticated;
 
 -- Admin Moderation RPCs
+DROP FUNCTION IF EXISTS public.admin_update_report_status(TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.admin_update_report_status(
   p_report_id TEXT,
   p_status TEXT,
@@ -934,6 +942,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 
+DROP FUNCTION IF EXISTS public.admin_delete_report(TEXT);
 CREATE OR REPLACE FUNCTION public.admin_delete_report(p_report_id TEXT)
 RETURNS BOOLEAN AS $$
 BEGIN
