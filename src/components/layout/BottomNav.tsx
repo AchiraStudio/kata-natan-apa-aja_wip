@@ -114,7 +114,8 @@ export const BottomNav: React.FC = () => {
           if (location.pathname !== target) navigate(target);
         }}
         className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
-          currentPath.startsWith('/u/') || (!isAuthenticated && currentPath === '/login')
+          (isAuthenticated && (currentPath === `/u/${profile.username}` || currentPath === '/me')) ||
+          (!isAuthenticated && currentPath === '/login')
             ? 'text-emerald-400 font-bold'
             : 'text-white/70 hover:text-white'
         }`}

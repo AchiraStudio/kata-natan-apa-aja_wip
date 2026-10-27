@@ -100,6 +100,7 @@ export default function App() {
               <Route path="/map" element={<MapView />} />
               <Route path="/track" element={<TrackReportView />} />
               <Route path="/u/:username" element={<ProfileView />} />
+              <Route path="/profile/:username" element={<ProfileView />} />
               <Route path="/me" element={<MeRedirect />} />
               <Route path="/post/:id" element={<PostDetailView />} />
               <Route path="/postingan/:id" element={<PostDetailView />} />

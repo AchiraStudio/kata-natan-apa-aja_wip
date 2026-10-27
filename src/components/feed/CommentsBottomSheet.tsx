@@ -242,16 +242,45 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
 
               return (
                 <div key={item.id} className="flex items-start gap-3 group">
-                  <img
-                    src={item.avatarUrl}
-                    alt={item.authorName}
-                    className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-white/15"
-                  />
+                  <a
+                    href={`/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onClose();
+                      if (window.history && typeof window.history.pushState === 'function') {
+                        window.history.pushState({}, '', `/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                        window.dispatchEvent(new PopStateEvent('popstate'));
+                      } else {
+                        window.location.href = `/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`;
+                      }
+                    }}
+                    className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity"
+                    title={`Lihat profil ${item.authorName}`}
+                  >
+                    <img
+                      src={item.avatarUrl}
+                      alt={item.authorName}
+                      className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-white/15 hover:scale-105 transition-transform"
+                    />
+                  </a>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-xs text-white/95 truncate">
+                      <a
+                        href={`/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onClose();
+                          if (window.history && typeof window.history.pushState === 'function') {
+                            window.history.pushState({}, '', `/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                            window.dispatchEvent(new PopStateEvent('popstate'));
+                          } else {
+                            window.location.href = `/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`;
+                          }
+                        }}
+                        className="font-semibold text-xs text-white/95 hover:text-emerald-400 hover:underline transition-colors cursor-pointer truncate"
+                      >
                         {item.authorName}
-                      </span>
+                      </a>
                       <span className="text-[10px] text-white/45 font-mono shrink-0">
                         • {item.timeAgo}
                       </span>
@@ -284,16 +313,45 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
                           return (
                             <div key={reply.id} className="flex items-start gap-2 justify-between">
                               <div className="flex items-start gap-2 min-w-0 flex-1">
-                                <img
-                                  src={reply.avatarUrl}
-                                  alt={reply.authorName}
-                                  className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-white/15"
-                                />
+                                <a
+                                  href={`/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    onClose();
+                                    if (window.history && typeof window.history.pushState === 'function') {
+                                      window.history.pushState({}, '', `/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                                      window.dispatchEvent(new PopStateEvent('popstate'));
+                                    } else {
+                                      window.location.href = `/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`;
+                                    }
+                                  }}
+                                  className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity"
+                                  title={`Lihat profil ${reply.authorName}`}
+                                >
+                                  <img
+                                    src={reply.avatarUrl}
+                                    alt={reply.authorName}
+                                    className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-white/15 hover:scale-105 transition-transform"
+                                  />
+                                </a>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="font-semibold text-[11px] text-white/90 truncate">
+                                    <a
+                                      href={`/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        onClose();
+                                        if (window.history && typeof window.history.pushState === 'function') {
+                                          window.history.pushState({}, '', `/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                                          window.dispatchEvent(new PopStateEvent('popstate'));
+                                        } else {
+                                          window.location.href = `/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`;
+                                        }
+                                      }}
+                                      className="font-semibold text-[11px] text-white/90 hover:text-emerald-400 hover:underline transition-colors cursor-pointer truncate"
+                                    >
                                       {reply.authorName}
-                                    </span>
+                                    </a>
                                     <span className="text-[10px] text-white/45 font-mono shrink-0">
                                       • {reply.timeAgo}
                                     </span>

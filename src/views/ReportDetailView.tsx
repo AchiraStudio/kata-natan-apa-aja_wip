@@ -718,17 +718,39 @@ export const ReportDetailView: React.FC = () => {
                         <Shield className="w-4 h-4" />
                       </div>
                     ) : (
-                      <img
-                        src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
-                        alt={report.reporterDisplayName || 'Pelapor'}
-                        className="w-8 h-8 rounded-full object-cover border border-[#E4E2DA]"
-                      />
+                      <a
+                        href={`/u/${(report.reporterDisplayName || 'warga').toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate(`/u/${(report.reporterDisplayName || 'warga').toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                        }}
+                        className="block shrink-0 group cursor-pointer"
+                        title={`Lihat profil ${report.reporterDisplayName || 'Pelapor'}`}
+                      >
+                        <img
+                          src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
+                          alt={report.reporterDisplayName || 'Pelapor'}
+                          className="w-8 h-8 rounded-full object-cover border border-[#E4E2DA] group-hover:scale-105 transition-transform"
+                        />
+                      </a>
                     )}
                     <div>
                       <div className="font-semibold text-[#20221D]">
-                        {report.reporterType === 'anonymous'
-                          ? 'Warga Anonim Terenkripsi'
-                          : report.reporterDisplayName || 'Warga Terverifikasi'}
+                        {report.reporterType === 'anonymous' ? (
+                          'Warga Anonim Terenkripsi'
+                        ) : (
+                          <a
+                            href={`/u/${(report.reporterDisplayName || 'warga').toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              navigate(`/u/${(report.reporterDisplayName || 'warga').toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                            }}
+                            className="hover:underline hover:text-[#263F35] transition-colors cursor-pointer"
+                            title={`Lihat profil ${report.reporterDisplayName || 'Pelapor'}`}
+                          >
+                            {report.reporterDisplayName || 'Warga Terverifikasi'}
+                          </a>
+                        )}
                       </div>
                       <div className="text-[11px] text-[#686B65]">
                         {report.reporterType === 'anonymous'
@@ -830,14 +852,32 @@ export const ReportDetailView: React.FC = () => {
                       >
                         <div className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2">
-                            <img
-                              src={testimony.avatarUrl}
-                              alt={testimony.authorName}
-                              className="w-6 h-6 rounded-full object-cover border border-[#E4E2DA]"
-                            />
-                            <span className="font-semibold text-[#20221D]">
+                            <a
+                              href={`/u/${testimony.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                navigate(`/u/${testimony.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                              }}
+                              className="shrink-0 block cursor-pointer"
+                              title={`Lihat profil ${testimony.authorName}`}
+                            >
+                              <img
+                                src={testimony.avatarUrl}
+                                alt={testimony.authorName}
+                                className="w-6 h-6 rounded-full object-cover border border-[#E4E2DA] hover:scale-105 transition-transform"
+                              />
+                            </a>
+                            <a
+                              href={`/u/${testimony.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                navigate(`/u/${testimony.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                              }}
+                              className="font-semibold text-[#20221D] hover:underline hover:text-[#263F35] transition-colors cursor-pointer"
+                              title={`Lihat profil ${testimony.authorName}`}
+                            >
                               {testimony.authorName}
-                            </span>
+                            </a>
                             <span className="text-[10px] text-[#686B65]">• {testimony.timeAgo}</span>
                           </div>
 

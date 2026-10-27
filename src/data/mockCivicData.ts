@@ -242,6 +242,7 @@ export const MOCK_REPORTS_KN: Report[] = [
   {
     id: 'rep-kn-001',
     publicReference: 'TIK-2026-000101',
+    reporterUserId: 'usr-kn-001',
     secretFollowUpTokenHash: 'hash_secret_token_kn_001',
     title: 'Jalan Berlubang Parah Depan Lampu Merah Ahmad Yani',
     description:
@@ -297,6 +298,7 @@ export const MOCK_REPORTS_KN: Report[] = [
   {
     id: 'rep-kn-002',
     publicReference: 'TIK-2026-000102',
+    reporterUserId: 'usr-kn-002',
     secretFollowUpTokenHash: 'hash_secret_token_kn_002',
     title: 'Kerusakan Trotoar & Besi Rebar Mencuat di Margonda Raya',
     description:
@@ -352,6 +354,7 @@ export const MOCK_REPORTS_KN: Report[] = [
   {
     id: 'rep-kn-003',
     publicReference: 'TIK-2026-000103',
+    reporterUserId: 'usr-kn-003',
     secretFollowUpTokenHash: 'hash_secret_token_kn_003',
     title: 'PJU Padam & Kabel Utilitas Menggelantung Rendah di Cilincing',
     description:
@@ -407,6 +410,7 @@ export const MOCK_REPORTS_KN: Report[] = [
   {
     id: 'rep-kn-004',
     publicReference: 'TIK-2026-000104',
+    reporterUserId: 'usr-kn-004',
     secretFollowUpTokenHash: 'hash_secret_token_kn_004',
     title: 'Pengecatan Marka Zebra Cross BSD Boulevard',
     description:
@@ -462,6 +466,7 @@ export const MOCK_REPORTS_KN: Report[] = [
   {
     id: 'rep-kn-005',
     publicReference: 'TIK-2026-000105',
+    reporterUserId: 'usr-kn-005',
     secretFollowUpTokenHash: 'hash_secret_token_kn_005',
     title: 'Dinding Penahan Tebing Ambrol Pasca Hujan di Pajajaran',
     description:
@@ -517,6 +522,7 @@ export const MOCK_REPORTS_KN: Report[] = [
   {
     id: 'rep-kn-006',
     publicReference: 'TIK-2026-000106',
+    reporterUserId: 'usr-kn-006',
     secretFollowUpTokenHash: 'hash_secret_token_kn_006',
     title: 'Banjir Luapan Ciliwung Pemukiman Kampung Melayu',
     description:
@@ -572,6 +578,7 @@ export const MOCK_REPORTS_KN: Report[] = [
   {
     id: 'rep-kn-007',
     publicReference: 'TIK-2026-000107',
+    reporterUserId: 'usr-kn-007',
     secretFollowUpTokenHash: 'hash_secret_token_kn_007',
     title: 'Genangan Air Hujan di Ruas Utama Kemang Raya',
     description:
@@ -627,6 +634,7 @@ export const MOCK_REPORTS_KN: Report[] = [
   {
     id: 'rep-kn-008',
     publicReference: 'TIK-2026-000108',
+    reporterUserId: 'usr-kn-008',
     secretFollowUpTokenHash: 'hash_secret_token_kn_008',
     title: 'Genangan Akses Gerbang Kompleks Perumahan Ciledug',
     description:
@@ -682,6 +690,7 @@ export const MOCK_REPORTS_KN: Report[] = [
   {
     id: 'rep-kn-009',
     publicReference: 'TIK-2026-000109',
+    reporterUserId: 'usr-kn-009',
     secretFollowUpTokenHash: 'hash_secret_token_kn_009',
     title: 'Pemeliharaan Saluran Limpasan Air Hujan Lingkar Kebun Raya',
     description:
@@ -737,6 +746,7 @@ export const MOCK_REPORTS_KN: Report[] = [
   {
     id: 'rep-kn-010',
     publicReference: 'TIK-2026-000110',
+    reporterUserId: 'usr-kn-010',
     secretFollowUpTokenHash: 'hash_secret_token_kn_010',
     title: 'Rembesan Pasang Air Laut (Rob) Kawasan Pesisir Pluit',
     description:
@@ -799,6 +809,7 @@ export const LEGACY_REPORTS: Report[] = [
   {
     id: 'rep-001',
     publicReference: 'TIK-2026-000123',
+    reporterUserId: 'usr-kn-011',
     secretFollowUpTokenHash: 'hash_secret_token_123',
     title: 'Drainase lingkungan',
     description:
@@ -926,6 +937,7 @@ export const LEGACY_REPORTS: Report[] = [
   {
     id: 'rep-003',
     publicReference: 'TIK-2026-000125',
+    reporterUserId: 'usr-kn-013',
     secretFollowUpTokenHash: 'hash_secret_token_125',
     title: 'Lampu PJU Padam di Tikungan Gelap',
     description:

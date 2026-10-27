@@ -288,8 +288,15 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         <div className="relative">
           <a
             href={`/u/${post.author.username}`}
-            className="block cursor-pointer"
-            onClick={(e) => e.stopPropagation()}
+            className="block cursor-pointer focus:outline-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.history && typeof window.history.pushState === 'function') {
+                e.preventDefault();
+                window.history.pushState({}, '', `/u/${post.author.username}`);
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }
+            }}
             title={`Lihat profil @${post.author.username}`}
           >
             <img
@@ -395,12 +402,34 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
 
       {/* 4. Bottom Information & Media Controls Overlay */}
       <div className="relative z-10 p-4 sm:p-5 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-5 pr-16 space-y-2">
-        {/* Author Handle */}
-        <div className="flex items-center gap-2">
+        {/* Author Handle & Name */}
+        <div className="flex items-center gap-2 flex-wrap">
           <a
             href={`/u/${post.author.username}`}
-            onClick={(e) => e.stopPropagation()}
-            className="font-bold text-sm tracking-tight drop-shadow-md hover:underline"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.history && typeof window.history.pushState === 'function') {
+                e.preventDefault();
+                window.history.pushState({}, '', `/u/${post.author.username}`);
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }
+            }}
+            className="font-bold text-sm tracking-tight drop-shadow-md hover:underline hover:text-emerald-300 transition-colors cursor-pointer"
+            title={`Lihat profil ${post.author.displayName}`}
+          >
+            {post.author.displayName}
+          </a>
+          <a
+            href={`/u/${post.author.username}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.history && typeof window.history.pushState === 'function') {
+                e.preventDefault();
+                window.history.pushState({}, '', `/u/${post.author.username}`);
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }
+            }}
+            className="text-xs text-white/80 font-mono hover:underline hover:text-emerald-300 transition-colors cursor-pointer"
           >
             @{post.author.username}
           </a>

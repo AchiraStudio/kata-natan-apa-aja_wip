@@ -269,16 +269,34 @@ export const RightContextualPanel: React.FC = () => {
                   <div key={c.id} className="space-y-2.5">
                     {/* Top-Level Comment */}
                     <div className="flex items-start gap-2.5 text-xs group">
-                      <img
-                        src={c.avatarUrl}
-                        alt={c.authorName}
-                        className="w-7 h-7 rounded-full object-cover shrink-0 border border-[#E4E2DA] dark:border-[#26352E]"
-                      />
+                      <a
+                        href={`/u/${c.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate(`/u/${c.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                        }}
+                        className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity"
+                        title={`Lihat profil ${c.authorName}`}
+                      >
+                        <img
+                          src={c.avatarUrl}
+                          alt={c.authorName}
+                          className="w-7 h-7 rounded-full object-cover shrink-0 border border-[#E4E2DA] dark:border-[#26352E] hover:scale-105 transition-transform"
+                        />
+                      </a>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
-                          <span className="font-semibold text-[#20221D] dark:text-[#F3F6F4] truncate">
+                          <a
+                            href={`/u/${c.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              navigate(`/u/${c.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                            }}
+                            className="font-semibold text-[#20221D] dark:text-[#F3F6F4] truncate hover:text-[#263F35] dark:hover:text-[#34D399] hover:underline transition-colors cursor-pointer"
+                            title={`Lihat profil ${c.authorName}`}
+                          >
                             {c.authorName}
-                          </span>
+                          </a>
                           <span className="text-[10px] text-[#686B65] dark:text-[#9EACA3] shrink-0 font-mono">
                             {c.timeAgo}
                           </span>
@@ -325,16 +343,34 @@ export const RightContextualPanel: React.FC = () => {
 
                           return (
                             <div key={reply.id} className="flex items-start gap-2 text-xs">
-                              <img
-                                src={reply.avatarUrl}
-                                alt={reply.authorName}
-                                className="w-5 h-5 rounded-full object-cover shrink-0 border border-[#E4E2DA] dark:border-[#26352E]"
-                              />
+                              <a
+                                href={`/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  navigate(`/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                                }}
+                                className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity"
+                                title={`Lihat profil ${reply.authorName}`}
+                              >
+                                <img
+                                  src={reply.avatarUrl}
+                                  alt={reply.authorName}
+                                  className="w-5 h-5 rounded-full object-cover shrink-0 border border-[#E4E2DA] dark:border-[#26352E] hover:scale-105 transition-transform"
+                                />
+                              </a>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-1">
-                                  <span className="font-semibold text-[11px] text-[#20221D] dark:text-[#F3F6F4] truncate">
+                                  <a
+                                    href={`/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      navigate(`/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                                    }}
+                                    className="font-semibold text-[11px] text-[#20221D] dark:text-[#F3F6F4] truncate hover:text-[#263F35] dark:hover:text-[#34D399] hover:underline transition-colors cursor-pointer"
+                                    title={`Lihat profil ${reply.authorName}`}
+                                  >
                                     {reply.authorName}
-                                  </span>
+                                  </a>
                                   <span className="text-[9px] text-[#686B65] dark:text-[#9EACA3] shrink-0 font-mono">
                                     {reply.timeAgo}
                                   </span>
