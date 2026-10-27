@@ -64,3 +64,4 @@ describe('Profile Customization & Supabase Persistence', () => {
     expect(sampleProfile.customStatus).toBe('Bogor Bersih 2026');
   });
 });
+

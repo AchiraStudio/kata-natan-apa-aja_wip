@@ -100,3 +100,4 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 
 GRANT EXECUTE ON FUNCTION public.update_my_profile(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT) TO authenticated;
+

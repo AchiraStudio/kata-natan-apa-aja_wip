@@ -325,17 +325,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { success: false, error: error.message };
         }
 
-        if (data.session) {
-          setSession(data.session);
-          setUser(data.user);
+        let userSession = data.session;
+
+        // Instant sign-in fallback: if project returned no session directly,
+        // sign in with credentials immediately so user is never blocked by email verification
+        if (!userSession) {
+          try {
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email: email.trim(),
+              password,
+            });
+            if (!signInError && signInData?.session) {
+              userSession = signInData.session;
+            }
+          } catch {
+            // Ignore error if sign-in still strictly requires confirmation
+          }
+        }
+
+        if (userSession) {
+          setSession(userSession);
+          setUser(userSession.user);
           setIsAuthenticated(true);
-          const resolved = await fetchRealProfileAndRole(data.session);
+          const resolved = await fetchRealProfileAndRole(userSession);
           setProfile(resolved);
+          setIsLoading(false);
+          return { success: true, needsEmailConfirmation: false };
         }
 
         setIsLoading(false);
-        // No session means the project requires email confirmation before sign-in
-        return { success: true, needsEmailConfirmation: !data.session };
+        // Fallback only if project has strict unconfirmed blocking
+        return { success: true, needsEmailConfirmation: !userSession };
       } catch (err: unknown) {
         setIsLoading(false);
         const errorMsg = err instanceof Error ? err.message : String(err);
