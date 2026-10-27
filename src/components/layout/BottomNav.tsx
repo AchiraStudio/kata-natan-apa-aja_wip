@@ -45,7 +45,7 @@ export const BottomNav: React.FC = () => {
   return (
     <nav
       aria-label="Navigasi Utama Mobile"
-      className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-40 lg:hidden flex items-center justify-around w-[92%] max-w-sm px-4 py-2 bg-[#20221D]/90 dark:bg-[#131916]/95 backdrop-blur-md rounded-full shadow-2xl border border-white/10 dark:border-[#26352E] text-white transition-all duration-300 ${
+      className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom,16px))] left-1/2 -translate-x-1/2 z-40 lg:hidden flex items-center justify-around w-[92%] max-w-sm px-4 py-2 bg-[#20221D]/90 dark:bg-[#131916]/95 backdrop-blur-md rounded-full shadow-2xl border border-white/10 dark:border-[#26352E] text-white transition-all duration-300 ${
         isVisible
           ? 'translate-y-0 opacity-100 scale-100'
           : 'translate-y-24 opacity-0 pointer-events-none scale-95'

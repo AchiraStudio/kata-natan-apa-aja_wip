@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -17,6 +17,8 @@ import {
   Loader2,
   X,
   ShieldCheck,
+  Settings,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTitik } from '../context/TitikContext';
@@ -46,10 +48,12 @@ export const ProfileView: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
-  const [activeTab, setActiveTab] = useState<'posts' | 'reports' | 'saved'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'reports' | 'saved' | 'settings'>('posts');
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -323,12 +327,19 @@ export const ProfileView: React.FC = () => {
                       alt={profile.displayName}
                       className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white dark:border-[#131916] shadow-md bg-stone-100"
                     />
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleAvatarFileChange}
+                    />
                     {isOwnProfile && (
                       <button
                         type="button"
-                        onClick={handleOpenEdit}
+                        onClick={() => avatarInputRef.current?.click()}
                         className="absolute bottom-1 right-1 p-2 rounded-full bg-[#263F35] hover:bg-[#1d3129] text-white shadow-md transition-transform active:scale-90 cursor-pointer"
-                        title="Ubah Foto Profil"
+                        title="Ubah Foto Profil Langsung"
                       >
                         <Camera className="w-3.5 h-3.5" />
                       </button>
@@ -489,6 +500,21 @@ export const ProfileView: React.FC = () => {
                 >
                   <Bookmark className="w-3.5 h-3.5" />
                   <span>Disimpan ({savedPosts.length})</span>
+                </button>
+              )}
+
+              {isOwnProfile && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('settings')}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'settings'
+                      ? 'bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] shadow-xs'
+                      : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4]'
+                  }`}
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>Pengaturan & Akun</span>
                 </button>
               )}
             </div>
@@ -708,6 +734,138 @@ export const ProfileView: React.FC = () => {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Tab 4: Pengaturan & Akun (Owner Only) */}
+            {isOwnProfile && activeTab === 'settings' && (
+              <div className="bg-white dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-5 sm:p-6 shadow-xs space-y-6">
+                <div>
+                  <h3 className="text-base font-bold text-[#20221D] dark:text-[#F3F6F4]">
+                    Pengaturan & Preferensi Warga
+                  </h3>
+                  <p className="text-xs text-[#686B65] dark:text-[#9EACA3]">
+                    Kelola identitas publik, wilayah domisili, dan keamanan sesi akun Anda.
+                  </p>
+                </div>
+
+                {/* Account Summary Card */}
+                <div className="p-4 rounded-2xl bg-[#F7F6F1] dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[#686B65] dark:text-[#9EACA3]">Peran & Akses</span>
+                    <span className="font-bold text-[#263F35] dark:text-[#34D399] flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      {profile.role === 'admin' ? 'Administrator Dinas PUPR' : 'Warga Terdaftar'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[#686B65] dark:text-[#9EACA3]">Nama Lengkap</span>
+                    <span className="font-bold text-[#20221D] dark:text-[#F3F6F4]">{profile.displayName}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[#686B65] dark:text-[#9EACA3]">Handle Publik</span>
+                    <span className="font-mono font-bold text-[#20221D] dark:text-[#F3F6F4]">@{profile.username}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[#686B65] dark:text-[#9EACA3]">Wilayah Domisili</span>
+                    <span className="font-bold text-[#20221D] dark:text-[#F3F6F4]">{profile.district || 'Kota Bogor'}</span>
+                  </div>
+                </div>
+
+                {/* Quick Actions List (Modeled after Mobile Profile specs) */}
+                <div className="divide-y divide-[#E4E2DA] dark:divide-[#26352E] border border-[#E4E2DA] dark:border-[#26352E] rounded-2xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={handleOpenEdit}
+                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-[#131916] hover:bg-[#F7F6F1] dark:hover:bg-[#1A221E] transition-colors cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-[#263F35] dark:text-[#34D399] flex items-center justify-center">
+                        <Edit3 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4]">Edit Informasi Profil</div>
+                        <div className="text-[11px] text-[#686B65] dark:text-[#9EACA3]">Perbarui nama tampilan, bio, atau kecamatan domisili</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-[#686B65]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-[#131916] hover:bg-[#F7F6F1] dark:hover:bg-[#1A221E] transition-colors cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+                        <Camera className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4]">Ganti Foto Profil</div>
+                        <div className="text-[11px] text-[#686B65] dark:text-[#9EACA3]">Unggah berkas foto baru (metadata EXIF dibersihkan otomatis)</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-[#686B65]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('saved')}
+                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-[#131916] hover:bg-[#F7F6F1] dark:hover:bg-[#1A221E] transition-colors cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                        <Bookmark className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4]">Postingan Tersimpan</div>
+                        <div className="text-[11px] text-[#686B65] dark:text-[#9EACA3]">{savedPosts.length} postingan diarsipkan untuk ditinjau nanti</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-[#686B65]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('reports')}
+                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-[#131916] hover:bg-[#F7F6F1] dark:hover:bg-[#1A221E] transition-colors cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-[#263F35] dark:text-[#34D399] flex items-center justify-center">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4]">Laporan Warga Saya</div>
+                        <div className="text-[11px] text-[#686B65] dark:text-[#9EACA3]">{reports.length} laporan diajukan ke dinas terkait</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-[#686B65]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await signOut();
+                      navigate('/login');
+                    }}
+                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-[#131916] hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer text-left group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                        <LogOut className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-rose-600 dark:text-rose-400">Keluar dari Akun</div>
+                        <div className="text-[11px] text-[#686B65] dark:text-[#9EACA3]">Akhiri sesi autentikasi perangkat ini</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-rose-500 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                </div>
+
+                <div className="text-center pt-2 text-[11px] text-[#686B65] dark:text-[#9EACA3]">
+                  TITIK. Platform Partisipasi Sipil Kota Bogor • Versi 2.0 (Supabase RLS Protected)
+                </div>
               </div>
             )}
           </div>
