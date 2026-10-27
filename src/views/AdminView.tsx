@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { dataService } from '../services/dataService';
 import { useNavigate } from 'react-router-dom';
 import {
   ShieldAlert,
@@ -17,12 +18,26 @@ import './AdminView.css';
 
 export const AdminView: React.FC = () => {
   const navigate = useNavigate();
-  const { posts, updateReportStatus, deleteReport, refreshFeed } = useTitik();
+  const { updateReportStatus, deleteReport, refreshFeed } = useTitik();
 
-  // Collect reports from feed
-  const reports: Report[] = posts
-    .map((p) => p.relatedReport)
-    .filter((r): r is Report => Boolean(r));
+  const [reports, setReports] = useState<Report[]>([]);
+  const [_isLoadingReports, setIsLoadingReports] = useState(true);
+
+  const fetchReports = useCallback(async () => {
+    setIsLoadingReports(true);
+    try {
+      const data = await dataService.getAllReports();
+      setReports(data);
+    } catch (err) {
+      console.error('Failed to load admin reports:', err);
+    } finally {
+      setIsLoadingReports(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports])
 
   const [selectedReportId, setSelectedReportId] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -68,6 +83,7 @@ export const AdminView: React.FC = () => {
       await updateReportStatus(selectedReport.id, targetStatus, defaultDesc[targetStatus]);
       setActionNote('');
       setActionSuccess(`Status laporan ${selectedReport.publicReference} berhasil diperbarui.`);
+      await fetchReports();
     } catch (error) {
       console.error('Failed to update report status:', error);
       setActionError(error instanceof Error ? error.message : 'Status laporan gagal diperbarui. Silakan coba lagi.');
@@ -92,6 +108,7 @@ export const AdminView: React.FC = () => {
       setSelectedReportId('');
       setActionNote('');
       setActionSuccess(`Laporan ${reference} berhasil dihapus.`);
+      await fetchReports();
     } catch (error) {
       console.error('Failed to delete report:', error);
       setActionError(error instanceof Error ? error.message : 'Laporan gagal dihapus. Silakan coba lagi.');
@@ -155,7 +172,7 @@ export const AdminView: React.FC = () => {
 
             <button
               type="button"
-              onClick={refreshFeed}
+              onClick={() => { fetchReports(); refreshFeed(); }}
               className="admin-refresh-btn relative z-10 flex items-center gap-2 px-5 py-2.5 bg-white/90 hover:bg-white border border-white/30 rounded-full text-xs font-bold text-[#20221D] hover:text-[#263F35] shadow-xs cursor-pointer transition-all"
             >
               <RotateCcw className="w-3.5 h-3.5 text-[#263F35]" />

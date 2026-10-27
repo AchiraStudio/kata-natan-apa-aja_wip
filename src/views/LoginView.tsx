@@ -17,7 +17,7 @@ import './LoginView.css';
 
 export const LoginView: React.FC = () => {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn, isLiveMode } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -110,7 +110,9 @@ export const LoginView: React.FC = () => {
               </div>
 
               <p className="login-form-desc">
-                Masuk dengan akun demo TITIK untuk membuka portal laporan dan anggaran.
+                {isLiveMode
+                ? 'Masuk ke akun TITIK Anda untuk memantau laporan dan mengawal transparansi fasilitas.'
+                : 'Masuk dengan akun demo TITIK untuk membuka portal laporan dan anggaran.'}
               </p>
             </div>
 
@@ -135,7 +137,7 @@ export const LoginView: React.FC = () => {
                   type="text"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="Username atau email demo"
+                  placeholder={isLiveMode ? 'Email atau username Anda' : 'Username atau email demo'}
                   className="login-input-field"
                   autoComplete="username"
                   required

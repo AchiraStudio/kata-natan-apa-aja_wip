@@ -557,6 +557,10 @@ export class MockDataAdapter implements IDataAdapter {
     return [...this.budgetSectors];
   }
 
+  async getAllReports(): Promise<Report[]> {
+    return [...this.reports];
+  }
+
   async getProfileByUsername(username: string): Promise<UserProfile | null> {
     const clean = username.trim().toLowerCase().replace(/^@/, '');
     const foundPost = this.posts.find((p) => p.author.username.toLowerCase() === clean);

@@ -667,6 +667,23 @@ export class SupabaseDataAdapter implements IDataAdapter {
     }
   }
 
+  async getAllReports(): Promise<Report[]> {
+    try {
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal memuat semua laporan.');
+      }
+      return (data || []).map((row) => mapReportRow(row));
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal memuat laporan.');
+    }
+  }
+
   async getProfileByUsername(username: string): Promise<UserProfile | null> {
     try {
       const cleanUsername = username.trim().toLowerCase().replace(/^@/, '');

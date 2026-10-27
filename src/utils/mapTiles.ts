@@ -31,10 +31,11 @@ export interface CivicTileConfig {
 
 export function getCivicTileConfig(options: CreateTileLayerOptions = {}): CivicTileConfig {
   const isDark = options.theme === 'dark';
+  const mapProvider = (import.meta.env.VITE_MAP_PROVIDER as string | undefined)?.trim().toLowerCase();
   const cartoApiKey = (import.meta.env.VITE_CARTO_API_KEY as string | undefined)?.trim();
   const configuredStyle = (import.meta.env.VITE_CARTO_STYLE as string | undefined)?.trim() || 'voyager';
 
-  if (cartoApiKey) {
+  if (mapProvider !== 'osm' && cartoApiKey) {
     const baseCartoUrl = isDark
       ? CARTO_DARK_BASE
       : configuredStyle === 'light_all'

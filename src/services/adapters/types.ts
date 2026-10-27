@@ -67,6 +67,7 @@ export interface IDataAdapter {
   getComments(postId: string): Promise<FeedComment[]>;
   getFacilities(query?: string, category?: string): Promise<Facility[]>;
   getBudgetSectors(): Promise<BudgetSectorContext[]>;
+  getAllReports(): Promise<Report[]>;
   getProfileByUsername(username: string): Promise<UserProfile | null>;
   getUserPosts(userId: string): Promise<Post[]>;
   getUserReports(userId: string): Promise<Report[]>;

@@ -3,16 +3,26 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { TitikProvider } from './context/TitikContext';
 import { AuthProvider } from './context/AuthContext';
 import { HomeView } from './views/HomeView';
-import { ExploreView } from './views/ExploreView';
-import { MapView } from './views/MapView';
-import { TrackReportView } from './views/TrackReportView';
-import { AdminView } from './views/AdminView';
-import { WorkflowView } from './views/WorkflowView';
-import { ReportDetailView } from './views/ReportDetailView';
 import { LoginView } from './views/LoginView';
-import { MyReportsView } from './views/MyReportsView';
-import { ProfileView } from './views/ProfileView';
-import { PostDetailView } from './views/PostDetailView';
+
+const ExploreView = React.lazy(() => import('./views/ExploreView').then((m) => ({ default: m.ExploreView })));
+const MapView = React.lazy(() => import('./views/MapView').then((m) => ({ default: m.MapView })));
+const TrackReportView = React.lazy(() => import('./views/TrackReportView').then((m) => ({ default: m.TrackReportView })));
+const AdminView = React.lazy(() => import('./views/AdminView').then((m) => ({ default: m.AdminView })));
+const WorkflowView = React.lazy(() => import('./views/WorkflowView').then((m) => ({ default: m.WorkflowView })));
+const ReportDetailView = React.lazy(() => import('./views/ReportDetailView').then((m) => ({ default: m.ReportDetailView })));
+const MyReportsView = React.lazy(() => import('./views/MyReportsView').then((m) => ({ default: m.MyReportsView })));
+const ProfileView = React.lazy(() => import('./views/ProfileView').then((m) => ({ default: m.ProfileView })));
+const PostDetailView = React.lazy(() => import('./views/PostDetailView').then((m) => ({ default: m.PostDetailView })));
+
+const PageFallback: React.FC = () => (
+  <div className="min-h-screen bg-[#F7F6F1] dark:bg-[#0A100D] flex items-center justify-center text-xs font-semibold text-[#686B65] dark:text-[#9EACA3]">
+    <div className="flex items-center gap-2">
+      <div className="w-2 h-2 rounded-full bg-[#263F35] dark:bg-[#34D399] animate-pulse" />
+      <span>Memuat halaman...</span>
+    </div>
+  </div>
+);
 import { CreateModal } from './components/composer/CreateModal';
 import { ReportDetailDrawer } from './components/reporting/ReportDetailDrawer';
 import { GlobalSearchModal } from './components/modals/GlobalSearchModal';
@@ -73,6 +83,7 @@ export default function App() {
       <AuthProvider>
         <TitikProvider>
           <BrowserRouter>
+            <React.Suspense fallback={<PageFallback />}>
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<HomeView />} />
@@ -109,6 +120,7 @@ export default function App() {
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </React.Suspense>
 
             {/* Global Overlays & Modals */}
             <CreateModal />
