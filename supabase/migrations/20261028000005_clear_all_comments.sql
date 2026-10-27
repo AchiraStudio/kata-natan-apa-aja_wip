@@ -30,3 +30,4 @@ DROP TRIGGER IF EXISTS trg_sync_post_comments ON public.comments;
 CREATE TRIGGER trg_sync_post_comments
 AFTER INSERT OR DELETE ON public.comments
 FOR EACH ROW EXECUTE FUNCTION public.sync_post_comments_count();
+
