@@ -30,3 +30,4 @@ export function generateCommentId(): string {
   const randomPart = Math.random().toString(36).substring(2, 10);
   return `cm_${timestamp}_${randomPart}`;
 }
+

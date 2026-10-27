@@ -202,3 +202,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 GRANT EXECUTE ON FUNCTION public.toggle_post_like(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.toggle_post_save(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.toggle_report_support(TEXT) TO authenticated;
+
