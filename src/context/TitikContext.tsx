@@ -41,6 +41,7 @@ export interface TitikContextType {
     avatarUrl?: string,
     parentId?: string
   ) => Promise<FeedComment>;
+  updatePostCommentsCount?: (postId: string, count: number) => void;
   getComments: (postId: string) => Promise<FeedComment[]>;
   submitReport: (input: NewReportInput) => Promise<ReportSubmitResult>;
   deleteReport: (reportId: string) => Promise<void>;
@@ -289,6 +290,12 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return dataService.getComments(postId);
   };
 
+  const updatePostCommentsCount = useCallback((postId: string, count: number) => {
+    setPosts((prev) =>
+      prev.map((p) => (p.id === postId ? { ...p, commentsCount: count } : p))
+    );
+  }, []);
+
   const addComment = async (
     postId: string,
     body: string,
@@ -385,6 +392,7 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         togglePostLike,
         addComment,
         getComments,
+        updatePostCommentsCount,
         submitReport,
         deleteReport,
         updateReportStatus,

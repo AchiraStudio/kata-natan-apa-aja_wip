@@ -30,7 +30,7 @@ interface FeedCardProps {
 }
 
 export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive = true }) => {
-  const { toggleSupport, togglePostSave, openReportDetail } = useTitik();
+  const { toggleSupport, togglePostSave, openReportDetail, updatePostCommentsCount } = useTitik();
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -595,6 +595,10 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         postId={post.id}
         commentsCount={post.commentsCount + commentsDelta}
         onCommentAdded={() => setCommentsDelta((prev) => prev + 1)}
+        onCommentsCountChange={(count) => {
+          setCommentsDelta(0);
+          updatePostCommentsCount?.(post.id, count);
+        }}
       />
     </div>
   );

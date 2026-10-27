@@ -128,15 +128,20 @@ export class MockDataAdapter implements IDataAdapter {
       result = result.filter((p) => p.author.username === 'sariwulan');
     }
 
-    // Ensure related reports are up to date
+    // Ensure related reports and dynamic comment counts are up to date
     return result.map((post) => {
+      const dynamicCount = isTestEnv
+        ? post.commentsCount
+        : (this.comments[post.id] || []).length;
+      let matched = post.relatedReport;
       if (post.relatedReportId) {
-        const matched = this.reports.find((r) => r.id === post.relatedReportId);
-        if (matched) {
-          return { ...post, relatedReport: matched };
-        }
+        matched = this.reports.find((r) => r.id === post.relatedReportId) || matched;
       }
-      return post;
+      return {
+        ...post,
+        commentsCount: dynamicCount,
+        relatedReport: matched,
+      };
     });
   }
 
@@ -605,7 +610,12 @@ export class MockDataAdapter implements IDataAdapter {
   }
 
   async getPostById(postId: string): Promise<Post | null> {
-    return this.posts.find((p) => p.id === postId) || null;
+    const found = this.posts.find((p) => p.id === postId);
+    if (!found) return null;
+    return {
+      ...found,
+      commentsCount: isTestEnv ? found.commentsCount : (this.comments[found.id] || []).length,
+    };
   }
 
   async updateProfile(payload: {

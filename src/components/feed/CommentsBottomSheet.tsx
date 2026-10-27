@@ -13,6 +13,7 @@ interface CommentsBottomSheetProps {
   postId: string;
   commentsCount: number;
   onCommentAdded?: () => void;
+  onCommentsCountChange?: (count: number) => void;
 }
 
 export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
@@ -21,6 +22,7 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
   postId,
   commentsCount,
   onCommentAdded,
+  onCommentsCountChange,
 }) => {
   const { getComments, addComment } = useTitik();
   const { profile } = useAuth();
@@ -28,6 +30,7 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
   const [newCommentText, setNewCommentText] = useState('');
   const [replyTarget, setReplyTarget] = useState<{ id: string; authorName: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,14 +64,17 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
     }
     try {
       const loaded = await getComments(postId);
-      setComments(loaded || []);
+      const list = loaded || [];
+      setComments(list);
+      setHasFetched(true);
+      onCommentsCountChange?.(list.length);
     } catch (err) {
       console.error('Failed to load comments:', err);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [postId, getComments]);
+  }, [postId, getComments, onCommentsCountChange]);
 
   // Load comments when sheet opens
   useEffect(() => {
@@ -218,7 +224,7 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
                 Komentar Warga
               </h3>
               <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/80 font-mono text-[11px] font-semibold">
-                {comments.length || commentsCount}
+                {hasFetched ? comments.length : commentsCount}
               </span>
             </div>
 

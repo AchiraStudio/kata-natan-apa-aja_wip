@@ -264,7 +264,7 @@ export const RightContextualPanel: React.FC = () => {
         <div className="flex items-center justify-between pb-3 border-b border-[#E4E2DA]/60 dark:border-[#26352E] shrink-0">
           <div className="flex items-center gap-2 text-xs font-bold text-[#20221D] dark:text-[#F3F6F4]">
             <MessageCircle className="w-4 h-4 text-[#263F35] dark:text-[#34D399]" />
-            <span>Komentar Warga ({comments.length || activePost.commentsCount})</span>
+            <span>Komentar Warga ({loadedPostId === activePost.id ? comments.length : activePost.commentsCount})</span>
           </div>
           <button
             type="button"

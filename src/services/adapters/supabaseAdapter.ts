@@ -125,7 +125,10 @@ function mapPostRow(
     isSupportedByMe: isSupported,
     likesCount: row.likes_count ?? 0,
     isLikedByMe: isLiked,
-    commentsCount: row.comments_count ?? 0,
+    commentsCount:
+      Array.isArray(row.comments) && row.comments.length > 0 && typeof row.comments[0]?.count === 'number'
+        ? row.comments[0].count
+        : (row.comments_count ?? 0),
     sharesCount: row.shares_count ?? 0,
     savesCount: row.saves_count ?? 0,
     isSavedByMe: isSaved,
@@ -184,7 +187,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
     try {
       let query = supabase
         .from('posts')
-        .select('*, relatedReport:reports(*)');
+        .select('*, relatedReport:reports(*), comments:comments(count)');
 
       if (category && category !== 'Semua') {
         query = query.ilike('category', `%${category}%`);
@@ -539,7 +542,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
     try {
       const { data, error } = await supabase
         .from('post_saves')
-        .select('post_id, post:posts(*, relatedReport:reports(*))')
+        .select('post_id, post:posts(*, relatedReport:reports(*), comments:comments(count))')
         .eq('user_id', userId);
 
       if (error) {
@@ -728,7 +731,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
     try {
       const { data, error } = await supabase
         .from('posts')
-        .select('*, relatedReport:reports(*)')
+        .select('*, relatedReport:reports(*), comments:comments(count)')
         .eq('author_id', userId)
         .order('created_at', { ascending: false });
 
@@ -765,7 +768,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
     try {
       const { data, error } = await supabase
         .from('posts')
-        .select('*, relatedReport:reports(*)')
+        .select('*, relatedReport:reports(*), comments:comments(count)')
         .eq('id', postId)
         .maybeSingle();
 
