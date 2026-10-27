@@ -102,6 +102,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           district: data.district,
           isVerified: Boolean(data.is_verified),
           verifiedAgency: data.verified_agency,
+          bannerUrl: data.banner_url || undefined,
+          backgroundTheme: data.background_theme || undefined,
+          websiteUrl: data.website_url || undefined,
+          customStatus: data.custom_status || undefined,
+          createdAt: data.created_at || undefined,
         };
       }
     } catch (err) {
@@ -119,6 +124,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isVerified: dbProfile?.isVerified ?? false,
       bio: dbProfile?.bio || 'Warga terdaftar di portal TITIK.',
       verifiedAgency: dbProfile?.verifiedAgency,
+      bannerUrl: dbProfile?.bannerUrl || userMeta.banner_url || undefined,
+      backgroundTheme: dbProfile?.backgroundTheme || userMeta.background_theme || 'editorial_forest',
+      websiteUrl: dbProfile?.websiteUrl || userMeta.website_url || undefined,
+      customStatus: dbProfile?.customStatus || userMeta.custom_status || undefined,
+      createdAt: dbProfile?.createdAt || undefined,
     };
 
     return resolvedProfile;

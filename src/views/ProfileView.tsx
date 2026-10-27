@@ -19,6 +19,11 @@ import {
   ShieldCheck,
   Settings,
   ChevronRight,
+  Globe,
+  ExternalLink,
+  Sparkles,
+  Palette,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTitik } from '../context/TitikContext';
@@ -38,6 +43,82 @@ const BOGOR_DISTRICTS = [
   'Tanah Sareal',
 ];
 
+interface ThemeOption {
+  id: string;
+  name: string;
+  description: string;
+  bannerGradient: string;
+  cardBorder: string;
+  swatchHex: string;
+}
+
+const THEME_OPTIONS: ThemeOption[] = [
+  {
+    id: 'editorial_forest',
+    name: 'Hutan Hujan Bogor',
+    description: 'Hijau cemara khas alam Kota Hujan',
+    bannerGradient: 'from-[#1E3A2F] via-[#2A4C3E] to-[#1E3A2F]',
+    cardBorder: 'border-emerald-900/30',
+    swatchHex: '#1E3A2F',
+  },
+  {
+    id: 'bogor_slate',
+    name: 'Batu Andesit Salak',
+    description: 'Batu sungai dingin Gunung Salak',
+    bannerGradient: 'from-[#1E252B] via-[#2D3740] to-[#1E252B]',
+    cardBorder: 'border-slate-800/40',
+    swatchHex: '#252F38',
+  },
+  {
+    id: 'warm_terracotta',
+    name: 'Bata Klasik Suryakencana',
+    description: 'Terakota hangat kawasan cagar budaya',
+    bannerGradient: 'from-[#3E2723] via-[#4E342E] to-[#3E2723]',
+    cardBorder: 'border-amber-900/30',
+    swatchHex: '#4E342E',
+  },
+  {
+    id: 'midnight_charcoal',
+    name: 'Malam Kebun Raya',
+    description: 'Gelap arang malam dengan aksen tajam',
+    bannerGradient: 'from-[#111815] via-[#16201B] to-[#111815]',
+    cardBorder: 'border-stone-800/60',
+    swatchHex: '#141B18',
+  },
+  {
+    id: 'vintage_paper',
+    name: 'Arsip Berita Cetak',
+    description: 'Nuansa kertas koran dan arsip kota',
+    bannerGradient: 'from-[#2B2922] via-[#38352C] to-[#2B2922]',
+    cardBorder: 'border-yellow-950/30',
+    swatchHex: '#333027',
+  },
+];
+
+const BANNER_PRESETS = [
+  {
+    id: 'kebun_raya',
+    label: 'Kanopi Kebun Raya',
+    url: 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    id: 'salak_mist',
+    label: 'Kabut Gunung Salak',
+    url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    id: 'green_valley',
+    label: 'Lembah Hijau Puncak',
+    url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    id: 'night_sky',
+    label: 'Langit Malam Salak',
+    url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80',
+  },
+];
+
+
 export const ProfileView: React.FC = () => {
   const { username } = useParams<{ username?: string }>();
   const navigate = useNavigate();
@@ -54,6 +135,8 @@ export const ProfileView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const bannerModalInputRef = useRef<HTMLInputElement>(null);
 
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -62,6 +145,10 @@ export const ProfileView: React.FC = () => {
   const [editBio, setEditBio] = useState('');
   const [editDistrict, setEditDistrict] = useState('');
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [editBannerUrl, setEditBannerUrl] = useState('');
+  const [editBackgroundTheme, setEditBackgroundTheme] = useState('editorial_forest');
+  const [editWebsiteUrl, setEditWebsiteUrl] = useState('');
+  const [editCustomStatus, setEditCustomStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -156,6 +243,10 @@ export const ProfileView: React.FC = () => {
     setEditBio(profile.bio || '');
     setEditDistrict(profile.district || 'Bogor Tengah');
     setEditAvatarUrl(profile.avatarUrl || '');
+    setEditBannerUrl(profile.bannerUrl || '');
+    setEditBackgroundTheme(profile.backgroundTheme || 'editorial_forest');
+    setEditWebsiteUrl(profile.websiteUrl || '');
+    setEditCustomStatus(profile.customStatus || '');
     setEditError(null);
     setIsEditOpen(true);
   };
@@ -165,25 +256,103 @@ export const ProfileView: React.FC = () => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setEditError('Hanya berkas gambar (JPG, PNG, WebP) yang diizinkan.');
+      const msg = 'Hanya berkas gambar (JPG, PNG, WebP) yang diizinkan.';
+      if (isEditOpen) setEditError(msg); else showToast(msg);
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setEditError('Ukuran gambar maksimal 5MB.');
+      const msg = 'Ukuran gambar maksimal 5MB.';
+      if (isEditOpen) setEditError(msg); else showToast(msg);
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      if (!isEditOpen) showToast('Sedang memproses foto profil...');
+      const cleaned = await stripExifAndCleanImage(file);
+      const uploadedUrl = await uploadFileToSupabase('avatars', cleaned.blob, profile?.id, `avatar-${Date.now()}`);
+      setEditAvatarUrl(uploadedUrl);
+
+      if (!isEditOpen) {
+        const updated = await dataService.updateProfile({
+          avatarUrl: uploadedUrl,
+        });
+        setProfile(updated);
+        await refreshProfile();
+        showToast('Foto profil berhasil diperbarui!');
+      } else {
+        showToast('Foto profil siap disimpan.');
+      }
+    } catch (err: unknown) {
+      console.error('Avatar upload failed:', err);
+      const msg = 'Gagal memproses gambar foto profil.';
+      if (isEditOpen) setEditError(msg); else showToast(msg);
+    } finally {
+      setIsSaving(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
+
+  const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Hanya berkas gambar (JPG, PNG, WebP) yang diizinkan untuk sampul.');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      showToast('Ukuran gambar sampul maksimal 8MB.');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      showToast('Sedang memproses & mengunggah sampul profil...');
+      const cleaned = await stripExifAndCleanImage(file);
+      const uploadedUrl = await uploadFileToSupabase('avatars', cleaned.blob, profile?.id, `banner-${Date.now()}`);
+      
+      const updated = await dataService.updateProfile({
+        bannerUrl: uploadedUrl,
+      });
+      setProfile(updated);
+      setEditBannerUrl(uploadedUrl);
+      await refreshProfile();
+      showToast('Foto sampul berhasil diperbarui!');
+    } catch (err: unknown) {
+      console.error('Banner upload failed:', err);
+      showToast('Gagal memproses gambar sampul.');
+    } finally {
+      setIsSaving(false);
+      if (bannerInputRef.current) bannerInputRef.current.value = '';
+    }
+  };
+
+  const handleModalBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setEditError('Hanya berkas gambar (JPG, PNG, WebP) yang diizinkan untuk sampul.');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setEditError('Ukuran gambar sampul maksimal 8MB.');
       return;
     }
 
     try {
       setIsSaving(true);
       const cleaned = await stripExifAndCleanImage(file);
-      const uploadedUrl = await uploadFileToSupabase('avatars', cleaned.blob, profile?.id, `avatar-${Date.now()}`);
-      setEditAvatarUrl(uploadedUrl);
-      showToast('Foto profil berhasil diunggah.');
+      const uploadedUrl = await uploadFileToSupabase('avatars', cleaned.blob, profile?.id, `banner-${Date.now()}`);
+      setEditBannerUrl(uploadedUrl);
+      showToast('Foto sampul siap disimpan.');
     } catch (err: unknown) {
-      console.error('Avatar upload failed:', err);
-      setEditError('Gagal memproses gambar foto profil.');
+      console.error('Modal banner upload failed:', err);
+      setEditError('Gagal memproses gambar sampul.');
     } finally {
       setIsSaving(false);
+      if (bannerModalInputRef.current) bannerModalInputRef.current.value = '';
     }
   };
 
@@ -212,6 +381,10 @@ export const ProfileView: React.FC = () => {
         bio: editBio.trim(),
         district: editDistrict.trim(),
         avatarUrl: editAvatarUrl || undefined,
+        bannerUrl: editBannerUrl,
+        backgroundTheme: editBackgroundTheme,
+        websiteUrl: editWebsiteUrl.trim(),
+        customStatus: editCustomStatus.trim(),
       });
 
       setProfile(updated);
@@ -254,6 +427,9 @@ export const ProfileView: React.FC = () => {
     (acc, p) => acc + (p.likesCount || 0) + (p.supportCount || 0),
     0
   );
+
+  const currentTheme =
+    THEME_OPTIONS.find((t) => t.id === profile?.backgroundTheme) || THEME_OPTIONS[0];
 
   return (
     <div className="min-h-screen bg-[#F7F6F1] dark:bg-[#0A100D] text-[#20221D] dark:text-[#F3F6F4] flex flex-col lg:flex-row pb-24 lg:pb-0">
@@ -326,11 +502,43 @@ export const ProfileView: React.FC = () => {
         {/* Profile Content */}
         {!isLoading && profile && (
           <div className="space-y-6">
-            {/* Profile Card Header */}
+                        {/* Profile Card Header with Dynamic Theme & Banner */}
             <div className="relative bg-white dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl shadow-sm overflow-hidden">
               {/* Cover Banner */}
-              <div className="h-32 sm:h-40 bg-gradient-to-r from-[#1E3A2F] via-[#2A4C3E] to-[#1E3A2F] relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#F7F6F1_1px,transparent_1px)] [background-size:16px_16px]" />
+              <div
+                className={`h-36 sm:h-48 relative overflow-hidden bg-gradient-to-r ${currentTheme.bannerGradient}`}
+              >
+                {profile.bannerUrl && (
+                  <img
+                    src={profile.bannerUrl}
+                    alt="Sampul Profil"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
+                {/* Visual Depth Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#F7F6F1_1px,transparent_1px)] [background-size:16px_16px]" />
+
+                {isOwnProfile && (
+                  <>
+                    <input
+                      ref={bannerInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleBannerFileChange}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => bannerInputRef.current?.click()}
+                      className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-[11px] font-bold shadow-md transition-all active:scale-95 cursor-pointer border border-white/20"
+                      title="Ubah Foto Sampul Langsung"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Ubah Sampul</span>
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Identity Row */}
@@ -417,6 +625,12 @@ export const ProfileView: React.FC = () => {
                         PUPR Admin
                       </span>
                     )}
+                    {profile.customStatus && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#263F35] dark:text-[#34D399] bg-[#EBF2EE] dark:bg-[#1E2E25] px-2.5 py-0.5 rounded-full border border-[#C5D9CE] dark:border-[#2D4537]">
+                        <Sparkles className="w-3 h-3" />
+                        <span>&ldquo;{profile.customStatus}&rdquo;</span>
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-xs font-semibold text-[#686B65] dark:text-[#9EACA3]">
@@ -434,6 +648,18 @@ export const ProfileView: React.FC = () => {
                       <MapPin className="w-3.5 h-3.5 text-[#263F35] dark:text-[#34D399]" />
                       <span>{profile.district || 'Kota Bogor'}</span>
                     </div>
+                    {profile.websiteUrl && (
+                      <a
+                        href={profile.websiteUrl.startsWith('http') ? profile.websiteUrl : `https://${profile.websiteUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-[#263F35] dark:text-[#34D399] hover:underline font-medium"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                        <span className="truncate max-w-[200px]">{profile.websiteUrl.replace(/^https?:\/\//, '')}</span>
+                        <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+                      </a>
+                    )}
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5" />
                       <span>Bergabung {formatIndonesianTimeAgo(profile.createdAt || '2026-01-01T00:00:00Z')}</span>
@@ -912,7 +1138,7 @@ export const ProfileView: React.FC = () => {
                   </div>
                 )}
 
-                {/* Avatar Uploader Preview */}
+                                {/* Avatar Uploader Preview */}
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <img
@@ -943,6 +1169,174 @@ export const ProfileView: React.FC = () => {
                       JPG, PNG, atau WebP. Maks 5MB. EXIF lokasi dihapus otomatis demi privasi.
                     </div>
                   </div>
+                </div>
+
+                {/* Banner / Cover Customizer */}
+                <div className="space-y-2 pt-2 border-t border-[#E4E2DA] dark:border-[#26352E]">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4]">
+                      Foto Sampul (Banner)
+                    </label>
+                    {editBannerUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setEditBannerUrl('')}
+                        className="inline-flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Hapus Foto Sampul</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Banner Preview */}
+                  <div
+                    className={`h-24 w-full rounded-xl overflow-hidden relative border border-[#E4E2DA] dark:border-[#26352E] bg-gradient-to-r ${
+                      THEME_OPTIONS.find((t) => t.id === editBackgroundTheme)?.bannerGradient ||
+                      THEME_OPTIONS[0].bannerGradient
+                    }`}
+                  >
+                    {editBannerUrl ? (
+                      <img
+                        src={editBannerUrl}
+                        alt="Preview Sampul"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-white/70 text-xs font-medium">
+                        (Menggunakan tema gradien default)
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/20" />
+                    
+                    <input
+                      ref={bannerModalInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleModalBannerFileChange}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => bannerModalInputRef.current?.click()}
+                      className="absolute bottom-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/70 hover:bg-black/90 backdrop-blur-md text-white text-[11px] font-bold cursor-pointer"
+                    >
+                      <Camera className="w-3 h-3" />
+                      <span>Unggah Foto Sendiri</span>
+                    </button>
+                  </div>
+
+                  {/* Curated Presets */}
+                  <div className="space-y-1">
+                    <div className="text-[11px] font-medium text-[#686B65] dark:text-[#9EACA3]">
+                      Atau pilih foto khas Bogor:
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                      {BANNER_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setEditBannerUrl(preset.url)}
+                          className={`px-2 py-1.5 rounded-lg text-[10px] font-bold truncate border transition-all text-left cursor-pointer ${
+                            editBannerUrl === preset.url
+                              ? 'border-[#263F35] dark:border-[#10B981] bg-[#EBF2EE] dark:bg-[#1E2E25] text-[#263F35] dark:text-[#34D399]'
+                              : 'border-[#E4E2DA] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#686B65] hover:bg-stone-100 dark:hover:bg-[#26352E]'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Theme Selector */}
+                <div className="space-y-2 pt-2 border-t border-[#E4E2DA] dark:border-[#26352E]">
+                  <div className="flex items-center gap-1.5">
+                    <Palette className="w-3.5 h-3.5 text-[#263F35] dark:text-[#10B981]" />
+                    <label className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4]">
+                      Tema Latar & Warna Profil
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {THEME_OPTIONS.map((theme) => {
+                      const isSelected = editBackgroundTheme === theme.id;
+                      return (
+                        <button
+                          key={theme.id}
+                          type="button"
+                          onClick={() => setEditBackgroundTheme(theme.id)}
+                          className={`flex items-center gap-2.5 p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-[#263F35] dark:border-[#10B981] bg-[#EBF2EE] dark:bg-[#1E2E25]'
+                              : 'border-[#E4E2DA] dark:border-[#26352E] bg-white dark:bg-[#1A221E] hover:bg-stone-100 dark:hover:bg-[#26352E]'
+                          }`}
+                        >
+                          <span
+                            className={`w-5 h-5 rounded-full shrink-0 shadow-xs border border-white/40 ${
+                              theme.id === 'editorial_forest'
+                                ? 'bg-[#1E3A2F]'
+                                : theme.id === 'bogor_slate'
+                                ? 'bg-[#252F38]'
+                                : theme.id === 'warm_terracotta'
+                                ? 'bg-[#4E342E]'
+                                : theme.id === 'midnight_charcoal'
+                                ? 'bg-[#141B18]'
+                                : 'bg-[#333027]'
+                            }`}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] truncate">
+                              {theme.name}
+                            </div>
+                            <div className="text-[10px] text-[#686B65] dark:text-[#9EACA3] truncate">
+                              {theme.description}
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <CheckCircle2 className="w-4 h-4 text-[#263F35] dark:text-[#10B981] shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom Status Motto */}
+                <div className="space-y-1 pt-2 border-t border-[#E4E2DA] dark:border-[#26352E]">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-[#263F35] dark:text-[#10B981]" />
+                      <span>Slogan / Status Singkat</span>
+                    </label>
+                    <span className="text-[10px] text-[#686B65]">
+                      {editCustomStatus.length}/60
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={editCustomStatus}
+                    onChange={(e) => setEditCustomStatus(e.target.value)}
+                    maxLength={60}
+                    placeholder="Contoh: Jaga Kebersihan & Pantau APBD"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#E4E2DA] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#20221D] dark:text-[#F3F6F4] focus:outline-none focus:ring-1 focus:ring-[#263F35]"
+                  />
+                </div>
+
+                {/* Website / Media URL */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] flex items-center gap-1">
+                    <Globe className="w-3 h-3 text-[#263F35] dark:text-[#10B981]" />
+                    <span>Tautan Situs / Media Warga</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={editWebsiteUrl}
+                    onChange={(e) => setEditWebsiteUrl(e.target.value)}
+                    maxLength={120}
+                    placeholder="https://instagram.com/username atau https://blog.id"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#E4E2DA] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#20221D] dark:text-[#F3F6F4] focus:outline-none focus:ring-1 focus:ring-[#263F35]"
+                  />
                 </div>
 
                 {/* Nama Lengkap */}

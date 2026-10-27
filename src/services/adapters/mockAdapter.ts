@@ -575,6 +575,10 @@ export class MockDataAdapter implements IDataAdapter {
         district: 'Bogor Tengah',
         isVerified: true,
         createdAt: '2026-01-15T08:00:00Z',
+        bannerUrl: 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=1200&q=80',
+        backgroundTheme: 'editorial_forest',
+        websiteUrl: 'https://kotabogor.go.id',
+        customStatus: 'Warga Peduli Kota Bogor',
       };
     }
     return {
@@ -587,6 +591,8 @@ export class MockDataAdapter implements IDataAdapter {
       district: 'Kota Bogor',
       isVerified: false,
       createdAt: new Date().toISOString(),
+      bannerUrl: 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=1200&q=80',
+      backgroundTheme: 'editorial_forest',
     };
   }
 
@@ -608,6 +614,10 @@ export class MockDataAdapter implements IDataAdapter {
     avatarUrl?: string;
     bio?: string;
     district?: string;
+    bannerUrl?: string;
+    backgroundTheme?: string;
+    websiteUrl?: string;
+    customStatus?: string;
   }): Promise<UserProfile> {
     return {
       id: 'usr-current',
@@ -619,6 +629,10 @@ export class MockDataAdapter implements IDataAdapter {
       district: payload.district,
       isVerified: false,
       createdAt: new Date().toISOString(),
+      bannerUrl: payload.bannerUrl || 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=1200&q=80',
+      backgroundTheme: payload.backgroundTheme || 'editorial_forest',
+      websiteUrl: payload.websiteUrl,
+      customStatus: payload.customStatus,
     };
   }
 }

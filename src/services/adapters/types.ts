@@ -72,5 +72,15 @@ export interface IDataAdapter {
   getUserPosts(userId: string): Promise<Post[]>;
   getUserReports(userId: string): Promise<Report[]>;
   getPostById(postId: string): Promise<Post | null>;
-  updateProfile(payload: { displayName?: string; username?: string; avatarUrl?: string; bio?: string; district?: string }): Promise<UserProfile>;
+  updateProfile(payload: {
+    displayName?: string;
+    username?: string;
+    avatarUrl?: string;
+    bio?: string;
+    district?: string;
+    bannerUrl?: string;
+    backgroundTheme?: string;
+    websiteUrl?: string;
+    customStatus?: string;
+  }): Promise<UserProfile>;
 }

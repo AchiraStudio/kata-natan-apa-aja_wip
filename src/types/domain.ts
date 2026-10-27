@@ -16,6 +16,10 @@ export interface UserProfile {
   district?: string;
   isVerified?: boolean;
   createdAt?: string;
+  bannerUrl?: string;
+  backgroundTheme?: string;
+  websiteUrl?: string;
+  customStatus?: string;
 }
 
 export type AspectRatio =

@@ -41,6 +41,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   district TEXT,
   is_verified BOOLEAN DEFAULT FALSE,
   bio TEXT,
+  banner_url TEXT,
+  background_theme TEXT DEFAULT 'editorial_forest',
+  website_url TEXT,
+  custom_status TEXT,
   is_demo BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -218,7 +222,11 @@ SELECT
   is_verified,
   role,
   created_at,
-  is_demo
+  is_demo,
+  banner_url,
+  background_theme,
+  website_url,
+  custom_status
 FROM public.profiles;
 
 GRANT SELECT ON public.public_profiles TO anon, authenticated;
@@ -341,14 +349,19 @@ CREATE TRIGGER trg_check_profile_update
 
 -- Update Own Profile RPC
 DROP FUNCTION IF EXISTS public.update_my_profile(TEXT, TEXT, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.update_my_profile(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.update_my_profile(
   p_display_name TEXT,
   p_username TEXT,
   p_avatar_url TEXT DEFAULT NULL,
   p_bio TEXT DEFAULT NULL,
-  p_district TEXT DEFAULT NULL
+  p_district TEXT DEFAULT NULL,
+  p_banner_url TEXT DEFAULT NULL,
+  p_background_theme TEXT DEFAULT NULL,
+  p_website_url TEXT DEFAULT NULL,
+  p_custom_status TEXT DEFAULT NULL
 )
-RETURNS public.profiles AS $$
+RETURNS public.profiles AS 
 DECLARE
   v_uid TEXT;
   v_res public.profiles;
@@ -365,15 +378,19 @@ BEGIN
     avatar_url = COALESCE(p_avatar_url, avatar_url),
     bio = COALESCE(p_bio, bio),
     district = COALESCE(p_district, district),
+    banner_url = COALESCE(p_banner_url, banner_url),
+    background_theme = COALESCE(p_background_theme, background_theme),
+    website_url = COALESCE(p_website_url, website_url),
+    custom_status = COALESCE(p_custom_status, custom_status),
     updated_at = NOW()
   WHERE id = v_uid
   RETURNING * INTO v_res;
 
   RETURN v_res;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 
-GRANT EXECUTE ON FUNCTION public.update_my_profile(TEXT, TEXT, TEXT, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.update_my_profile(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT) TO authenticated;
 
 -- -----------------------------------------------------------------------------
 -- 4. ATOMIC INTERACTION RPCS

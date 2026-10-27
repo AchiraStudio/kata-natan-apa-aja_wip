@@ -708,6 +708,10 @@ export class SupabaseDataAdapter implements IDataAdapter {
         district: data.district || undefined,
         isVerified: Boolean(data.is_verified),
         createdAt: data.created_at,
+        bannerUrl: data.banner_url || undefined,
+        backgroundTheme: data.background_theme || undefined,
+        websiteUrl: data.website_url || undefined,
+        customStatus: data.custom_status || undefined,
       };
     } catch (err) {
       if (err instanceof DataError) throw err;
@@ -777,19 +781,64 @@ export class SupabaseDataAdapter implements IDataAdapter {
     avatarUrl?: string;
     bio?: string;
     district?: string;
+    bannerUrl?: string;
+    backgroundTheme?: string;
+    websiteUrl?: string;
+    customStatus?: string;
   }): Promise<UserProfile> {
     try {
-      const { data, error } = await supabase.rpc('update_my_profile', {
-        p_display_name: payload.displayName?.trim() || null,
-        p_username: payload.username?.trim().toLowerCase() || null,
-        p_avatar_url: payload.avatarUrl || null,
-        p_bio: payload.bio || null,
-        p_district: payload.district || null,
-      });
+      let data: any = null;
+      let rpcError: any = null;
 
-      if (error) {
-        throw mapPostgrestError(error, 'Gagal memperbarui profil.');
+      try {
+        const res = await supabase.rpc('update_my_profile', {
+          p_display_name: payload.displayName?.trim() || null,
+          p_username: payload.username?.trim().toLowerCase() || null,
+          p_avatar_url: payload.avatarUrl || null,
+          p_bio: payload.bio || null,
+          p_district: payload.district || null,
+          p_banner_url: payload.bannerUrl || null,
+          p_background_theme: payload.backgroundTheme || null,
+          p_website_url: payload.websiteUrl || null,
+          p_custom_status: payload.customStatus || null,
+        });
+        data = res.data;
+        rpcError = res.error;
+      } catch (e) {
+        rpcError = e;
       }
+
+      // Fallback: If RPC failed (e.g. signature mismatch on remote DB), direct update profiles via RLS
+      if (rpcError || !data) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new DataError('auth', 'Autentikasi diperlukan untuk memperbarui profil.');
+
+        const updateFields: Record<string, any> = {
+          updated_at: new Date().toISOString(),
+        };
+        if (payload.displayName !== undefined) updateFields.display_name = payload.displayName.trim();
+        if (payload.username !== undefined) updateFields.username = payload.username.trim().toLowerCase();
+        if (payload.avatarUrl !== undefined) updateFields.avatar_url = payload.avatarUrl;
+        if (payload.bio !== undefined) updateFields.bio = payload.bio;
+        if (payload.district !== undefined) updateFields.district = payload.district;
+        if (payload.bannerUrl !== undefined) updateFields.banner_url = payload.bannerUrl;
+        if (payload.backgroundTheme !== undefined) updateFields.background_theme = payload.backgroundTheme;
+        if (payload.websiteUrl !== undefined) updateFields.website_url = payload.websiteUrl;
+        if (payload.customStatus !== undefined) updateFields.custom_status = payload.customStatus;
+
+        const { data: directData, error: directErr } = await supabase
+          .from('profiles')
+          .update(updateFields)
+          .eq('id', user.id)
+          .select()
+          .single();
+
+        if (directErr) {
+          throw mapPostgrestError(directErr, 'Gagal memperbarui profil.');
+        }
+        data = directData;
+      }
+
       return {
         id: data.id,
         username: data.username,
@@ -800,6 +849,10 @@ export class SupabaseDataAdapter implements IDataAdapter {
         district: data.district || undefined,
         isVerified: Boolean(data.is_verified),
         createdAt: data.created_at,
+        bannerUrl: data.banner_url || undefined,
+        backgroundTheme: data.background_theme || undefined,
+        websiteUrl: data.website_url || undefined,
+        customStatus: data.custom_status || undefined,
       };
     } catch (err) {
       if (err instanceof DataError) throw err;
