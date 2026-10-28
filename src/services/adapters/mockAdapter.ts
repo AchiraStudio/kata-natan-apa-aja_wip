@@ -13,8 +13,10 @@ import {
   Facility,
   BudgetSectorContext,
   UserProfile,
+  EvidenceStatus,
 } from '../../types/domain';
 import { FeedComment, IDataAdapter, NewReportInput, RejectedReportEdits, ReportSubmitResult } from './types';
+import { DataError } from '../errors/DataError';
 import { getReportMediaType } from '../../utils/reportEvidence';
 import { loadPersistedReports, savePersistedReports } from '../reportPersistence';
 import { generatePostId, generateReportId, generateCommentId } from '../../utils/idGenerator';
@@ -419,10 +421,12 @@ export class MockDataAdapter implements IDataAdapter {
     this.deletedReportIds.add(reportId);
 
     try {
-      globalThis.localStorage?.setItem(
-        DELETED_REPORTS_STORAGE_KEY,
-        JSON.stringify([...this.deletedReportIds])
-      );
+      if (typeof globalThis.localStorage?.setItem === 'function') {
+        globalThis.localStorage.setItem(
+          DELETED_REPORTS_STORAGE_KEY,
+          JSON.stringify([...this.deletedReportIds])
+        );
+      }
       await this.persistReportsAndPosts();
     } catch (error) {
       this.reports = previousReports;
@@ -431,10 +435,12 @@ export class MockDataAdapter implements IDataAdapter {
       removedPosts.forEach((post) => this.submittedPostIds.add(post.id));
       this.deletedReportIds.delete(reportId);
       try {
-        globalThis.localStorage?.setItem(
-          DELETED_REPORTS_STORAGE_KEY,
-          JSON.stringify([...this.deletedReportIds])
-        );
+        if (typeof globalThis.localStorage?.setItem === 'function') {
+          globalThis.localStorage.setItem(
+            DELETED_REPORTS_STORAGE_KEY,
+            JSON.stringify([...this.deletedReportIds])
+          );
+        }
       } catch (storageError) {
         console.error('Failed to restore deleted report marker after deletion failure:', storageError);
       }
@@ -488,6 +494,135 @@ export class MockDataAdapter implements IDataAdapter {
     await this.persistReportsAndPosts();
 
     return updated;
+  }
+
+  async transitionReportStatus(
+    reportId: string,
+    targetStatus: ReportStatus,
+    notes?: string,
+    isInternal = false,
+    officialResponse?: string
+  ): Promise<Report> {
+    await this.ensurePersistedReportsLoaded();
+    const reportIndex = this.reports.findIndex((r) => r.id === reportId);
+    if (reportIndex === -1) {
+      throw new DataError('not_found', `Report with ID ${reportId} not found.`);
+    }
+
+    if (targetStatus === 'rejected' && (!notes || !notes.trim()) && (!officialResponse || !officialResponse.trim())) {
+      throw new DataError('validation', 'Tuliskan saran perbaikan yang jelas sebelum menolak laporan.');
+    }
+    if (targetStatus === 'needs_info' && (!notes || !notes.trim()) && (!officialResponse || !officialResponse.trim())) {
+      throw new DataError('validation', 'Catatan klarifikasi wajib diisi untuk status Butuh Info.');
+    }
+
+    const current = this.reports[reportIndex];
+    const previousStatus = current.status;
+
+    const newEvents: ReportEvent[] = [
+      ...current.events,
+      {
+        id: `ev-${Date.now()}`,
+        reportId: current.id,
+        eventType: targetStatus.toUpperCase(),
+        previousStatus,
+        newStatus: targetStatus,
+        actorType: 'agency_officer',
+        actorName: 'Admin TITIK',
+        description: officialResponse?.trim() || notes?.trim() || `Status diperbarui menjadi ${targetStatus}`,
+        notes: notes?.trim() || undefined,
+        isInternal: false,
+        timestamp: new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' WIB',
+      },
+    ];
+
+    if (isInternal && notes?.trim()) {
+      newEvents.push({
+        id: `ev-${Date.now()}-internal`,
+        reportId: current.id,
+        eventType: 'INTERNAL_REVIEW_NOTE',
+        previousStatus,
+        newStatus: targetStatus,
+        actorType: 'agency_officer',
+        actorName: 'Admin TITIK',
+        description: notes.trim(),
+        notes: notes.trim(),
+        isInternal: true,
+        timestamp: new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' WIB',
+      });
+    }
+
+    const updated: Report = {
+      ...current,
+      status: targetStatus,
+      officialResponse: officialResponse?.trim() || current.officialResponse,
+      official_response: officialResponse?.trim() || current.official_response,
+      internalNotes: isInternal && notes?.trim() ? notes.trim() : current.internalNotes,
+      internal_notes: isInternal && notes?.trim() ? notes.trim() : current.internal_notes,
+      events: newEvents,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.reports[reportIndex] = updated;
+
+    this.posts = this.posts.map((p) => {
+      if (p.relatedReportId === reportId) {
+        return { ...p, relatedReport: updated };
+      }
+      return p;
+    });
+    await this.persistReportsAndPosts();
+
+    return updated;
+  }
+
+  async verifyReportEvidence(
+    reportId: string,
+    verificationStatus: EvidenceStatus,
+    notes?: string
+  ): Promise<Report> {
+    await this.ensurePersistedReportsLoaded();
+    const reportIndex = this.reports.findIndex((r) => r.id === reportId);
+    if (reportIndex === -1) {
+      throw new DataError('not_found', `Report with ID ${reportId} not found.`);
+    }
+
+    const current = this.reports[reportIndex];
+    const newEvent: ReportEvent = {
+      id: `ev-${Date.now()}-evidence`,
+      reportId: current.id,
+      eventType: 'EVIDENCE_VERIFICATION',
+      actorType: 'agency_officer',
+      actorName: 'Admin TITIK',
+      description: notes?.trim() || `Bukti fisik diverifikasi sebagai ${verificationStatus}`,
+      notes: notes?.trim() || undefined,
+      isInternal: false,
+      timestamp: new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' WIB',
+    };
+
+    const updated: Report = {
+      ...current,
+      evidenceVerificationStatus: verificationStatus,
+      evidence_verification_status: verificationStatus,
+      events: [...current.events, newEvent],
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.reports[reportIndex] = updated;
+    await this.persistReportsAndPosts();
+    return updated;
+  }
+
+  async setCitizenVerification(
+    _userId: string,
+    _isVerified: boolean,
+    _notes?: string
+  ): Promise<boolean> {
+    return true;
+  }
+
+  async getPrivateEvidenceSignedUrl(filePath: string): Promise<string> {
+    return `https://supabase.local/storage/v1/object/sign/report-evidence-private/${filePath}?token=exp_${Date.now() + 3600000}`;
   }
 
   async toggleReportSupport(reportId: string, _userId?: string): Promise<{ supportCount: number; isSupported: boolean }> {

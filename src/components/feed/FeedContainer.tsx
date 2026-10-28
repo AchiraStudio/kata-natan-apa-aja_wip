@@ -248,7 +248,7 @@ export const FeedContainer: React.FC = () => {
   return (
     <div className="relative w-full h-[100dvh] lg:h-screen flex flex-col items-center max-w-none lg:max-w-4xl xl:max-w-5xl mx-auto p-0 overflow-hidden">
       {/* 1. Centered Feed Tabs Header (Optimized for Mobile with Clean Segmented Pill) */}
-      <div className="absolute top-0 inset-x-0 z-30 pt-[max(0.75rem,env(safe-area-inset-top))] pb-1 px-3.5 flex items-center justify-between pointer-events-none lg:static lg:w-full lg:max-w-none lg:h-12 lg:shrink-0 lg:bg-[#F7F6F1] dark:lg:bg-[#0C100E] lg:pt-2 lg:pb-1 lg:border-b lg:border-[#E4E2DA]/60 dark:lg:border-[#26352E] lg:pointer-events-auto">
+      <div className="absolute top-0 inset-x-0 z-30 pt-[max(0.75rem,env(safe-area-inset-top))] pb-1 px-3.5 flex items-center justify-between pointer-events-none lg:static lg:w-full lg:max-w-none lg:h-12 lg:shrink-0 lg:bg-transparent lg:pt-3 lg:pb-1 lg:pointer-events-auto">
         {/* Left: Minimal Mobile Brand Mark */}
         <div className="lg:hidden pointer-events-auto flex items-center">
           <a
@@ -265,7 +265,7 @@ export const FeedContainer: React.FC = () => {
         </div>
 
         {/* Center: Sleek Segmented Pill Tabs (Mobile) / Clean Navigation Bar (Desktop) */}
-        <div className="pointer-events-auto flex items-center bg-black/40 backdrop-blur-xl border border-white/15 rounded-full p-0.5 shadow-md lg:bg-transparent lg:backdrop-blur-none lg:border-none lg:shadow-none lg:p-0 lg:gap-7 mx-auto">
+        <div className="pointer-events-auto flex items-center bg-black/40 backdrop-blur-xl border border-white/15 rounded-full p-0.5 shadow-md lg:bg-transparent lg:backdrop-blur-none lg:border-none lg:shadow-none lg:p-0 lg:gap-8 mx-auto">
           {tabs.map((tab) => {
             const isActive = activeFeedTab === tab.key;
             return (
@@ -281,15 +281,15 @@ export const FeedContainer: React.FC = () => {
                   isRestoringScrollRef.current = false;
                   setActiveFeedTab(tab.key);
                 }}
-                className={`text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-full transition-all cursor-pointer lg:text-sm lg:font-bold lg:rounded-none lg:px-0 lg:py-0 lg:pb-1 lg:relative ${
+                className={`text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-full transition-all cursor-pointer lg:text-xs lg:tracking-wide lg:rounded-none lg:px-0 lg:py-0 lg:pb-1.5 lg:relative ${
                   isActive
-                    ? 'bg-white/20 text-white font-bold backdrop-blur-xs shadow-xs lg:bg-transparent lg:text-[#20221D] dark:lg:text-[#F3F6F4]'
-                    : 'text-white/70 hover:text-white lg:text-[#686B65] dark:lg:text-[#9EACA3] hover:lg:text-[#20221D] dark:hover:lg:text-[#F3F6F4]'
+                    ? 'bg-white/20 text-white font-bold backdrop-blur-xs shadow-xs lg:bg-transparent lg:text-[#20221D] dark:lg:text-[#F3F6F4] lg:font-bold'
+                    : 'text-white/70 hover:text-white lg:text-[#686B65] dark:lg:text-[#8FA096] lg:font-medium hover:lg:text-[#20221D] dark:hover:lg:text-[#F3F6F4]'
                 }`}
               >
                 <span>{tab.label}</span>
                 {isActive && (
-                  <span className="hidden lg:block absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[#20221D] dark:bg-[#10B981] rounded-full shadow-xs"></span>
+                  <span className="hidden lg:block absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-[#263F35] dark:bg-[#10B981] rounded-full"></span>
                 )}
               </button>
             );
@@ -297,7 +297,7 @@ export const FeedContainer: React.FC = () => {
         </div>
 
         {/* Right: Minimalist Search Action Button */}
-        <div className="pointer-events-auto flex items-center">
+        <div className="pointer-events-auto lg:opacity-0 lg:pointer-events-none flex items-center">
           <button
             type="button"
             onClick={() => setSearchModalOpen(true)}
@@ -352,24 +352,24 @@ export const FeedContainer: React.FC = () => {
       </div>
 
       {/* 3. Desktop Floating Tactical Up/Down Navigation Chevrons */}
-      <div className="hidden lg:flex flex-col gap-2.5 absolute right-3 xl:right-6 top-1/2 -translate-y-1/2 z-30 pointer-events-auto">
+      <div className="hidden lg:flex flex-col gap-2 absolute right-3 xl:right-5 top-1/2 -translate-y-1/2 z-30 pointer-events-auto">
         <button
           type="button"
           disabled={currentActiveIndex <= 0}
           onClick={() => scrollToIndex(currentActiveIndex - 1)}
-          className="p-3 rounded-full bg-white/90 dark:bg-[#1A221E]/90 backdrop-blur-md border border-[#E4E2DA] dark:border-[#26352E] shadow-md text-[#263F35] dark:text-[#34D399] hover:bg-white dark:hover:bg-[#24302A] hover:border-[#263F35]/40 dark:hover:border-[#10B981]/50 hover:scale-105 active:scale-95 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+          className="p-2.5 rounded-full bg-white/80 dark:bg-[#161F1B]/85 backdrop-blur-md border border-[#E4E2DA] dark:border-[#24322B] text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:border-[#263F35]/40 dark:hover:border-[#10B981]/50 active:scale-95 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           title="Laporan Sebelumnya (ArrowUp)"
         >
-          <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+          <ChevronUp className="w-4 h-4 stroke-[2.2]" />
         </button>
         <button
           type="button"
           disabled={currentActiveIndex >= posts.length - 1}
           onClick={() => scrollToIndex(currentActiveIndex + 1)}
-          className="p-3 rounded-full bg-white/90 dark:bg-[#1A221E]/90 backdrop-blur-md border border-[#E4E2DA] dark:border-[#26352E] shadow-md text-[#263F35] dark:text-[#34D399] hover:bg-white dark:hover:bg-[#24302A] hover:border-[#263F35]/40 dark:hover:border-[#10B981]/50 hover:scale-105 active:scale-95 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+          className="p-2.5 rounded-full bg-white/80 dark:bg-[#161F1B]/85 backdrop-blur-md border border-[#E4E2DA] dark:border-[#24322B] text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:border-[#263F35]/40 dark:hover:border-[#10B981]/50 active:scale-95 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           title="Laporan Berikutnya (ArrowDown)"
         >
-          <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+          <ChevronDown className="w-4 h-4 stroke-[2.2]" />
         </button>
       </div>
     </div>

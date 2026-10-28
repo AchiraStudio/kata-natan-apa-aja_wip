@@ -591,14 +591,36 @@ CREATE TABLE IF NOT EXISTS public.report_events (
   previous_status TEXT,
   new_status TEXT,
   notes TEXT,
+  is_internal BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE public.report_events ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Report events viewable by everyone" ON public.report_events;
-CREATE POLICY "Report events viewable by everyone" ON public.report_events
-  FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Report events visibility based on is_internal" ON public.report_events;
+CREATE POLICY "Report events visibility based on is_internal" ON public.report_events
+  FOR SELECT USING (
+    is_internal = FALSE
+    OR public.is_admin()
+  );
 REVOKE INSERT, UPDATE, DELETE ON public.report_events FROM anon, authenticated;
+
+CREATE TABLE IF NOT EXISTS public.citizen_verification_audits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  action TEXT NOT NULL CHECK (action IN ('verified', 'revoked')),
+  admin_id TEXT NOT NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.citizen_verification_audits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.citizen_verification_audits FROM anon, authenticated;
+GRANT SELECT ON public.citizen_verification_audits TO authenticated;
+
+DROP POLICY IF EXISTS "Admins can view citizen verification audits" ON public.citizen_verification_audits;
+CREATE POLICY "Admins can view citizen verification audits" ON public.citizen_verification_audits
+  FOR SELECT USING (public.is_admin());
 
 -- Reports table policy: Only published reports are public. Private details protected.
 DROP POLICY IF EXISTS "Reports are viewable by everyone" ON public.reports;
@@ -622,6 +644,34 @@ CREATE POLICY "Admin write reports" ON public.reports
 -- -----------------------------------------------------------------------------
 
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS request_id UUID UNIQUE;
+
+-- Enforce canonical 8-state report status lifecycle
+ALTER TABLE public.reports DROP CONSTRAINT IF EXISTS chk_reports_status_lifecycle;
+ALTER TABLE public.reports ADD CONSTRAINT chk_reports_status_lifecycle CHECK (
+  status IN (
+    'submitted',
+    'under_review',
+    'needs_info',
+    'accepted_for_routing',
+    'forwarded_to_institution',
+    'institution_responded',
+    'resolved',
+    'rejected'
+  )
+);
+
+-- Add evidence verification and administrative review columns
+ALTER TABLE public.reports
+  ADD COLUMN IF NOT EXISTS evidence_verification_status TEXT NOT NULL DEFAULT 'unverified'
+    CHECK (evidence_verification_status IN ('unverified', 'verified', 'rejected', 'inconclusive')),
+  ADD COLUMN IF NOT EXISTS official_response TEXT DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS internal_notes TEXT DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS last_reviewed_by TEXT DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS last_reviewed_at TIMESTAMPTZ DEFAULT NULL;
+
+-- Column-level security to prevent data leakage of internal_notes to non-admins
+REVOKE SELECT (internal_notes) ON public.reports FROM anon, authenticated;
+GRANT SELECT (internal_notes) ON public.reports TO service_role;
 
 CREATE SEQUENCE IF NOT EXISTS public.report_public_ref_seq START WITH 101 INCREMENT BY 1;
 
@@ -653,12 +703,27 @@ DECLARE
   v_seq BIGINT;
   v_profile public.profiles;
   v_existing_report public.reports;
+  v_real_reporter_type TEXT;
+  v_is_user_verified BOOLEAN := FALSE;
 BEGIN
   v_uid := (SELECT auth.uid()::text);
 
-  -- Anonymous enforcement: if anonymous, strip account ID completely
+  -- Anonymous handling: strip account ID completely
   IF p_is_anonymous OR p_reporter_type = 'anonymous' THEN
     v_uid := NULL;
+    v_real_reporter_type := 'anonymous';
+  ELSE
+    IF v_uid IS NOT NULL THEN
+      SELECT * INTO v_profile FROM public.profiles WHERE id = v_uid;
+      v_is_user_verified := COALESCE(v_profile.is_verified, FALSE);
+    END IF;
+
+    -- SERVER-ENFORCED: Only truly verified citizens get 'verified_citizen' status
+    IF v_is_user_verified IS TRUE THEN
+      v_real_reporter_type := 'verified_citizen';
+    ELSE
+      v_real_reporter_type := 'registered_citizen';
+    END IF;
   END IF;
 
   -- Idempotency check via request_id
@@ -703,6 +768,11 @@ BEGIN
     support_count,
     budget_context,
     events,
+    evidence_verification_status,
+    official_response,
+    internal_notes,
+    last_reviewed_by,
+    last_reviewed_at,
     is_demo,
     created_at,
     updated_at
@@ -723,11 +793,16 @@ BEGIN
     p_responsible_agency,
     p_media_urls,
     p_supporting_documents,
-    CASE WHEN p_is_anonymous THEN 'anonymous' ELSE p_reporter_type END,
-    CASE WHEN p_is_anonymous THEN 'Warga Anonim' ELSE p_reporter_display_name END,
+    v_real_reporter_type,
+    CASE WHEN p_is_anonymous THEN 'Warga Anonim' ELSE COALESCE(p_reporter_display_name, v_profile.display_name, 'Warga TITIK') END,
     0,
     '{}'::jsonb,
     '[]'::jsonb,
+    'unverified',
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     false,
     NOW(),
     NOW()
@@ -755,16 +830,18 @@ BEGIN
     actor_name,
     previous_status,
     new_status,
-    notes
+    notes,
+    is_internal
   )
   VALUES (
     v_report_id,
     'status_change',
     COALESCE(v_uid, 'anon'),
-    COALESCE(p_reporter_display_name, 'Pelapor'),
+    CASE WHEN p_is_anonymous THEN 'Warga Anonim' ELSE COALESCE(p_reporter_display_name, v_profile.display_name, 'Pelapor') END,
     NULL,
     'submitted',
-    'Laporan berhasil diajukan ke sistem.'
+    'Laporan berhasil diajukan ke sistem.',
+    FALSE
   );
 
   -- Optional linked feed post
@@ -895,35 +972,119 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, extensions;
 
 GRANT EXECUTE ON FUNCTION public.get_report_by_follow_up_token(TEXT, TEXT) TO anon, authenticated;
 
--- Admin Moderation RPCs
-DROP FUNCTION IF EXISTS public.admin_update_report_status(TEXT, TEXT, TEXT);
-CREATE OR REPLACE FUNCTION public.admin_update_report_status(
-  p_report_id TEXT,
-  p_status TEXT,
+-- Admin Moderation & Verification RPCs
+CREATE OR REPLACE FUNCTION public.admin_set_citizen_verification(
+  p_user_id TEXT,
+  p_is_verified BOOLEAN,
   p_notes TEXT DEFAULT NULL
+)
+RETURNS public.profiles AS $$
+DECLARE
+  v_admin_uid TEXT;
+  v_res public.profiles;
+BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Akses ditolak: Hanya administrator yang dapat mengubah status verifikasi warga.';
+  END IF;
+
+  v_admin_uid := (SELECT auth.uid()::text);
+
+  UPDATE public.profiles
+  SET
+    is_verified = p_is_verified,
+    updated_at = NOW()
+  WHERE id = p_user_id
+  RETURNING * INTO v_res;
+
+  IF v_res.id IS NULL THEN
+    RAISE EXCEPTION 'Pengguna tidak ditemukan: %', p_user_id;
+  END IF;
+
+  INSERT INTO public.citizen_verification_audits (
+    user_id,
+    action,
+    admin_id,
+    notes
+  ) VALUES (
+    p_user_id,
+    CASE WHEN p_is_verified THEN 'verified' ELSE 'revoked' END,
+    v_admin_uid,
+    p_notes
+  );
+
+  RETURN v_res;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+CREATE OR REPLACE FUNCTION public.admin_transition_report_status(
+  p_report_id TEXT,
+  p_target_status TEXT,
+  p_notes TEXT DEFAULT NULL,
+  p_is_internal BOOLEAN DEFAULT FALSE,
+  p_official_response TEXT DEFAULT NULL
 )
 RETURNS public.reports AS $$
 DECLARE
-  v_uid TEXT;
+  v_admin_uid TEXT;
+  v_admin_name TEXT;
+  v_report public.reports;
   v_old_status TEXT;
   v_res public.reports;
-  v_admin_name TEXT;
+  v_notes_trimmed TEXT;
+  v_response_trimmed TEXT;
 BEGIN
   IF NOT public.is_admin() THEN
     RAISE EXCEPTION 'Akses ditolak: Hanya administrator yang berwenang memperbarui status laporan.';
   END IF;
 
-  v_uid := (SELECT auth.uid()::text);
-  SELECT status INTO v_old_status FROM public.reports WHERE id = p_report_id;
-  SELECT display_name INTO v_admin_name FROM public.profiles WHERE id = v_uid;
+  v_admin_uid := (SELECT auth.uid()::text);
+  SELECT display_name INTO v_admin_name FROM public.profiles WHERE id = v_admin_uid;
 
+  -- Concurrency control: row lock
+  SELECT * INTO v_report FROM public.reports WHERE id = p_report_id FOR UPDATE;
+  IF v_report.id IS NULL THEN
+    RAISE EXCEPTION 'Laporan tidak ditemukan: %', p_report_id;
+  END IF;
+
+  v_old_status := v_report.status;
+  v_notes_trimmed := NULLIF(BTRIM(p_notes, E' \t\n\r'), '');
+  v_response_trimmed := NULLIF(BTRIM(p_official_response, E' \t\n\r'), '');
+
+  -- Validate target lifecycle status
+  IF p_target_status NOT IN (
+    'submitted',
+    'under_review',
+    'needs_info',
+    'accepted_for_routing',
+    'forwarded_to_institution',
+    'institution_responded',
+    'resolved',
+    'rejected'
+  ) THEN
+    RAISE EXCEPTION 'Status target tidak valid: %', p_target_status;
+  END IF;
+
+  -- Enforce transition contract: non-empty notes for rejected and needs_info
+  IF p_target_status IN ('rejected', 'needs_info') THEN
+    IF v_notes_trimmed IS NULL AND v_response_trimmed IS NULL THEN
+      RAISE EXCEPTION 'Status % wajib menyertakan catatan penjelasan atau tanggapan resmi yang tidak boleh kosong.', p_target_status;
+    END IF;
+  END IF;
+
+  -- Execute atomic update on reports
   UPDATE public.reports
   SET
-    status = p_status,
+    status = p_target_status,
+    official_response = COALESCE(v_response_trimmed, official_response),
+    internal_notes = CASE WHEN p_is_internal IS TRUE THEN COALESCE(v_notes_trimmed, internal_notes) ELSE internal_notes END,
+    last_reviewed_by = v_admin_uid,
+    last_reviewed_at = NOW(),
     updated_at = NOW()
   WHERE id = p_report_id
   RETURNING * INTO v_res;
 
+  -- Record audit event in report_events
+  -- Status change event MUST ALWAYS have is_internal = FALSE for public citizen timeline visibility
   INSERT INTO public.report_events (
     report_id,
     event_type,
@@ -931,19 +1092,116 @@ BEGIN
     actor_name,
     previous_status,
     new_status,
-    notes
-  )
-  VALUES (
+    notes,
+    is_internal
+  ) VALUES (
     p_report_id,
     'status_change',
-    v_uid,
+    v_admin_uid,
     COALESCE(v_admin_name, 'Admin TITIK'),
     v_old_status,
-    p_status,
-    p_notes
+    p_target_status,
+    COALESCE(v_response_trimmed, 'Status diperbarui menjadi ' || p_target_status),
+    FALSE
+  );
+
+  -- Record internal notes as separate internal audit entry if internal review notes exist
+  IF v_notes_trimmed IS NOT NULL THEN
+    INSERT INTO public.report_events (
+      report_id,
+      event_type,
+      actor_id,
+      actor_name,
+      previous_status,
+      new_status,
+      notes,
+      is_internal
+    ) VALUES (
+      p_report_id,
+      'internal_review_note',
+      v_admin_uid,
+      COALESCE(v_admin_name, 'Admin TITIK'),
+      v_old_status,
+      p_target_status,
+      v_notes_trimmed,
+      TRUE
+    );
+  END IF;
+
+  RETURN v_res;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+CREATE OR REPLACE FUNCTION public.admin_verify_report_evidence(
+  p_report_id TEXT,
+  p_status TEXT,
+  p_notes TEXT DEFAULT NULL
+)
+RETURNS public.reports AS $$
+DECLARE
+  v_admin_uid TEXT;
+  v_admin_name TEXT;
+  v_res public.reports;
+BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Akses ditolak: Hanya administrator yang berwenang memvalidasi bukti laporan.';
+  END IF;
+
+  IF p_status NOT IN ('unverified', 'verified', 'rejected', 'inconclusive') THEN
+    RAISE EXCEPTION 'Status validasi bukti tidak valid: %', p_status;
+  END IF;
+
+  v_admin_uid := (SELECT auth.uid()::text);
+  SELECT display_name INTO v_admin_name FROM public.profiles WHERE id = v_admin_uid;
+
+  UPDATE public.reports
+  SET
+    evidence_verification_status = p_status,
+    last_reviewed_by = v_admin_uid,
+    last_reviewed_at = NOW(),
+    updated_at = NOW()
+  WHERE id = p_report_id
+  RETURNING * INTO v_res;
+
+  IF v_res.id IS NULL THEN
+    RAISE EXCEPTION 'Laporan tidak ditemukan: %', p_report_id;
+  END IF;
+
+  INSERT INTO public.report_events (
+    report_id,
+    event_type,
+    actor_id,
+    actor_name,
+    notes,
+    is_internal
+  ) VALUES (
+    p_report_id,
+    'evidence_verification',
+    v_admin_uid,
+    COALESCE(v_admin_name, 'Admin TITIK'),
+    COALESCE(p_notes, 'Status verifikasi bukti diubah menjadi ' || p_status),
+    FALSE
   );
 
   RETURN v_res;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+DROP FUNCTION IF EXISTS public.admin_update_report_status(TEXT, TEXT, TEXT);
+CREATE OR REPLACE FUNCTION public.admin_update_report_status(
+  p_report_id TEXT,
+  p_status TEXT,
+  p_notes TEXT DEFAULT NULL
+)
+RETURNS public.reports AS $$
+BEGIN
+  RETURN public.admin_transition_report_status(
+    p_report_id,
+    p_status,
+    NULL,
+    FALSE,
+    p_notes
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 
@@ -960,6 +1218,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 
+GRANT EXECUTE ON FUNCTION public.admin_set_citizen_verification(TEXT, BOOLEAN, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_transition_report_status(TEXT, TEXT, TEXT, BOOLEAN, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_verify_report_evidence(TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_update_report_status(TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_delete_report(TEXT) TO authenticated;
 

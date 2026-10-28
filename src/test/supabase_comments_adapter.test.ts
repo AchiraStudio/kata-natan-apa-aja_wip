@@ -1,21 +1,71 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { SupabaseDataAdapter } from '../services/adapters/supabaseAdapter';
-import { supabase } from '../services/supabaseClient';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { DataError } from '../services/errors/DataError';
 
 describe('SupabaseDataAdapter Comments Integration', () => {
   let adapter: SupabaseDataAdapter;
   const createdCommentIds: string[] = [];
+  const mockTableComments: any[] = [];
+  let fromSpy: any = null;
 
   beforeEach(() => {
     adapter = new SupabaseDataAdapter();
+    if (!isSupabaseConfigured) {
+      fromSpy = vi.spyOn(supabase, 'from').mockImplementation((table: string) => {
+        if (table === 'comments') {
+          return {
+            insert: (payload: any) => ({
+              select: () => ({
+                single: async () => {
+                  if (payload.post_id?.startsWith('nonexistent-')) {
+                    return {
+                      data: null,
+                      error: {
+                        code: '23503',
+                        message: `Key (post_id)=(${payload.post_id}) is not present in table "posts".`,
+                      },
+                    };
+                  }
+                  mockTableComments.push(payload);
+                  return { data: payload, error: null };
+                },
+              }),
+            }),
+            select: (_cols?: string) => ({
+              eq: (_col: string, val: string) => ({
+                order: (_orderCol: string, _opts: any) => {
+                  const filtered = mockTableComments.filter((c) => c.post_id === val);
+                  return Promise.resolve({ data: filtered, error: null });
+                },
+              }),
+            }),
+            delete: () => ({
+              in: (_col: string, ids: string[]) => {
+                const idSet = new Set(ids);
+                const remaining = mockTableComments.filter((c) => !idSet.has(c.id));
+                mockTableComments.length = 0;
+                mockTableComments.push(...remaining);
+                return Promise.resolve({ data: null, error: null });
+              },
+            }),
+          } as any;
+        }
+        return (supabase as any).from(table);
+      });
+    }
   });
 
   afterEach(async () => {
-    if (createdCommentIds.length > 0) {
-      await supabase.from('comments').delete().in('id', [...createdCommentIds]);
-      createdCommentIds.length = 0;
+    if (fromSpy) {
+      fromSpy.mockRestore();
+      fromSpy = null;
     }
+    if (createdCommentIds.length > 0 && isSupabaseConfigured) {
+      await supabase.from('comments').delete().in('id', [...createdCommentIds]);
+    }
+    createdCommentIds.length = 0;
+    mockTableComments.length = 0;
   });
 
   it('retrieves an empty array when a post has no comments', async () => {

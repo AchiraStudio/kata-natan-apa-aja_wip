@@ -170,7 +170,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         setTimeout(() => setShareCopied(false), 2000);
       }
     } catch {
-      // user dismissed the share sheet — nothing to do
+      // user dismissed the share sheet, nothing to do
     }
   };
 
@@ -541,10 +541,10 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         )}
 
         {/* Location Tag & Report Button */}
-        <div className="flex flex-wrap items-center gap-2 pt-0.5">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-medium text-white border border-white/20">
-            <MapPin className="w-3 h-3 text-red-400" />
-            <span>{post.locationTag}</span>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/45 backdrop-blur-md text-[11px] font-medium text-white/90 border border-white/15">
+            <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
+            <span className="truncate max-w-[200px]">{post.locationTag}</span>
           </div>
 
           {post.relatedReport && (
@@ -556,7 +556,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
                   openReportDetail(post.relatedReport);
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#263F35]/90 dark:bg-[#10B981]/90 dark:text-[#0A1610] dark:font-semibold backdrop-blur-md text-[11px] font-medium text-white border border-[#E7EBDD]/30 dark:border-[#10B981]/50 hover:bg-[#263F35] dark:hover:bg-[#34D399] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#263F35]/95 dark:bg-[#10B981]/95 dark:text-[#08130E] font-semibold backdrop-blur-md text-[11px] text-white border border-white/20 dark:border-[#10B981]/50 hover:bg-[#1d3129] dark:hover:bg-[#34D399] transition-colors cursor-pointer"
             >
               <span>Lihat Laporan & APBD ({post.relatedReport.publicReference})</span>
             </button>

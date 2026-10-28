@@ -1,3 +1,4 @@
+import { readProfileFeatureSource } from './helpers/profileSource';
 import fs from 'fs';
 import { describe, it, expect } from 'vitest';
 import { MockDataAdapter } from '../services/adapters/mockAdapter';
@@ -65,14 +66,14 @@ describe('Profile Customization & Supabase Persistence', () => {
     expect(sampleProfile.customStatus).toBe('Bogor Bersih 2026');
   });
   it('verifies CommentsBottomSheet.tsx includes onCommentsCountChangeRef to prevent infinite refresh re-renders', () => {
-    const bottomSheetSrc = fs.readFileSync('src/components/feed/CommentsBottomSheet.tsx', 'utf8');
+    const bottomSheetSrc = fs.readFileSync('src/components/feed/CommentsBottomSheet.tsx', 'utf8').replace(/\r\n/g, '\n');
     expect(bottomSheetSrc).toContain('onCommentsCountChangeRef');
     expect(bottomSheetSrc).toContain('onCommentsCountChangeRef.current = onCommentsCountChange;');
     expect(bottomSheetSrc).toContain('useEffect(() => {\n    if (!isOpen) return;\n    fetchComments(false);\n  }, [isOpen, postId]);');
   });
 
   it('verifies ProfileView.tsx defines full visual theme tokens including pageBg and cardBg', () => {
-    const profileViewSrc = fs.readFileSync('src/views/ProfileView.tsx', 'utf8');
+    const profileViewSrc = readProfileFeatureSource();
     expect(profileViewSrc).toContain('pageBg: string;');
     expect(profileViewSrc).toContain('cardBg: string;');
     expect(profileViewSrc).toContain('cardBorder: string;');

@@ -7,8 +7,6 @@ import { dataService } from '../services/dataService';
 import { RejectedReportEdits } from '../services/adapters/types';
 import { Report, ReportStatus } from '../types/domain';
 import { getReportMediaType } from '../utils/reportEvidence';
-import { Sidebar } from '../components/layout/Sidebar';
-import { BottomNav } from '../components/layout/BottomNav';
 
 const STATUS_LABELS: Record<ReportStatus, string> = {
   submitted: 'Terkirim',
@@ -94,8 +92,7 @@ export const MyReportsView: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full max-w-[1680px] mx-auto bg-[#F7F6F1] dark:bg-[#0C100E] flex flex-col lg:flex-row overflow-hidden">
-      <Sidebar />
+    <>
       <main className="flex-1 h-screen overflow-y-auto no-scrollbar p-4 lg:p-8 w-full max-w-5xl pb-24 lg:pb-12 min-w-0">
         <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
@@ -358,7 +355,6 @@ export const MyReportsView: React.FC = () => {
           </div>
         )}
       </main>
-      <BottomNav />
-    </div>
+    </>
   );
 };

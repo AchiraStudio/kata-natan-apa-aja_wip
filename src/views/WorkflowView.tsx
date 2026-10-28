@@ -8,8 +8,6 @@ import {
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
-import { Sidebar } from '../components/layout/Sidebar';
-import { BottomNav } from '../components/layout/BottomNav';
 import { useTitik } from '../context/TitikContext';
 import './WorkflowView.css';
 
@@ -96,7 +94,7 @@ export const WorkflowView: React.FC = () => {
   ];
 
   return (
-    <div className="h-screen w-full max-w-[1680px] mx-auto bg-[#F7F6F1] dark:bg-[#0C100E] flex flex-col lg:flex-row overflow-hidden selection:bg-[#263F35] dark:selection:bg-[#10B981] selection:text-white dark:selection:text-[#0A1610]">
+    <>
       {/* 1. Mobile-Only Header */}
       <header className="lg:hidden h-14 bg-[#F7F6F1] dark:bg-[#131916] border-b border-[#E4E2DA] dark:border-[#26352E] px-4 flex items-center justify-between shrink-0 z-20">
         <a
@@ -116,11 +114,9 @@ export const WorkflowView: React.FC = () => {
         </div>
       </header>
 
-      {/* 2. Left Persistent Navigation Sidebar */}
-      <Sidebar />
 
       {/* 3. Main Full-Height Scrollable Workflow Guide */}
-      <main className="flex-1 h-screen overflow-y-auto no-scrollbar p-4 lg:p-10 w-full max-w-5xl space-y-10 pb-24 lg:pb-16 min-w-0">
+      <main className="flex-1 h-screen overflow-y-auto no-scrollbar p-4 lg:p-10 w-full max-w-5xl space-y-8 pb-24 lg:pb-16 min-w-0">
         {/* Hero Banner with Geometric Ribbons & Angled Slashes (-35deg) */}
         <div className="workflow-hero-banner relative overflow-hidden rounded-3xl p-6 lg:p-8 flex flex-col justify-between border border-[#263F35]/20 shadow-xs">
           {/* Geometric Angled Slashes Container */}
@@ -132,12 +128,7 @@ export const WorkflowView: React.FC = () => {
             <div className="workflow-slash-line workflow-slash-2" />
           </div>
 
-          <div className="relative z-10 space-y-3 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[#E7EBDD] border border-white/20 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>MIA 2026 Web In Action • Subtema Tata Kelola Terbuka & Sipil</span>
-            </div>
-
+          <div className="relative z-10 space-y-2.5 max-w-3xl">
             <h1 className="text-2xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
               Alur Akuntabilitas 4 Tahap TITIK.
             </h1>
@@ -151,7 +142,7 @@ export const WorkflowView: React.FC = () => {
         </div>
 
         {/* 4 Stages Grid */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           <h2 className="text-xs font-bold uppercase tracking-wider text-[#686B65] dark:text-[#9EACA3]">
             Siklus Hidup Laporan Sipil Terverifikasi
           </h2>
@@ -164,29 +155,26 @@ export const WorkflowView: React.FC = () => {
                   key={st.step}
                   className="workflow-stage-card bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4 relative overflow-hidden group hover:border-[#263F35]/40 dark:hover:border-[#10B981]/40 transition-colors"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`workflow-step-badge workflow-step-badge--${st.step}`}>
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-mono font-bold tracking-wider text-[#686B65] dark:text-[#9EACA3]">
-                          TAHAP {st.step}
-                        </span>
-                        <h3 className="text-base font-bold text-[#20221D] dark:text-[#F3F6F4] leading-snug">
-                          {st.title}
-                        </h3>
-                      </div>
+                  <div className="flex items-start gap-3.5">
+                    <div className={`workflow-step-badge workflow-step-badge--${st.step}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-mono tabular-nums font-bold tracking-wider text-[#263F35] dark:text-[#34D399]">
+                        TAHAP {st.step} • {st.tagline.toUpperCase()}
+                      </span>
+                      <h3 className="text-base font-bold text-[#20221D] dark:text-[#F3F6F4] leading-snug mt-0.5">
+                        {st.title}
+                      </h3>
                     </div>
                   </div>
 
                   <p className="text-xs text-[#686B65] dark:text-[#9EACA3] leading-relaxed">{st.summary}</p>
 
-                  <div className="pt-3 border-t border-[#E4E2DA]/60 dark:border-[#26352E] space-y-2">
-                    <span className="text-[11px] font-semibold text-[#20221D] dark:text-[#F3F6F4]">Fitur Unggulan:</span>
+                  <div className="pt-3 border-t border-[#E4E2DA]/60 dark:border-[#26352E]">
                     <ul className="space-y-1.5">
                       {st.features.map((feat, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-xs text-[#686B65] dark:text-[#9EACA3]">
+                        <li key={idx} className="flex items-start gap-2 text-xs text-[#20221D]/90 dark:text-[#F3F6F4]/90">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#263F35] dark:bg-[#10B981] mt-1.5 shrink-0"></span>
                           <span>{feat}</span>
                         </li>
@@ -200,7 +188,7 @@ export const WorkflowView: React.FC = () => {
         </div>
 
         {/* Comparison Table: Traditional vs TITIK */}
-        <div className="workflow-comparison-card bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-6 shadow-xs space-y-4">
+        <div className="workflow-comparison-card bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-6 lg:p-7 shadow-xs space-y-4">
           <div>
             <h2 className="text-lg font-bold text-[#20221D] dark:text-[#F3F6F4]">
               Mengapa TITIK Berbeda dengan Kanal Tradisional?
@@ -215,11 +203,11 @@ export const WorkflowView: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-[#E4E2DA] dark:border-[#26352E] text-[#686B65] dark:text-[#9EACA3]">
-                  <th className="py-2.5 font-bold uppercase tracking-wider text-[11px]">Aspek</th>
-                  <th className="py-2.5 font-bold uppercase tracking-wider text-[11px]">
+                  <th className="py-3 pr-4 font-bold uppercase tracking-wider text-[11px]">Aspek</th>
+                  <th className="py-3 pr-4 font-bold uppercase tracking-wider text-[11px]">
                     Kanal Pengaduan Konvensional
                   </th>
-                  <th className="py-2.5 font-bold uppercase tracking-wider text-[11px] text-[#263F35] dark:text-[#34D399]">
+                  <th className="py-3 font-bold uppercase tracking-wider text-[11px] text-[#263F35] dark:text-[#34D399]">
                     TITIK. (Civic Social & Audit)
                   </th>
                 </tr>
@@ -227,9 +215,9 @@ export const WorkflowView: React.FC = () => {
               <tbody className="divide-y divide-[#E4E2DA]/60 dark:divide-[#26352E]">
                 {comparisons.map((c, i) => (
                   <tr key={i} className="hover:bg-[#F7F6F1]/50 dark:hover:bg-[#131916]/50 transition-colors">
-                    <td className="py-3 font-semibold text-[#20221D] dark:text-[#F3F6F4]">{c.aspect}</td>
-                    <td className="py-3 text-[#686B65] dark:text-[#9EACA3] pr-4">{c.traditional}</td>
-                    <td className="py-3 font-medium text-[#263F35] dark:text-[#34D399]">{c.titik}</td>
+                    <td className="py-3.5 pr-4 font-semibold text-[#20221D] dark:text-[#F3F6F4] whitespace-nowrap">{c.aspect}</td>
+                    <td className="py-3.5 pr-4 text-[#686B65] dark:text-[#9EACA3] leading-relaxed">{c.traditional}</td>
+                    <td className="py-3.5 font-medium text-[#263F35] dark:text-[#34D399] leading-relaxed">{c.titik}</td>
                   </tr>
                 ))}
               </tbody>
@@ -266,7 +254,6 @@ export const WorkflowView: React.FC = () => {
       </main>
 
       {/* 4. Mobile Bottom Navigation */}
-      <BottomNav />
-    </div>
+    </>
   );
 };

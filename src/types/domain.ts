@@ -95,6 +95,9 @@ export interface ReportEvent {
   actorType: 'citizen' | 'agency_officer';
   actorName: string;
   description: string;
+  notes?: string;
+  isInternal?: boolean;
+  is_internal?: boolean;
   timestamp: string;
 }
 
@@ -115,6 +118,9 @@ export interface BudgetSectorContext {
   isSampleData: boolean;
 }
 
+export type EvidenceVerificationStatus = 'unverified' | 'verified' | 'rejected' | 'inconclusive';
+export type EvidenceStatus = EvidenceVerificationStatus;
+
 export interface Report {
   id: string;
   publicReference: string; // e.g. "TIK-2026-000123"
@@ -132,12 +138,22 @@ export interface Report {
   responsibleAgency: string;
   mediaUrls: string[];
   supportingDocuments?: ReportAttachment[];
-  reporterType: 'anonymous' | 'verified_citizen';
+  reporterType: 'anonymous' | 'verified_citizen' | 'registered_citizen';
   reporterDisplayName?: string;
   supportCount: number; // "Saya terdampak juga" civic support count
   isSupportedByMe?: boolean;
   budgetContext: BudgetSectorContext;
   events: ReportEvent[];
+  evidence_verification_status?: EvidenceVerificationStatus;
+  evidenceVerificationStatus?: EvidenceVerificationStatus;
+  official_response?: string | null;
+  officialResponse?: string | null;
+  internal_notes?: string | null;
+  internalNotes?: string | null;
+  last_reviewed_by?: string | null;
+  lastReviewedBy?: string | null;
+  last_reviewed_at?: string | null;
+  lastReviewedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   isSampleData: boolean;

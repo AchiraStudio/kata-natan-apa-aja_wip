@@ -1,9 +1,10 @@
+import { readProfileFeatureSource } from './helpers/profileSource';
 import fs from 'fs';
 import { describe, it, expect } from 'vitest';
 
 describe('Profile Layout Improvements Static & Structural Suite', () => {
   it('verifies expanded banner height and floating Ubah Sampul button at top-right', () => {
-    const src = fs.readFileSync('src/views/ProfileView.tsx', 'utf8');
+    const src = readProfileFeatureSource();
 
     // 1. Expanded banner height for panoramic landscape view
     expect(src).toContain('h-48 sm:h-64');
@@ -14,7 +15,7 @@ describe('Profile Layout Improvements Static & Structural Suite', () => {
   });
 
   it('verifies identity row has refined ring, camera floating button, and no redundant Keluar button', () => {
-    const src = fs.readFileSync('src/views/ProfileView.tsx', 'utf8');
+    const src = readProfileFeatureSource();
 
     // 1. Refined ring on avatar
     expect(src).toContain('ring-4 ring-white');
@@ -31,7 +32,7 @@ describe('Profile Layout Improvements Static & Structural Suite', () => {
   });
 
   it('verifies editorial civic stats ribbon and segmented pill navigation tabs', () => {
-    const src = fs.readFileSync('src/views/ProfileView.tsx', 'utf8');
+    const src = readProfileFeatureSource();
 
     // 1. Editorial Civic Stats Ribbon
     expect(src).toContain('grid grid-cols-3 divide-x');

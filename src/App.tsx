@@ -5,6 +5,7 @@ import { TitikProvider } from './context/TitikContext';
 import { AuthProvider } from './context/AuthContext';
 import { HomeView } from './views/HomeView';
 import { LoginView } from './views/LoginView';
+import { AppLayout } from './components/layout/AppLayout';
 
 const ExploreView = React.lazy(() => import('./views/ExploreView').then((m) => ({ default: m.ExploreView })));
 const RegisterView = React.lazy(() => import('./views/RegisterView').then((m) => ({ default: m.RegisterView })));
@@ -126,41 +127,43 @@ export default function App() {
             <React.Suspense fallback={<PageFallback />}>
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<HomeView />} />
               <Route path="/login" element={<LoginView />} />
               <Route path="/daftar" element={<RegisterView />} />
               <Route path="/register" element={<Navigate to="/daftar" replace />} />
               <Route path="/masuk" element={<Navigate to="/login" replace />} />
-              <Route path="/alur" element={<WorkflowView />} />
               <Route path="/workflow" element={<Navigate to="/alur" replace />} />
-              <Route path="/report/:id" element={<ReportDetailView />} />
-              <Route path="/laporan/:id" element={<ReportDetailView />} />
-              <Route path="/explore" element={<ExploreView />} />
-              <Route path="/map" element={<MapView />} />
-              <Route path="/track" element={<TrackReportView />} />
-              <Route path="/u/:username" element={<ProfileView />} />
-              <Route path="/profile/:username" element={<ProfileView />} />
               <Route path="/me" element={<MeRedirect />} />
-              <Route path="/post/:id" element={<PostDetailView />} />
-              <Route path="/postingan/:id" element={<PostDetailView />} />
 
-              {/* Protected Routes */}
-              <Route
-                path="/laporan-saya"
-                element={
-                  <AuthenticatedRoute>
-                    <MyReportsView />
-                  </AuthenticatedRoute>
-                }
-              />
-              <Route
-                path="/admin"
-                element={
-                  <AdminOnlyRoute>
-                    <AdminView />
-                  </AdminOnlyRoute>
-                }
-              />
+              {/* Shared shell: Sidebar and BottomNav render once for every page below */}
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<HomeView />} />
+                <Route path="/alur" element={<WorkflowView />} />
+                <Route path="/report/:id" element={<ReportDetailView />} />
+                <Route path="/laporan/:id" element={<ReportDetailView />} />
+                <Route path="/explore" element={<ExploreView />} />
+                <Route path="/map" element={<MapView />} />
+                <Route path="/track" element={<TrackReportView />} />
+                <Route path="/u/:username" element={<ProfileView />} />
+                <Route path="/profile/:username" element={<ProfileView />} />
+                <Route path="/post/:id" element={<PostDetailView />} />
+                <Route path="/postingan/:id" element={<PostDetailView />} />
+                <Route
+                  path="/laporan-saya"
+                  element={
+                    <AuthenticatedRoute>
+                      <MyReportsView />
+                    </AuthenticatedRoute>
+                  }
+                />
+                <Route
+                  path="/admin"
+                  element={
+                    <AdminOnlyRoute>
+                      <AdminView />
+                    </AdminOnlyRoute>
+                  }
+                />
+              </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             </React.Suspense>

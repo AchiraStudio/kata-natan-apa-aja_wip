@@ -1,4 +1,4 @@
-import { supabase } from '../supabaseClient';
+import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import {
   IDataAdapter,
   NewReportInput,
@@ -7,8 +7,9 @@ import {
   FeedComment,
 } from './types';
 import { formatIndonesianTimeAgo } from '../../utils/timeAgo';
-import { Post, Report, ReportStatus, Facility, BudgetSectorContext, UserProfile } from '../../types/domain';
+import { Post, Report, ReportStatus, Facility, BudgetSectorContext, UserProfile, EvidenceStatus } from '../../types/domain';
 import { DataError } from '../errors/DataError';
+import { storageService } from '../storageService';
 
 function mapPostgrestError(error: unknown, fallbackMessage: string): DataError {
   if (!error) return new DataError('network', fallbackMessage);
@@ -66,10 +67,12 @@ function mapReportRow(row: any, isSupportedByMe = false): Report {
     supportingDocuments: Array.isArray(row.supporting_documents) ? row.supporting_documents : [],
     reporterType: row.reporter_type || 'verified_citizen',
     reporterDisplayName: row.reporter_display_name || undefined,
-    supportCount:
+    supportCount: Math.max(
       Array.isArray(row.supports) && row.supports.length > 0 && typeof row.supports[0]?.count === 'number'
         ? row.supports[0].count
-        : (row.support_count ?? 0),
+        : 0,
+      row.support_count ?? 0
+    ),
     isSupportedByMe,
     budgetContext:
       row.budget_context && Object.keys(row.budget_context).length > 0
@@ -91,6 +94,16 @@ function mapReportRow(row: any, isSupportedByMe = false): Report {
             isSampleData: Boolean(row.is_demo),
           },
     events: Array.isArray(row.events) ? row.events : [],
+    evidence_verification_status: row.evidence_verification_status || 'unverified',
+    evidenceVerificationStatus: row.evidence_verification_status || 'unverified',
+    official_response: row.official_response || null,
+    officialResponse: row.official_response || null,
+    internal_notes: row.internal_notes || null,
+    internalNotes: row.internal_notes || null,
+    last_reviewed_by: row.last_reviewed_by || null,
+    lastReviewedBy: row.last_reviewed_by || null,
+    last_reviewed_at: row.last_reviewed_at || null,
+    lastReviewedAt: row.last_reviewed_at || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     isSampleData: Boolean(row.is_demo),
@@ -107,26 +120,35 @@ function mapPostRow(
     ? mapReportRow(row.relatedReport, isSupported)
     : undefined;
 
-  const dynamicCommentsCount =
+  const dynamicCommentsCount = Math.max(
     Array.isArray(row.comments) && row.comments.length > 0 && typeof row.comments[0]?.count === 'number'
       ? row.comments[0].count
-      : (row.comments_count ?? 0);
+      : 0,
+    row.comments_count ?? 0
+  );
 
-  const dynamicLikesCount =
+  const dynamicLikesCount = Math.max(
     Array.isArray(row.likes) && row.likes.length > 0 && typeof row.likes[0]?.count === 'number'
       ? row.likes[0].count
-      : (row.likes_count ?? 0);
+      : 0,
+    row.likes_count ?? 0
+  );
 
-  const dynamicSavesCount =
+  const dynamicSavesCount = Math.max(
     Array.isArray(row.saves) && row.saves.length > 0 && typeof row.saves[0]?.count === 'number'
       ? row.saves[0].count
-      : (row.saves_count ?? 0);
+      : 0,
+    row.saves_count ?? 0
+  );
 
   const dynamicSupportCount = relatedReport
-    ? relatedReport.supportCount
-    : (Array.isArray(row.supports) && row.supports.length > 0 && typeof row.supports[0]?.count === 'number'
-        ? row.supports[0].count
-        : (row.support_count ?? 0));
+    ? Math.max(relatedReport.supportCount, row.support_count ?? 0)
+    : Math.max(
+        Array.isArray(row.supports) && row.supports.length > 0 && typeof row.supports[0]?.count === 'number'
+          ? row.supports[0].count
+          : 0,
+        row.support_count ?? 0
+      );
 
   return {
     id: row.id,
@@ -476,11 +498,31 @@ export class SupabaseDataAdapter implements IDataAdapter {
     _actorName: string,
     description: string
   ): Promise<Report> {
+    return this.transitionReportStatus(reportId, newStatus, description, false, description);
+  }
+
+  async transitionReportStatus(
+    reportId: string,
+    targetStatus: ReportStatus,
+    notes?: string,
+    isInternal = false,
+    officialResponse?: string
+  ): Promise<Report> {
+    // Contract enforcement: mandatory notes for rejected and needs_info
+    if (targetStatus === 'rejected' && (!notes || !notes.trim()) && (!officialResponse || !officialResponse.trim())) {
+      throw new DataError('validation', 'Tuliskan saran perbaikan yang jelas sebelum menolak laporan.');
+    }
+    if (targetStatus === 'needs_info' && (!notes || !notes.trim()) && (!officialResponse || !officialResponse.trim())) {
+      throw new DataError('validation', 'Catatan klarifikasi wajib diisi untuk status Butuh Info.');
+    }
+
     try {
-      const { data, error } = await supabase.rpc('admin_update_report_status', {
+      const { data, error } = await supabase.rpc('admin_transition_report_status', {
         p_report_id: reportId,
-        p_status: newStatus,
-        p_notes: description,
+        p_target_status: targetStatus,
+        p_notes: notes?.trim() || null,
+        p_is_internal: Boolean(isInternal),
+        p_official_response: officialResponse?.trim() || null,
       });
 
       if (error) {
@@ -491,6 +533,54 @@ export class SupabaseDataAdapter implements IDataAdapter {
       if (err instanceof DataError) throw err;
       throw mapPostgrestError(err, 'Gagal memperbarui status laporan.');
     }
+  }
+
+  async verifyReportEvidence(
+    reportId: string,
+    verificationStatus: EvidenceStatus,
+    notes?: string
+  ): Promise<Report> {
+    try {
+      const { data, error } = await supabase.rpc('admin_verify_report_evidence', {
+        p_report_id: reportId,
+        p_status: verificationStatus,
+        p_notes: notes?.trim() || null,
+      });
+
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal memvalidasi bukti laporan.');
+      }
+      return mapReportRow(data);
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal memvalidasi bukti laporan.');
+    }
+  }
+
+  async setCitizenVerification(
+    userId: string,
+    isVerified: boolean,
+    notes?: string
+  ): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.rpc('admin_set_citizen_verification', {
+        p_user_id: userId,
+        p_is_verified: isVerified,
+        p_notes: notes?.trim() || null,
+      });
+
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal mengubah status verifikasi warga.');
+      }
+      return Boolean(data);
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal mengubah status verifikasi warga.');
+    }
+  }
+
+  async getPrivateEvidenceSignedUrl(filePath: string): Promise<string> {
+    return storageService.getPrivateEvidenceUrl(filePath);
   }
 
   async toggleReportSupport(
@@ -656,7 +746,11 @@ export class SupabaseDataAdapter implements IDataAdapter {
         throw mapPostgrestError(error, 'Gagal memuat komentar.');
       }
 
-      return (data || []).map((row: any) => ({
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      return data.map((row: any) => ({
         id: row.id,
         authorId: row.author_id || undefined,
         authorName: row.author_name,

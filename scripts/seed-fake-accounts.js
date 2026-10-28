@@ -87,7 +87,8 @@ for (let i = 1; i <= countArg; i++) {
     avatar_url: AVATARS[i % AVATARS.length],
     role,
     district,
-    is_verified: i % 3 !== 0,
+    // Authentic verification: Admin accounts are verified; citizen accounts require formal identity verification
+    is_verified: role === 'admin',
     bio: `Warga aktif kecamatan ${district} Kota Bogor.`,
     created_at: new Date().toISOString(),
   });

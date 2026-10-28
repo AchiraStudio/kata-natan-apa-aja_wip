@@ -147,7 +147,8 @@ export function generateFakeAccounts(count: number, startIndex = 1): UserProfile
       role,
       verifiedAgency,
       district,
-      isVerified: idx % 3 !== 0, // 66% verified
+      // Authentic verification: Administrators and vetted agency officers are verified; general citizens remain unverified until admin review
+      isVerified: role === 'admin',
       bio,
     });
   }

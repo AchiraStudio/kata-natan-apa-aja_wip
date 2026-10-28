@@ -1,4 +1,4 @@
-import { Post, Report, ReportAttachment, ReportStatus, Facility, BudgetSectorContext, UserProfile } from '../../types/domain';
+import { Post, Report, ReportAttachment, ReportStatus, Facility, BudgetSectorContext, UserProfile, EvidenceStatus } from '../../types/domain';
 
 export interface NewReportInput {
   title: string;
@@ -60,6 +60,24 @@ export interface IDataAdapter {
     actorName: string,
     description: string
   ): Promise<Report>;
+  transitionReportStatus(
+    reportId: string,
+    targetStatus: ReportStatus,
+    notes?: string,
+    isInternal?: boolean,
+    officialResponse?: string
+  ): Promise<Report>;
+  verifyReportEvidence(
+    reportId: string,
+    verificationStatus: EvidenceStatus,
+    notes?: string
+  ): Promise<Report>;
+  setCitizenVerification(
+    userId: string,
+    isVerified: boolean,
+    notes?: string
+  ): Promise<boolean>;
+  getPrivateEvidenceSignedUrl(filePath: string): Promise<string>;
   toggleReportSupport(reportId: string, userId?: string): Promise<{ supportCount: number; isSupported: boolean }>;
   togglePostSave(postId: string, userId?: string): Promise<{ savesCount: number; isSaved: boolean }>;
   togglePostLike(postId: string, userId?: string): Promise<{ likesCount: number; isLiked: boolean }>;

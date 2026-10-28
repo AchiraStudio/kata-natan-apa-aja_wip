@@ -20,8 +20,6 @@ import { dataService } from '../services/dataService';
 import { Post, Report } from '../types/domain';
 import { FeedComment } from '../services/adapters/types';
 import { sortCommentsForUser, isCommentAuthoredByUser } from '../utils/commentSorting';
-import { Sidebar } from '../components/layout/Sidebar';
-import { BottomNav } from '../components/layout/BottomNav';
 import { formatIndonesianTimeAgo } from '../utils/timeAgo';
 
 export const PostDetailView: React.FC = () => {
@@ -212,8 +210,7 @@ export const PostDetailView: React.FC = () => {
   }, [comments, profile]);
 
   return (
-    <div className="min-h-screen bg-[#F7F6F1] dark:bg-[#0A100D] text-[#20221D] dark:text-[#F3F6F4] flex flex-col lg:flex-row pb-24 lg:pb-0">
-      <Sidebar />
+    <div className="flex-1 min-w-0 bg-[#F7F6F1] dark:bg-[#0A100D] text-[#20221D] dark:text-[#F3F6F4] pb-24 lg:pb-0">
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 py-6 lg:py-8">
         {/* Navigation Top Bar */}
@@ -558,7 +555,6 @@ export const PostDetailView: React.FC = () => {
         )}
       </main>
 
-      <BottomNav />
     </div>
   );
 };
