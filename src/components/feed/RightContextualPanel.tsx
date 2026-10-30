@@ -14,6 +14,7 @@ import {
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
 import { FeedComment } from '../../services/adapters/types';
+import { UserAvatar } from '../common/UserAvatar';
 
 const STATUS_BADGE_MAP: Record<string, { label: string; classes: string }> = {
   submitted: {
@@ -331,9 +332,11 @@ export const RightContextualPanel: React.FC = () => {
                         className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity mt-0.5"
                         title={`Lihat profil ${c.authorName}`}
                       >
-                        <img
+                        <UserAvatar
                           src={c.avatarUrl}
                           alt={c.authorName}
+                          name={c.authorName}
+                          role={c.authorName.toLowerCase().includes('admin') || c.authorName.toLowerCase().includes('pupr') ? 'admin' : 'citizen'}
                           className="w-7 h-7 rounded-full object-cover shrink-0 border border-[#E4E2DA] dark:border-[#26352E]"
                         />
                       </a>
@@ -407,9 +410,11 @@ export const RightContextualPanel: React.FC = () => {
                                 className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity mt-0.5"
                                 title={`Lihat profil ${reply.authorName}`}
                               >
-                                <img
+                                <UserAvatar
                                   src={reply.avatarUrl}
                                   alt={reply.authorName}
+                                  name={reply.authorName}
+                                  role={reply.authorName.toLowerCase().includes('admin') || reply.authorName.toLowerCase().includes('pupr') ? 'admin' : 'citizen'}
                                   className="w-5 h-5 rounded-full object-cover shrink-0 border border-[#E4E2DA] dark:border-[#26352E]"
                                 />
                               </a>
@@ -483,12 +488,11 @@ export const RightContextualPanel: React.FC = () => {
           onSubmit={handleSendComment}
           className="pt-3 border-t border-[#E4E2DA] dark:border-[#222E28] flex items-center gap-2 shrink-0"
         >
-          <img
-            src={
-              profile?.avatarUrl ||
-              'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'
-            }
-            alt="Avatar Anda"
+          <UserAvatar
+            src={profile?.avatarUrl}
+            alt={profile?.displayName || 'Avatar Anda'}
+            name={profile?.displayName}
+            role={profile?.role}
             className="w-7 h-7 rounded-full object-cover shrink-0 border border-[#E4E2DA] dark:border-[#26352E]"
           />
           <input

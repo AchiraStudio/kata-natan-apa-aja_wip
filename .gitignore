@@ -43,3 +43,9 @@ DESIGN.md
 
 .zcode/
 
+
+# Local environment secrets
+.env
+.env.local
+.env.*.local
+/src/test

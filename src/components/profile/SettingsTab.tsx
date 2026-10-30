@@ -28,7 +28,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ ctrl }) => {
                     <span className="font-semibold text-[#686B65] dark:text-[#9EACA3]">Peran & Akses</span>
                     <span className="font-bold text-[#263F35] dark:text-[#34D399] flex items-center gap-1">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      {profile.role === 'admin' ? 'Administrator Dinas PUPR' : 'Warga Terdaftar'}
+                      {profile.role === 'admin' ? (profile.verifiedAgency ? `Administrator ${profile.verifiedAgency}` : 'Administrator') : (profile.isVerified ? 'Warga Terverifikasi' : 'Warga Terdaftar')}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
@@ -41,7 +41,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ ctrl }) => {
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-[#686B65] dark:text-[#9EACA3]">Wilayah Domisili</span>
-                    <span className="font-bold text-[#20221D] dark:text-[#F3F6F4]">{profile.district || 'Kota Bogor'}</span>
+                    <span className="font-bold text-[#20221D] dark:text-[#F3F6F4]">{profile.district || '-'}</span>
                   </div>
                 </div>
 

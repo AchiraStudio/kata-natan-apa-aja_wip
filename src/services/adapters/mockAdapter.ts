@@ -749,14 +749,14 @@ export class MockDataAdapter implements IDataAdapter {
         displayName: foundPost.author.displayName,
         avatarUrl: foundPost.author.avatarUrl,
         role: foundPost.author.role,
-        bio: 'Warga aktif Kota Bogor peduli transparansi dan kenyamanan fasilitas publik.',
-        district: 'Bogor Tengah',
-        isVerified: true,
+        bio: undefined,
+        district: undefined,
+        isVerified: foundPost.author.isVerified ?? false,
         createdAt: '2026-01-15T08:00:00Z',
         bannerUrl: 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=1200&q=80',
         backgroundTheme: 'editorial_forest',
-        websiteUrl: 'https://kotabogor.go.id',
-        customStatus: 'Warga Peduli Kota Bogor',
+        websiteUrl: undefined,
+        customStatus: undefined,
       };
     }
     return {
@@ -765,12 +765,14 @@ export class MockDataAdapter implements IDataAdapter {
       displayName: clean.charAt(0).toUpperCase() + clean.slice(1),
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
       role: 'citizen',
-      bio: 'Warga Kota Bogor',
-      district: 'Kota Bogor',
+      bio: undefined,
+      district: undefined,
       isVerified: false,
       createdAt: new Date().toISOString(),
       bannerUrl: 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=1200&q=80',
       backgroundTheme: 'editorial_forest',
+      websiteUrl: undefined,
+      customStatus: undefined,
     };
   }
 
@@ -808,14 +810,14 @@ export class MockDataAdapter implements IDataAdapter {
       displayName: payload.displayName || 'Warga Bogor',
       avatarUrl: payload.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
       role: 'citizen',
-      bio: payload.bio,
-      district: payload.district,
+      bio: payload.bio || undefined,
+      district: payload.district || undefined,
       isVerified: false,
       createdAt: new Date().toISOString(),
       bannerUrl: payload.bannerUrl !== undefined ? (payload.bannerUrl || undefined) : 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=1200&q=80',
       backgroundTheme: payload.backgroundTheme || 'editorial_forest',
-      websiteUrl: payload.websiteUrl,
-      customStatus: payload.customStatus,
+      websiteUrl: payload.websiteUrl || undefined,
+      customStatus: payload.customStatus || undefined,
     };
   }
 }

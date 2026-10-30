@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Share2, Edit3, Camera, ShieldCheck, ShieldAlert, Settings, ChevronRight, Globe, ExternalLink, Sparkles } from 'lucide-react';
 import { formatIndonesianTimeAgo } from '../../utils/timeAgo';
+import { UserAvatar } from '../common/UserAvatar';
 import type { ProfileController } from './useProfileController';
 
 interface ProfileHeaderProps {
@@ -56,9 +57,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-14 sm:-mt-18 mb-5">
                   {/* Avatar with Refined Ring & Floating Action */}
                   <div className="relative group self-start">
-                    <img
+                    <UserAvatar
                       src={profile.avatarUrl}
                       alt={profile.displayName}
+                      name={profile.displayName}
+                      role={profile.role}
                       className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover ring-4 ring-white dark:ring-[#131916] shadow-xl bg-stone-100"
                     />
                     <input
@@ -89,7 +92,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
                           <Link
                             to="/admin"
                             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-                            title="Buka Portal Tinjauan Admin PUPR"
+                            title={profile.verifiedAgency ? `Buka Portal Tinjauan ${profile.verifiedAgency}` : 'Buka Portal Tinjauan Administrator'}
                           >
                             <ShieldAlert className="w-3.5 h-3.5" />
                             <span>Portal Admin</span>
@@ -143,10 +146,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
                     )}
                     {profile.role === 'admin' && (
                       <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
-                        PUPR Admin
+                        {profile.verifiedAgency || 'Admin'}
                       </span>
                     )}
-                    {profile.customStatus && (
+                    {profile.customStatus?.trim() && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#263F35] dark:text-[#34D399] bg-[#EBF2EE] dark:bg-[#1E2E25] px-2.5 py-0.5 rounded-full border border-[#C5D9CE] dark:border-[#2D4537]">
                         <Sparkles className="w-3 h-3" />
                         <span>&ldquo;{profile.customStatus}&rdquo;</span>
@@ -159,17 +162,21 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
                   </p>
 
                   {/* Bio */}
-                  <p className="text-xs text-[#20221D] dark:text-[#D1DCD5] leading-relaxed pt-1 max-w-2xl">
-                    {profile.bio || 'Warga aktif Kota Bogor peduli transparansi dan kenyamanan fasilitas publik.'}
-                  </p>
+                  {profile.bio?.trim() && (
+                    <p className="text-xs text-[#20221D] dark:text-[#D1DCD5] leading-relaxed pt-1 max-w-2xl">
+                      {profile.bio}
+                    </p>
+                  )}
 
                   {/* Metadata Chips */}
                   <div className="flex flex-wrap items-center gap-3 pt-2 text-[11px] text-[#686B65] dark:text-[#9EACA3]">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-[#263F35] dark:text-[#34D399]" />
-                      <span>{profile.district || 'Kota Bogor'}</span>
-                    </div>
-                    {profile.websiteUrl && (
+                    {profile.district?.trim() && (
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-[#263F35] dark:text-[#34D399]" />
+                        <span>{profile.district}</span>
+                      </div>
+                    )}
+                    {profile.websiteUrl?.trim() && (
                       <a
                         href={profile.websiteUrl.startsWith('http') ? profile.websiteUrl : `https://${profile.websiteUrl}`}
                         target="_blank"
@@ -181,10 +188,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
                         <ExternalLink className="w-2.5 h-2.5 opacity-70" />
                       </a>
                     )}
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>Bergabung {formatIndonesianTimeAgo(profile.createdAt || '2026-01-01T00:00:00Z')}</span>
-                    </div>
+                    {profile.createdAt && (
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>Bergabung {formatIndonesianTimeAgo(profile.createdAt)}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Admin Direct Launchpad Banner (Mobile & Desktop) */}
@@ -200,7 +209,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
                           </div>
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
-                              Portal Tinjauan Admin PUPR
+                              {profile.verifiedAgency ? `Portal Tinjauan ${profile.verifiedAgency}` : 'Portal Tinjauan Administrator'}
                             </p>
                             <p className="text-[11px] text-amber-700 dark:text-amber-400 truncate">
                               Verifikasi bukti laporan warga dan perbarui disposisi dinas

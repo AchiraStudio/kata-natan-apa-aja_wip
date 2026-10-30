@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { dataService } from '../services/dataService';
 import { Report, ReportStatus } from '../types/domain';
+import { UserAvatar } from '../components/common/UserAvatar';
 import './TrackReportView.css';
 
 const STATUS_LABELS: Record<ReportStatus, string> = {
@@ -115,9 +116,11 @@ export const TrackReportView: React.FC = () => {
           )}
           {isAuthenticated ? (
             <Link to={'/u/' + profile.username} className="flex items-center" title={'Profil ' + profile.displayName}>
-              <img
+              <UserAvatar
                 src={profile.avatarUrl}
                 alt={profile.displayName}
+                name={profile.displayName}
+                role={profile.role}
                 className="w-7 h-7 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E]"
               />
             </Link>

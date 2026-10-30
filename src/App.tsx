@@ -32,7 +32,7 @@ import { GlobalSearchModal } from './components/modals/GlobalSearchModal';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { useAuth } from './context/AuthContext';
 
-const AuthenticatedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+export const AuthenticatedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -46,7 +46,7 @@ const AuthenticatedRoute: React.FC<{ children: React.ReactElement }> = ({ childr
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-const MeRedirect: React.FC = () => {
+export const MeRedirect: React.FC = () => {
   const { profile, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -64,7 +64,7 @@ const MeRedirect: React.FC = () => {
   );
 };
 
-const AdminOnlyRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+export const AdminOnlyRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { profile, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -118,56 +118,61 @@ const AdminOnlyRoute: React.FC<{ children: React.ReactElement }> = ({ children }
   return children;
 };
 
+export const AppRoutes: React.FC = () => {
+  return (
+    <React.Suspense fallback={<PageFallback />}>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={<LoginView />} />
+        <Route path="/daftar" element={<RegisterView />} />
+        <Route path="/register" element={<Navigate to="/daftar" replace />} />
+        <Route path="/masuk" element={<Navigate to="/login" replace />} />
+        <Route path="/workflow" element={<Navigate to="/alur" replace />} />
+        <Route path="/me" element={<MeRedirect />} />
+
+        {/* Shared shell: Sidebar and BottomNav render once for every page below */}
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<HomeView />} />
+          <Route path="/alur" element={<WorkflowView />} />
+          <Route path="/report/:id" element={<ReportDetailView />} />
+          <Route path="/laporan/:id" element={<ReportDetailView />} />
+          <Route path="/explore" element={<ExploreView />} />
+          <Route path="/map" element={<MapView />} />
+          <Route path="/track" element={<TrackReportView />} />
+          <Route path="/u/:username" element={<ProfileView />} />
+          <Route path="/profile/:username" element={<ProfileView />} />
+          <Route path="/post/:id" element={<PostDetailView />} />
+          <Route path="/postingan/:id" element={<PostDetailView />} />
+          <Route
+            path="/laporan-saya"
+            element={
+              <AuthenticatedRoute>
+                <MyReportsView />
+              </AuthenticatedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminOnlyRoute>
+                <AdminView />
+              </AdminOnlyRoute>
+            }
+          />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </React.Suspense>
+  );
+};
+
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <TitikProvider>
           <BrowserRouter>
-            <React.Suspense fallback={<PageFallback />}>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/login" element={<LoginView />} />
-              <Route path="/daftar" element={<RegisterView />} />
-              <Route path="/register" element={<Navigate to="/daftar" replace />} />
-              <Route path="/masuk" element={<Navigate to="/login" replace />} />
-              <Route path="/workflow" element={<Navigate to="/alur" replace />} />
-              <Route path="/me" element={<MeRedirect />} />
-
-              {/* Shared shell: Sidebar and BottomNav render once for every page below */}
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<HomeView />} />
-                <Route path="/alur" element={<WorkflowView />} />
-                <Route path="/report/:id" element={<ReportDetailView />} />
-                <Route path="/laporan/:id" element={<ReportDetailView />} />
-                <Route path="/explore" element={<ExploreView />} />
-                <Route path="/map" element={<MapView />} />
-                <Route path="/track" element={<TrackReportView />} />
-                <Route path="/u/:username" element={<ProfileView />} />
-                <Route path="/profile/:username" element={<ProfileView />} />
-                <Route path="/post/:id" element={<PostDetailView />} />
-                <Route path="/postingan/:id" element={<PostDetailView />} />
-                <Route
-                  path="/laporan-saya"
-                  element={
-                    <AuthenticatedRoute>
-                      <MyReportsView />
-                    </AuthenticatedRoute>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <AdminOnlyRoute>
-                      <AdminView />
-                    </AdminOnlyRoute>
-                  }
-                />
-              </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            </React.Suspense>
-
+            <AppRoutes />
             {/* Global Overlays & Modals */}
             <CreateModal />
             <ReportDetailDrawer />

@@ -10,11 +10,13 @@ import {
   Sparkles,
   Search,
   ShieldAlert,
+  LogIn,
 } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
 import { TitikLogo } from '../common/TitikLogo';
 import { ThemeToggle } from '../common/ThemeToggle';
+import { UserAvatar } from '../common/UserAvatar';
 
 interface SidebarProps {
   currentPath?: string;
@@ -216,7 +218,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
             );
           })}
 
-          {profile.role === 'admin' && (
+          {isAuthenticated && profile.role === 'admin' && (
             <a
               href="/admin"
               onClick={(e) => {
@@ -240,42 +242,70 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
 
       {/* Bottom Section: Quiet Citizen Profile & Theme Toggle */}
       <div className="pt-3 border-t border-[#E4E2DA] dark:border-[#222E28] flex items-center gap-2">
-        <a
-          href={`/u/${profile.username}`}
-          onClick={(e) => {
-            e.preventDefault();
-            const target = `/u/${profile.username}`;
-            if (location.pathname !== target) {
-              navigate(target);
-            }
-          }}
-          className={`flex min-w-0 flex-1 items-center justify-between px-2.5 py-2 rounded-xl transition-colors cursor-pointer group ${
-            currentPath === `/u/${profile.username}` || currentPath === '/me'
-              ? 'bg-[#E7EBDD] dark:bg-[#192B22]'
-              : 'hover:bg-white/80 dark:hover:bg-[#161F1B]'
-          }`}
-          title="Profil Saya"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <img
-              src={profile.avatarUrl}
-              alt={profile.displayName}
-              className="w-8 h-8 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E] shrink-0"
-            />
-            <div className="min-w-0">
-              <div className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] truncate group-hover:text-[#263F35] dark:group-hover:text-[#34D399]">
-                {profile.displayName}
-              </div>
-              <div className="text-[10px] text-[#686B65] dark:text-[#8FA096] font-medium truncate">
-                {profile.role === 'admin'
-                  ? 'Admin Instansi PUPR'
-                  : profile.isVerified
-                  ? 'Warga Terverifikasi'
-                  : 'Warga Kota Bogor'}
+        {isAuthenticated && profile.id !== 'usr-anon-00' ? (
+          <a
+            href={`/u/${profile.username}`}
+            onClick={(e) => {
+              e.preventDefault();
+              const target = `/u/${profile.username}`;
+              if (location.pathname !== target) {
+                navigate(target);
+              }
+            }}
+            className={`flex min-w-0 flex-1 items-center justify-between px-2.5 py-2 rounded-xl transition-colors cursor-pointer group ${
+              currentPath === `/u/${profile.username}` || currentPath === '/me'
+                ? 'bg-[#E7EBDD] dark:bg-[#192B22]'
+                : 'hover:bg-white/80 dark:hover:bg-[#161F1B]'
+            }`}
+            title="Profil Saya"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <UserAvatar
+                src={profile.avatarUrl}
+                alt={profile.displayName}
+                name={profile.displayName}
+                role={profile.role}
+                className="w-8 h-8 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E] shrink-0"
+              />
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] truncate group-hover:text-[#263F35] dark:group-hover:text-[#34D399]">
+                  {profile.displayName}
+                </div>
+                <div className="text-[10px] text-[#686B65] dark:text-[#8FA096] font-medium truncate">
+                  {profile.role === 'admin'
+                    ? (profile.verifiedAgency || 'Administrator')
+                    : profile.isVerified
+                    ? 'Warga Terverifikasi'
+                    : (profile.district ? `Warga ${profile.district}` : 'Warga')}
+                </div>
               </div>
             </div>
-          </div>
-        </a>
+          </a>
+        ) : (
+          <a
+            href="/login"
+            onClick={(e) => {
+              e.preventDefault();
+              if (location.pathname !== '/login') {
+                navigate('/login');
+              }
+            }}
+            className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2 rounded-xl bg-white dark:bg-[#161F1B] border border-[#E4E2DA] dark:border-[#24322B] hover:border-[#263F35]/40 dark:hover:border-[#10B981]/50 text-[#20221D] dark:text-[#F3F6F4] transition-colors cursor-pointer group"
+            title="Masuk ke Akun"
+          >
+            <div className="w-7 h-7 rounded-full bg-[#E7EBDD] dark:bg-[#192B22] text-[#263F35] dark:text-[#34D399] flex items-center justify-center shrink-0">
+              <LogIn className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] truncate group-hover:text-[#263F35] dark:group-hover:text-[#34D399]">
+                Masuk / Daftar Akun
+              </div>
+              <div className="text-[10px] text-[#686B65] dark:text-[#8FA096] font-medium truncate">
+                Belum masuk sesi
+              </div>
+            </div>
+          </a>
+        )}
         <ThemeToggle className="shrink-0" />
       </div>
     </aside>

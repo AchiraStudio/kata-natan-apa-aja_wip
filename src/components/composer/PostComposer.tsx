@@ -7,6 +7,7 @@ import { useTitik } from '../../context/useTitik';
 import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 import { Post, PostMedia } from '../../types/domain';
 import { generatePostId } from '../../utils/idGenerator';
+import { UserAvatar } from '../common/UserAvatar';
 
 interface PostComposerProps {
   onSuccess: (newPost: Post) => void;
@@ -180,9 +181,11 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
 
       {/* Author Preview */}
       <div className="flex items-center gap-3">
-        <img
+        <UserAvatar
           src={profile.avatarUrl}
           alt={profile.displayName}
+          name={profile.displayName}
+          role={profile.role}
           className="w-9 h-9 rounded-full object-cover ring-1 ring-[#E4E2DA] dark:ring-[#26352E]"
         />
         <div className="min-w-0">
@@ -190,7 +193,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
             {profile.displayName}
           </p>
           <p className="text-[11px] text-[#686B65] dark:text-[#9EACA3] truncate">
-            @{profile.username} • {profile.district || 'Kota Bogor'}
+            @{profile.username}{profile.district ? ` • ${profile.district}` : ''}
           </p>
         </div>
       </div>

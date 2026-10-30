@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   AlertCircle,
@@ -14,20 +14,35 @@ import {
 } from 'lucide-react';
 import { TitikLogo } from '../components/common/TitikLogo';
 import { ThemeToggle } from '../components/common/ThemeToggle';
+import { UserAvatar } from '../components/common/UserAvatar';
 import { useAuth } from '../context/AuthContext';
-import { isSupabaseConfigured } from '../services/supabaseClient';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import './LoginView.css';
 
-const QUICK_ACCOUNTS = [
+interface QuickAccount {
+  id: string;
+  email: string;
+  password: string;
+  name: string;
+  badge: string;
+  badgeType: 'citizen' | 'admin';
+  avatar: string;
+  description: string;
+  username: string;
+  verifiedAgency?: string;
+}
+
+const DEFAULT_QUICK_ACCOUNTS: QuickAccount[] = [
   {
     id: 'citizen',
     email: 'warga@titik.id',
     password: 'titik2026',
     name: 'Budi Santoso',
     badge: 'Warga',
-    badgeType: 'citizen' as const,
+    badgeType: 'citizen',
     avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
     description: 'Akses penuh pelaporan warga, dukungan, dan komentar.',
+    username: 'budi.santoso',
   },
   {
     id: 'admin',
@@ -35,9 +50,10 @@ const QUICK_ACCOUNTS = [
     password: 'admin2026',
     name: 'Admin Dinas PUPR',
     badge: 'Admin',
-    badgeType: 'admin' as const,
+    badgeType: 'admin',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
     description: 'Verifikasi laporan, disposisi OPD, dan pembaruan APBD.',
+    username: 'admin.pupr',
   },
 ];
 
@@ -51,8 +67,98 @@ export const LoginView: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedQuickId, setSelectedQuickId] = useState<string>('');
+  const [quickAccounts, setQuickAccounts] = useState<QuickAccount[]>(DEFAULT_QUICK_ACCOUNTS);
 
-  const handleSelectQuickAccount = (acc: typeof QUICK_ACCOUNTS[0]) => {
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+
+    let isMounted = true;
+
+    const updateAccountFromProfile = (acc: QuickAccount, p: any): QuickAccount => {
+      const isCitizen = (p.role || acc.badgeType) === 'citizen';
+      return {
+        ...acc,
+        name: p.display_name || acc.name,
+        badge: isCitizen ? 'Warga' : 'Admin',
+        badgeType: isCitizen ? 'citizen' : 'admin',
+        avatar: p.avatar_url ?? acc.avatar,
+        verifiedAgency: p.verified_agency || acc.verifiedAgency,
+      };
+    };
+
+    const fetchProfiles = async () => {
+      try {
+        const query = supabase
+          .from('profiles')
+          .select('id, username, display_name, email, avatar_url, role, verified_agency');
+
+        const response = typeof (query as any)?.or === 'function'
+          ? await (query as any).or('email.eq.warga@titik.id,email.eq.admin@titik.id,username.eq.budi.santoso,username.eq.admin.pupr')
+          : await query;
+
+        const { data, error } = response || {};
+        if (error) {
+          console.warn('Failed to fetch quick accounts from Supabase:', error);
+          return;
+        }
+
+        if (data && Array.isArray(data) && data.length > 0 && isMounted) {
+          setQuickAccounts((prev) =>
+            prev.map((acc) => {
+              const matched = data.find(
+                (p: any) =>
+                  (p.email && p.email.toLowerCase() === acc.email.toLowerCase()) ||
+                  (p.username && p.username.toLowerCase() === acc.username.toLowerCase())
+              );
+              if (!matched) return acc;
+              return updateAccountFromProfile(acc, matched);
+            })
+          );
+        }
+      } catch (err) {
+        console.warn('Error fetching quick accounts:', err);
+      }
+    };
+
+    fetchProfiles();
+
+    let channel: any = null;
+    try {
+      if (typeof supabase.channel === 'function') {
+        channel = supabase
+          .channel('public:profiles:quick_login')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'profiles' },
+            (payload: any) => {
+              if (!isMounted || !payload?.new) return;
+              const updatedProfile = payload.new;
+              setQuickAccounts((prev) =>
+                prev.map((acc) => {
+                  const isMatch =
+                    (updatedProfile.email && updatedProfile.email.toLowerCase() === acc.email.toLowerCase()) ||
+                    (updatedProfile.username && updatedProfile.username.toLowerCase() === acc.username.toLowerCase());
+                  if (!isMatch) return acc;
+                  return updateAccountFromProfile(acc, updatedProfile);
+                })
+              );
+            }
+          )
+          .subscribe();
+      }
+    } catch (err) {
+      console.warn('Could not establish profiles realtime channel:', err);
+    }
+
+    return () => {
+      isMounted = false;
+      if (channel && typeof supabase.removeChannel === 'function') {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, []);
+
+  const handleSelectQuickAccount = (acc: QuickAccount) => {
     setEmail(acc.email);
     setPassword(acc.password);
     setSelectedQuickId(acc.id);
@@ -170,7 +276,7 @@ export const LoginView: React.FC = () => {
               </div>
 
               <div className="login-quick-grid">
-                {QUICK_ACCOUNTS.map((acc) => {
+                {quickAccounts.map((acc) => {
                   const isSelected = selectedQuickId === acc.id || email === acc.email;
                   return (
                     <button
@@ -179,7 +285,13 @@ export const LoginView: React.FC = () => {
                       onClick={() => handleSelectQuickAccount(acc)}
                       className={`login-quick-card ${isSelected ? 'login-quick-card--selected' : ''}`}
                     >
-                      <img src={acc.avatar} alt={acc.name} className="login-quick-avatar" />
+                      <UserAvatar
+                        src={acc.avatar}
+                        alt={acc.name}
+                        name={acc.name}
+                        role={acc.badgeType}
+                        className="login-quick-avatar"
+                      />
                       <div className="login-quick-info">
                         <div className="login-quick-name-row">
                           <span className="login-quick-name">{acc.name}</span>

@@ -21,6 +21,7 @@ import { Post, Report } from '../types/domain';
 import { FeedComment } from '../services/adapters/types';
 import { sortCommentsForUser, isCommentAuthoredByUser } from '../utils/commentSorting';
 import { formatIndonesianTimeAgo } from '../utils/timeAgo';
+import { UserAvatar } from '../components/common/UserAvatar';
 
 export const PostDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -267,9 +268,11 @@ export const PostDetailView: React.FC = () => {
                   to={`/u/${post.author.username}`}
                   className="flex items-center gap-3 group"
                 >
-                  <img
+                  <UserAvatar
                     src={post.author.avatarUrl}
                     alt={post.author.displayName}
+                    name={post.author.displayName}
+                    role={post.author.role}
                     className="w-11 h-11 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E] group-hover:ring-2 group-hover:ring-[#263F35] transition-all"
                   />
                   <div>
@@ -510,9 +513,11 @@ export const PostDetailView: React.FC = () => {
                           to={`/u/${comment.authorName.toLowerCase().replace(/\s+/g, '_')}`}
                           className="flex items-center gap-2 group"
                         >
-                          <img
+                          <UserAvatar
                             src={comment.avatarUrl}
                             alt={comment.authorName}
+                            name={comment.authorName}
+                            role={comment.authorName.toLowerCase().includes('admin') || comment.authorName.toLowerCase().includes('pupr') ? 'admin' : 'citizen'}
                             className="w-6 h-6 rounded-full object-cover"
                           />
                           <span className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] group-hover:text-[#263F35] dark:group-hover:text-[#34D399]">

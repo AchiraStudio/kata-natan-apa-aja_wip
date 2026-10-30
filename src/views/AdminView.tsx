@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserProfile } from '../types/domain';
+import { UserAvatar } from '../components/common/UserAvatar';
 import {
   useAdminWorkspace,
   AdminHeroBanner,
@@ -101,9 +102,11 @@ const AdminConsoleInner: React.FC<AdminConsoleInnerProps> = ({ profile }) => {
             className="flex items-center"
             title={'Profil ' + profile.displayName}
           >
-            <img
+            <UserAvatar
               src={profile.avatarUrl}
               alt={profile.displayName}
+              name={profile.displayName}
+              role={profile.role}
               className="w-7 h-7 rounded-full object-cover border border-[#263F35]/30 dark:border-[#10B981]/40"
             />
           </Link>

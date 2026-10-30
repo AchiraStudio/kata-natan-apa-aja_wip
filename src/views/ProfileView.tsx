@@ -67,15 +67,24 @@ export const ProfileView: React.FC = () => {
               {error}
             </h3>
             <p className="text-xs text-[#686B65] dark:text-[#9EACA3]">
-              Profil yang Anda cari mungkin tidak ada atau telah berganti username.
+              Profil yang Anda cari mungkin tidak ada atau sesi akun tidak valid. Silakan masuk kembali.
             </p>
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="px-4 py-2 bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-xl text-xs font-bold hover:bg-[#1d3129] transition-colors cursor-pointer"
-            >
-              Kembali ke Beranda
-            </button>
+            <div className="flex items-center justify-center gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="px-4 py-2 bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-xl text-xs font-bold hover:bg-[#1d3129] transition-colors cursor-pointer"
+              >
+                Masuk ke Akun
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="px-4 py-2 border border-[#E4E2DA] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#20221D] dark:text-[#F3F6F4] rounded-xl text-xs font-bold hover:bg-[#F7F6F1] dark:hover:bg-[#26352E] transition-colors cursor-pointer"
+              >
+                Kembali ke Beranda
+              </button>
+            </div>
           </div>
         )}
 

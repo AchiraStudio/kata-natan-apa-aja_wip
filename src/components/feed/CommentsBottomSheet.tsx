@@ -1,11 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useInRouterContext } from 'react-router-dom';
 import { X, Heart, Send, MessageSquare, Loader2, RotateCw } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
 import { FeedComment } from '../../services/adapters/types';
 import { sortCommentsForUser, isCommentAuthoredByUser } from '../../utils/commentSorting';
+import { UserAvatar } from '../common/UserAvatar';
 
 export type CommentItem = FeedComment;
+
+const getCommentAuthorTarget = (authorId?: string, authorName?: string): string => {
+  if (authorId) {
+    return authorId.replace(/^@+/, '').trim();
+  }
+  const name = authorName || 'warga';
+  return name.replace(/^@+/, '').trim().toLowerCase().replace(/[^a-z0-9_.]/g, '_');
+};
 
 interface CommentsBottomSheetProps {
   isOpen: boolean;
@@ -40,6 +50,27 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
   const commentsListRef = useRef<HTMLDivElement | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const inRouter = useInRouterContext();
+  const routerNavigate = inRouter ? useNavigate() : null;
+  const navigate = useCallback((path: string) => {
+    if (routerNavigate) {
+      routerNavigate(path);
+    } else if (typeof window !== 'undefined') {
+      if (window.history && typeof window.history.pushState === 'function') {
+        window.history.pushState({}, '', path);
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      } else {
+        window.location.href = path;
+      }
+    }
+  }, [routerNavigate]);
+
+  const handleAuthorClick = (e: React.MouseEvent, target: string) => {
+    e.preventDefault();
+    onClose();
+    navigate(`/u/${target}`);
+  };
 
   // Native non-passive wheel isolation: stop propagation at the DOM level so FeedContainer never intercepts
   useEffect(() => {
@@ -308,45 +339,39 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
 
               return (
                 <div key={item.id} data-comment-id={item.id} className="flex items-start gap-3 group scroll-mt-2">
-                  <a
-                    href={`/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onClose();
-                      if (window.history && typeof window.history.pushState === 'function') {
-                        window.history.pushState({}, '', `/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
-                        window.dispatchEvent(new PopStateEvent('popstate'));
-                      } else {
-                        window.location.href = `/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`;
-                      }
-                    }}
-                    className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity"
-                    title={`Lihat profil ${item.authorName}`}
-                  >
-                    <img
-                      src={item.avatarUrl}
-                      alt={item.authorName}
-                      className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-white/15 hover:scale-105 transition-transform"
-                    />
-                  </a>
+                  {(() => {
+                    const authorTarget = getCommentAuthorTarget(item.authorId, item.authorName);
+                    return (
+                      <a
+                        href={`/u/${authorTarget}`}
+                        onClick={(e) => handleAuthorClick(e, authorTarget)}
+                        className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity"
+                        title={`Lihat profil ${item.authorName}`}
+                      >
+                        <UserAvatar
+                          src={item.avatarUrl}
+                          alt={item.authorName}
+                          name={item.authorName}
+                          role={item.authorName.toLowerCase().includes('admin') || item.authorName.toLowerCase().includes('pupr') ? 'admin' : 'citizen'}
+                          className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-white/15 hover:scale-105 transition-transform"
+                        />
+                      </a>
+                    );
+                  })()}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <a
-                        href={`/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          onClose();
-                          if (window.history && typeof window.history.pushState === 'function') {
-                            window.history.pushState({}, '', `/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
-                            window.dispatchEvent(new PopStateEvent('popstate'));
-                          } else {
-                            window.location.href = `/u/${item.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`;
-                          }
-                        }}
-                        className="font-semibold text-xs text-white/95 hover:text-emerald-400 hover:underline transition-colors cursor-pointer truncate"
-                      >
-                        {item.authorName}
-                      </a>
+                      {(() => {
+                        const authorTarget = getCommentAuthorTarget(item.authorId, item.authorName);
+                        return (
+                          <a
+                            href={`/u/${authorTarget}`}
+                            onClick={(e) => handleAuthorClick(e, authorTarget)}
+                            className="font-semibold text-xs text-white/95 hover:text-emerald-400 hover:underline transition-colors cursor-pointer truncate"
+                          >
+                            {item.authorName}
+                          </a>
+                        );
+                      })()}
                       {isMyComment && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
                           Anda
@@ -382,45 +407,30 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
                           const isReplyLiked = likedCommentIds.has(reply.id);
                           const replyDelta = likesDeltaMap[reply.id] || 0;
                           const currentReplyLikes = Math.max(0, (reply.likes || 0) + replyDelta);
+                          const replyTarget = getCommentAuthorTarget(reply.authorId, reply.authorName);
 
                           return (
                             <div key={reply.id} data-comment-id={reply.id} className="flex items-start gap-2 justify-between scroll-mt-2">
                               <div className="flex items-start gap-2 min-w-0 flex-1">
                                 <a
-                                  href={`/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    onClose();
-                                    if (window.history && typeof window.history.pushState === 'function') {
-                                      window.history.pushState({}, '', `/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
-                                      window.dispatchEvent(new PopStateEvent('popstate'));
-                                    } else {
-                                      window.location.href = `/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`;
-                                    }
-                                  }}
+                                  href={`/u/${replyTarget}`}
+                                  onClick={(e) => handleAuthorClick(e, replyTarget)}
                                   className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity"
                                   title={`Lihat profil ${reply.authorName}`}
                                 >
-                                  <img
+                                  <UserAvatar
                                     src={reply.avatarUrl}
                                     alt={reply.authorName}
+                                    name={reply.authorName}
+                                    role={reply.authorName.toLowerCase().includes('admin') || reply.authorName.toLowerCase().includes('pupr') ? 'admin' : 'citizen'}
                                     className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-white/15 hover:scale-105 transition-transform"
                                   />
                                 </a>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5">
                                     <a
-                                      href={`/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        onClose();
-                                        if (window.history && typeof window.history.pushState === 'function') {
-                                          window.history.pushState({}, '', `/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
-                                          window.dispatchEvent(new PopStateEvent('popstate'));
-                                        } else {
-                                          window.location.href = `/u/${reply.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`;
-                                        }
-                                      }}
+                                      href={`/u/${replyTarget}`}
+                                      onClick={(e) => handleAuthorClick(e, replyTarget)}
                                       className="font-semibold text-[11px] text-white/90 hover:text-emerald-400 hover:underline transition-colors cursor-pointer truncate"
                                     >
                                       {reply.authorName}
@@ -497,12 +507,11 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
             </div>
           )}
           <div className="flex items-center gap-2.5">
-            <img
-              src={
-                profile?.avatarUrl ||
-                'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'
-              }
+            <UserAvatar
+              src={profile?.avatarUrl}
               alt={profile?.displayName || 'Profil Anda'}
+              name={profile?.displayName}
+              role={profile?.role}
               className="w-8 h-8 rounded-full object-cover border border-white/20 shrink-0"
             />
             <input

@@ -98,6 +98,25 @@ describe('Milestone 2: Data Parity & Service Layer Hardening Suite', () => {
   // 2. STORAGE SERVICE EXTRACTION (src/services/storageService.ts)
   // ===========================================================================
   describe('2. Storage Service Extraction & Private Signed URLs', () => {
+    let storageSpy: any;
+
+    beforeEach(() => {
+      storageSpy = vi.spyOn(supabase.storage, 'from').mockReturnValue({
+        createSignedUrl: vi.fn().mockImplementation((path: string, _expiresIn?: number) =>
+          Promise.resolve({
+            data: {
+              signedUrl: `https://oetnxbovjwovaddivmwf.supabase.co/storage/v1/object/sign/report-evidence-private/${path}?token=mock_token_${Date.now()}`,
+            },
+            error: null,
+          })
+        ),
+      } as any);
+    });
+
+    afterEach(() => {
+      storageSpy?.mockRestore();
+    });
+
     it('M2-2.1: storageService provides avatar and banner upload helpers', () => {
       expect(typeof storageService.uploadAvatar).toBe('function');
       expect(typeof storageService.uploadBanner).toBe('function');
@@ -228,9 +247,24 @@ describe('Milestone 2: Data Parity & Service Layer Hardening Suite', () => {
     });
 
     it('M2-3.5: getPrivateEvidenceSignedUrl produces signed URL from dataService', async () => {
-      const signedUrl = await getPrivateEvidenceSignedUrl('evidence/doc_001.pdf');
-      expect(signedUrl).toContain('report-evidence-private');
-      expect(signedUrl).toContain('evidence/doc_001.pdf');
+      const storageSpy = vi.spyOn(supabase.storage, 'from').mockReturnValue({
+        createSignedUrl: vi.fn().mockImplementation((path: string, _expiresIn?: number) =>
+          Promise.resolve({
+            data: {
+              signedUrl: `https://oetnxbovjwovaddivmwf.supabase.co/storage/v1/object/sign/report-evidence-private/${path}?token=mock_token_${Date.now()}`,
+            },
+            error: null,
+          })
+        ),
+      } as any);
+
+      try {
+        const signedUrl = await getPrivateEvidenceSignedUrl('evidence/doc_001.pdf');
+        expect(signedUrl).toContain('report-evidence-private');
+        expect(signedUrl).toContain('evidence/doc_001.pdf');
+      } finally {
+        storageSpy.mockRestore();
+      }
     });
 
     it('M2-3.6: SupabaseDataAdapter delegates administrative RPC calls with contract validation', async () => {

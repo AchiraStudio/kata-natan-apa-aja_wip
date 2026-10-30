@@ -3,6 +3,7 @@ import { Home, Compass, MapPin, Plus, LogIn } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTitik } from '../../context/useTitik';
 import { useAuth } from '../../context/AuthContext';
+import { UserAvatar } from '../common/UserAvatar';
 
 export const BottomNav: React.FC = () => {
   const navigate = useNavigate();
@@ -138,12 +139,20 @@ export const BottomNav: React.FC = () => {
               ? (currentPath === '/admin' ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold')
               : 'text-white/70 hover:text-white'
           }`}
-          title={profile.role === 'admin' ? 'Profil & Admin PUPR' : 'Profil Saya'}
+          title={
+            profile.role === 'admin'
+              ? (profile.verifiedAgency
+                ? `Profil & Admin ${profile.verifiedAgency.toLowerCase().includes('pekerjaan umum') ? 'PUPR' : profile.verifiedAgency}`
+                : 'Profil & Administrator')
+              : 'Profil Saya'
+          }
         >
           <div className="relative">
-            <img
+            <UserAvatar
               src={profile.avatarUrl}
               alt={profile.displayName}
+              name={profile.displayName}
+              role={profile.role}
               className={`w-5 h-5 rounded-full object-cover border ${
                 profile.role === 'admin' ? 'border-amber-400/80 ring-1 ring-amber-400/40' : 'border-white/30'
               }`}
@@ -151,7 +160,11 @@ export const BottomNav: React.FC = () => {
             {profile.role === 'admin' && (
               <span
                 className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-[#20221D] dark:ring-[#131916]"
-                title="Akun Admin PUPR"
+                title={
+                  profile.verifiedAgency
+                    ? `Akun Admin ${profile.verifiedAgency.toLowerCase().includes('pekerjaan umum') ? 'PUPR' : profile.verifiedAgency}`
+                    : 'Akun Administrator'
+                }
               />
             )}
           </div>

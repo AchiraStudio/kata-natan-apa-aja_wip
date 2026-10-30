@@ -2,6 +2,7 @@ import React from 'react';
 import { CheckCircle2, Camera, Loader2, X, Globe, Sparkles, Palette, Trash2 } from 'lucide-react';
 import type { ProfileController } from './useProfileController';
 import { BOGOR_DISTRICTS, THEME_OPTIONS, BANNER_PRESETS } from './profileThemes';
+import { UserAvatar } from '../common/UserAvatar';
 
 interface EditProfileModalProps {
   ctrl: ProfileController;
@@ -44,9 +45,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ ctrl }) => {
                                 {/* Avatar Uploader Preview */}
                 <div className="flex items-center gap-4">
                   <div className="relative">
-                    <img
+                    <UserAvatar
                       src={editAvatarUrl || profile?.avatarUrl}
-                      alt="Avatar"
+                      alt={editDisplayName || profile?.displayName || 'Avatar'}
+                      name={editDisplayName || profile?.displayName}
+                      role={profile?.role}
                       className="w-16 h-16 rounded-full object-cover border-2 border-[#263F35] dark:border-[#10B981]"
                     />
                     <label
@@ -290,6 +293,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ ctrl }) => {
                     onChange={(e) => setEditDistrict(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-[#E4E2DA] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#20221D] dark:text-[#F3F6F4] focus:outline-none focus:ring-1 focus:ring-[#263F35]"
                   >
+                    <option value="">Pilih Kecamatan (Opsional)...</option>
                     {BOGOR_DISTRICTS.map((d) => (
                       <option key={d} value={d}>
                         {d}

@@ -10,7 +10,7 @@ import { THEME_OPTIONS } from './profileThemes';
 export function useProfileController() {
   const { username } = useParams<{ username?: string }>();
   const navigate = useNavigate();
-  const { profile: currentAuthProfile, isAuthenticated, refreshProfile, signOut } = useAuth();
+  const { profile: currentAuthProfile, isAuthenticated, refreshProfile, signOut, invalidateSession } = useAuth();
   const { openComposer, openReportDetail } = useTitik();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -64,24 +64,30 @@ export function useProfileController() {
     setIsLoading(true);
     setError(null);
     try {
-      const targetUsername = username || currentAuthProfile.username;
-      if (!targetUsername) {
-        setError('Pengguna tidak ditemukan.');
+      const rawParam = username ? decodeURIComponent(username).trim() : currentAuthProfile.username;
+      const targetUsername = rawParam ? rawParam.replace(/^@+/, '') : '';
+
+      const isOwnProfileLookup = Boolean(
+        !username ||
+        (currentAuthProfile.username &&
+          targetUsername.toLowerCase() === currentAuthProfile.username.toLowerCase())
+      );
+
+      if (!targetUsername || (isOwnProfileLookup && targetUsername.toLowerCase() === 'warga.anonim')) {
+        await invalidateSession?.({ redirect: true });
+        navigate('/login', { replace: true });
         setIsLoading(false);
         return;
       }
 
-      let fetchedProfile = await dataService.getProfileByUsername(targetUsername);
-      if (
-        !fetchedProfile &&
-        isAuthenticated &&
-        currentAuthProfile.username &&
-        targetUsername.toLowerCase() === currentAuthProfile.username.toLowerCase()
-      ) {
-        fetchedProfile = currentAuthProfile;
-      }
-
+      const fetchedProfile = await dataService.getProfileByUsername(targetUsername);
       if (!fetchedProfile) {
+        if (isOwnProfileLookup && isAuthenticated) {
+          await invalidateSession?.({ redirect: true });
+          navigate('/login', { replace: true });
+          setIsLoading(false);
+          return;
+        }
         setError('Profil tidak ditemukan.');
         setIsLoading(false);
         return;
@@ -118,7 +124,7 @@ export function useProfileController() {
     } finally {
       setIsLoading(false);
     }
-  }, [username, currentAuthProfile, isAuthenticated]);
+  }, [username, currentAuthProfile, isAuthenticated, invalidateSession, navigate]);
 
   useEffect(() => {
     loadProfileData();
@@ -129,7 +135,7 @@ export function useProfileController() {
     setEditDisplayName(profile.displayName || '');
     setEditUsername(profile.username || '');
     setEditBio(profile.bio || '');
-    setEditDistrict(profile.district || 'Bogor Tengah');
+    setEditDistrict(profile.district || '');
     setEditAvatarUrl(profile.avatarUrl || '');
     setEditBannerUrl(profile.bannerUrl || '');
     setEditBackgroundTheme(profile.backgroundTheme || 'editorial_forest');

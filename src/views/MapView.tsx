@@ -6,6 +6,7 @@ import { useTitik } from '../context/TitikContext';
 import { useAuth } from '../context/AuthContext';
 import { Report, Facility } from '../types/domain';
 import { createCivicTileLayer } from '../utils/mapTiles';
+import { UserAvatar } from '../components/common/UserAvatar';
 import './MapView.css';
 
 function formatReportStatusLabel(status: Report['status']): string {
@@ -144,9 +145,11 @@ export const MapView: React.FC = () => {
           )}
           {isAuthenticated ? (
             <Link to={'/u/' + profile.username} className="flex items-center" title={'Profil ' + profile.displayName}>
-              <img
+              <UserAvatar
                 src={profile.avatarUrl}
                 alt={profile.displayName}
+                name={profile.displayName}
+                role={profile.role}
                 className="w-7 h-7 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E]"
               />
             </Link>

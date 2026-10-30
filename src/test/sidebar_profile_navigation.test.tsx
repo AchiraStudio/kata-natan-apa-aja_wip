@@ -19,7 +19,7 @@ const mockCitizen: UserProfile = {
 };
 
 describe('Sidebar Profile Navigation Suite', () => {
-  it('renders account card linking directly to user profile without exit icon', () => {
+  it('renders account card linking directly to user profile when authenticated', () => {
     vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
       profile: mockCitizen,
       isAuthenticated: true,
@@ -61,20 +61,19 @@ describe('Sidebar Profile Navigation Suite', () => {
     expect(html).toContain('title="Profil Saya"');
     expect(html).toContain('Budi Santoso');
 
-    // 2. Does NOT link to login or contain exit icon
+    // 2. Does NOT link to login when authenticated
     expect(html).not.toContain('href="/login"');
-    expect(html).not.toContain('title="Masuk"');
-    expect(html).not.toContain('lucide-log-in');
+    expect(html).not.toContain('Masuk / Daftar Akun');
   });
 
-  it('links to user profile even when unauthenticated guest state', () => {
+  it('renders login action instead of fake profile card when unauthenticated', () => {
     vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
       profile: mockCitizen,
       isAuthenticated: false,
       isLoading: false,
       user: null,
       session: null,
-      isLiveMode: false,
+      isLiveMode: true,
       signIn: vi.fn(),
       signUp: vi.fn(),
       signOut: vi.fn(),
@@ -104,9 +103,10 @@ describe('Sidebar Profile Navigation Suite', () => {
       </MemoryRouter>
     );
 
-    // Should still link to user profile without triggering login or logout
-    expect(html).toContain('href="/u/budi.santoso"');
-    expect(html).toContain('title="Profil Saya"');
+    // Must render login button and NEVER render a fake logged-in profile card
+    expect(html).toContain('href="/login"');
+    expect(html).toContain('Masuk / Daftar Akun');
+    expect(html).not.toContain('href="/u/budi.santoso"');
+    expect(html).not.toContain('Budi Santoso');
   });
 });
-

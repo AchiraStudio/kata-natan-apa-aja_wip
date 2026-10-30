@@ -37,6 +37,7 @@ import { Report } from '../types/domain';
 
 import { createCivicTileLayer } from '../utils/mapTiles';
 import { getReportMediaType } from '../utils/reportEvidence';
+import { UserAvatar } from '../components/common/UserAvatar';
 import './ReportDetailView.css';
 
 interface Testimony {
@@ -784,14 +785,16 @@ export const ReportDetailView: React.FC = () => {
                             className="hover:underline hover:text-[#263F35] dark:hover:text-[#34D399] transition-colors cursor-pointer"
                             title={`Lihat profil ${report.reporterDisplayName || 'Pelapor'}`}
                           >
-                            {report.reporterDisplayName || 'Warga Terverifikasi'}
+                            {report.reporterDisplayName || (report.reporterType === 'verified_citizen' ? 'Warga Terverifikasi' : 'Warga Terdaftar')}
                           </a>
                         )}
                       </div>
                       <div className="text-[11px] text-[#686B65] dark:text-[#9EACA3]">
                         {report.reporterType === 'anonymous'
                           ? 'Identitas dilindungi token kriptografis'
-                          : 'Terverifikasi Kependudukan Kota Bogor'}
+                          : report.reporterType === 'verified_citizen'
+                          ? 'Warga Terverifikasi'
+                          : 'Warga Terdaftar'}
                       </div>
                     </div>
                   </div>
@@ -909,9 +912,11 @@ export const ReportDetailView: React.FC = () => {
                                 className="shrink-0 block cursor-pointer"
                                 title={`Lihat profil ${testimony.authorName}`}
                               >
-                                <img
+                                <UserAvatar
                                   src={testimony.avatarUrl}
                                   alt={testimony.authorName}
+                                  name={testimony.authorName}
+                                  role="citizen"
                                   className="w-6 h-6 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E] hover:scale-105 transition-transform"
                                 />
                               </a>
