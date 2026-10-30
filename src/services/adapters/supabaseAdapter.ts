@@ -35,7 +35,7 @@ function mapPostgrestError(error: unknown, fallbackMessage: string): DataError {
   return new DataError('network', msg, error);
 }
 
-function mapReportRow(row: any, isSupportedByMe = false): Report {
+function mapReportRow(row: any, isSupportedByMe = false, isSavedByMe = false): Report {
   const location =
     typeof row.location === 'object' && row.location !== null
       ? row.location
@@ -74,6 +74,7 @@ function mapReportRow(row: any, isSupportedByMe = false): Report {
       row.support_count ?? 0
     ),
     isSupportedByMe,
+    isSavedByMe,
     budgetContext:
       row.budget_context && Object.keys(row.budget_context).length > 0
         ? row.budget_context
@@ -114,10 +115,11 @@ function mapPostRow(
   row: any,
   isSaved = false,
   isLiked = false,
-  isSupported = false
+  isSupported = false,
+  isReportSaved = false
 ): Post {
   const relatedReport = row.relatedReport
-    ? mapReportRow(row.relatedReport, isSupported)
+    ? mapReportRow(row.relatedReport, isSupported, isReportSaved)
     : undefined;
 
   const dynamicCommentsCount = Math.max(
@@ -256,16 +258,24 @@ export class SupabaseDataAdapter implements IDataAdapter {
       }
 
       let savedPostIds = new Set<string>();
+      let savedReportIds = new Set<string>();
       let likedPostIds = new Set<string>();
       let supportedReportIds = new Set<string>();
 
       if (userId) {
-        const [savesRes, likesRes, supportsRes] = await Promise.all([
+        const [savesRes, reportSavesRes, likesRes, supportsRes] = await Promise.all([
           supabase.from('post_saves').select('post_id').eq('user_id', userId),
+          supabase.from('report_saves').select('report_id').eq('user_id', userId),
           supabase.from('post_likes').select('post_id').eq('user_id', userId),
           supabase.from('report_supports').select('report_id').eq('user_id', userId),
         ]);
 
+        if (reportSavesRes.error) {
+          throw mapPostgrestError(reportSavesRes.error, 'Gagal memuat status simpan laporan.');
+        }
+        savedReportIds = new Set(
+          (reportSavesRes.data || []).map((r: { report_id: string }) => r.report_id)
+        );
         if (savesRes.data) {
           savedPostIds = new Set(savesRes.data.map((r: { post_id: string }) => r.post_id));
         }
@@ -282,7 +292,8 @@ export class SupabaseDataAdapter implements IDataAdapter {
           row,
           userId ? savedPostIds.has(row.id) : false,
           userId ? likedPostIds.has(row.id) : false,
-          row.related_report_id && userId ? supportedReportIds.has(row.related_report_id) : false
+          row.related_report_id && userId ? supportedReportIds.has(row.related_report_id) : false,
+          row.related_report_id && userId ? savedReportIds.has(row.related_report_id) : false
         )
       );
     } catch (err) {
@@ -291,7 +302,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
     }
   }
 
-  async getReportByReference(reference: string): Promise<Report | null> {
+  async getReportByReference(reference: string, userId?: string): Promise<Report | null> {
     try {
       const { data, error } = await supabase
         .from('reports')
@@ -303,7 +314,20 @@ export class SupabaseDataAdapter implements IDataAdapter {
         throw mapPostgrestError(error, 'Gagal mencari laporan.');
       }
       if (!data) return null;
-      return mapReportRow(data);
+      let isSavedByMe = false;
+      if (userId) {
+        const { data: saved, error: savedError } = await supabase
+          .from('report_saves')
+          .select('report_id')
+          .eq('report_id', data.id)
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (savedError) {
+          throw mapPostgrestError(savedError, 'Gagal memuat status simpan laporan.');
+        }
+        isSavedByMe = Boolean(saved);
+      }
+      return mapReportRow(data, false, isSavedByMe);
     } catch (err) {
       if (err instanceof DataError) throw err;
       throw mapPostgrestError(err, 'Terjadi kesalahan saat memuat laporan.');
@@ -682,6 +706,45 @@ export class SupabaseDataAdapter implements IDataAdapter {
     } catch (err) {
       if (err instanceof DataError) throw err;
       throw mapPostgrestError(err, 'Gagal memuat postingan tersimpan.');
+    }
+  }
+
+  async toggleReportSave(reportId: string, userId?: string): Promise<{ isSaved: boolean }> {
+    if (!userId) {
+      throw new DataError('auth', 'Autentikasi diperlukan untuk menyimpan laporan.');
+    }
+    try {
+      const { data, error } = await supabase.rpc('toggle_report_save', {
+        p_report_id: reportId,
+      });
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal menyimpan laporan.');
+      }
+      return { isSaved: data.is_saved };
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal menyimpan laporan.');
+    }
+  }
+
+  async getSavedReports(userId: string): Promise<Report[]> {
+    try {
+      const { data, error } = await supabase
+        .from('report_saves')
+        .select('report_id, report:reports(*)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal memuat laporan tersimpan.');
+      }
+      return (data || [])
+        .map((row: any) => row.report)
+        .filter(Boolean)
+        .map((row: any) => mapReportRow(row, false, true));
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal memuat laporan tersimpan.');
     }
   }
 

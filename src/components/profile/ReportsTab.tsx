@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileText, MapPin } from 'lucide-react';
 import { formatIndonesianTimeAgo } from '../../utils/timeAgo';
+import { SaveReportButton } from '../reporting/SaveReportButton';
 import type { ProfileController } from './useProfileController';
 
 interface ReportsTabProps {
@@ -8,7 +9,7 @@ interface ReportsTabProps {
 }
 
 export const ReportsTab: React.FC<ReportsTabProps> = ({ ctrl }) => {
-  const { openComposer, openReportDetail, reports, activeTab, isOwnProfile } = ctrl;
+  const { openComposer, openReportDetail, reports, savedReports, setReports, setSavedReports, activeTab, isOwnProfile } = ctrl;
   return (
     <>
             {activeTab === 'reports' && (
@@ -65,11 +66,30 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ ctrl }) => {
 
                         <div className="flex sm:flex-col items-center sm:items-end justify-between shrink-0 gap-2">
                           <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-xl border border-emerald-200 dark:border-emerald-800/40">
-                            {report.status}
+                            {report.status.replaceAll('_', ' ')}
                           </span>
                           <span className="text-[10px] text-[#686B65] dark:text-[#9EACA3]">
                             {report.supportCount || 0} Dukungan Warga
                           </span>
+                          <SaveReportButton
+                            reportId={report.id}
+                            isSavedByMe={report.isSavedByMe || savedReports.some((saved) => saved.id === report.id)}
+                            onSavedChange={(isSaved) => {
+                              setReports((current) =>
+                                current.map((item) =>
+                                  item.id === report.id ? { ...item, isSavedByMe: isSaved } : item
+                                )
+                              );
+                              setSavedReports((current) => {
+                                if (isSaved) {
+                                  return current.some((item) => item.id === report.id)
+                                    ? current
+                                    : [{ ...report, isSavedByMe: true }, ...current];
+                                }
+                                return current.filter((item) => item.id !== report.id);
+                              });
+                            }}
+                          />
                         </div>
                       </div>
                     ))}

@@ -29,6 +29,7 @@ function simpleHash(token: string): string {
     hash = (hash << 5) - hash + char;
     hash |= 0;
   }
+
   return `hash_${Math.abs(hash).toString(16)}`;
 }
 
@@ -51,6 +52,7 @@ function loadStoredArray<T>(key: string, fallback: T[]): T[] {
 const MOCK_REPORTS_STORAGE_KEY = 'titik_mock_reports_v3';
 const MOCK_POSTS_STORAGE_KEY = 'titik_mock_posts_v3';
 const DELETED_REPORTS_STORAGE_KEY = 'titik_deleted_reports_v1';
+const SAVED_REPORTS_STORAGE_KEY = 'titik_mock_saved_reports_v1';
 
 const isTestEnv =
   typeof process !== 'undefined' &&
@@ -151,7 +153,7 @@ export class MockDataAdapter implements IDataAdapter {
     await savePersistedReports(reports, posts);
   }
 
-  async getFeedPosts(tab: 'for_you' | 'following' | 'nearby' = 'for_you', category?: string, _userId?: string): Promise<Post[]> {
+  async getFeedPosts(tab: 'for_you' | 'following' | 'nearby' = 'for_you', category?: string, userId?: string): Promise<Post[]> {
     await this.ensurePersistedReportsLoaded();
     let result = [...this.posts];
 
@@ -166,6 +168,9 @@ export class MockDataAdapter implements IDataAdapter {
     }
 
     // Ensure related reports and dynamic comment counts are up to date
+    const savedReportIds = new Set(
+      userId ? loadStoredArray<string>(`${SAVED_REPORTS_STORAGE_KEY}_${userId}`, []) : []
+    );
     return result.map((post) => {
       const dynamicCount = isTestEnv
         ? post.commentsCount
@@ -177,7 +182,9 @@ export class MockDataAdapter implements IDataAdapter {
       return {
         ...post,
         commentsCount: dynamicCount,
-        relatedReport: matched,
+        relatedReport: matched
+          ? { ...matched, isSavedByMe: savedReportIds.has(matched.id) }
+          : undefined,
       };
     });
   }
@@ -203,13 +210,20 @@ export class MockDataAdapter implements IDataAdapter {
       .map((report) => ({ ...report }));
   }
 
-  async getReportByReference(reference: string): Promise<Report | null> {
+  async getReportByReference(reference: string, userId?: string): Promise<Report | null> {
     await this.ensurePersistedReportsLoaded();
     const term = reference.trim().toLowerCase();
     const report = this.reports.find(
       (r) => r.publicReference.toLowerCase() === term || r.id.toLowerCase() === term
     );
-    return report ? { ...report } : null;
+    return report
+      ? {
+          ...report,
+          isSavedByMe: userId
+            ? loadStoredArray<string>(`${SAVED_REPORTS_STORAGE_KEY}_${userId}`, []).includes(report.id)
+            : false,
+        }
+      : null;
   }
 
   async verifyReportTracking(reference: string, token: string): Promise<Report | null> {
@@ -651,6 +665,28 @@ export class MockDataAdapter implements IDataAdapter {
     return { supportCount, isSupported };
   }
 
+  async toggleReportSave(reportId: string, userId?: string): Promise<{ isSaved: boolean }> {
+    if (!userId) {
+      throw new DataError('auth', 'Autentikasi diperlukan untuk menyimpan laporan.');
+    }
+    await this.ensurePersistedReportsLoaded();
+    const report = this.reports.find((item) => item.id === reportId);
+    if (!report) throw new DataError('not_found', 'Laporan tidak ditemukan.');
+
+    const storageKey = `${SAVED_REPORTS_STORAGE_KEY}_${userId}`;
+    const savedIds = new Set(loadStoredArray<string>(storageKey, []));
+    const isSaved = !savedIds.has(reportId);
+    if (isSaved) savedIds.add(reportId);
+    else savedIds.delete(reportId);
+
+    try {
+      globalThis.localStorage?.setItem(storageKey, JSON.stringify([...savedIds]));
+    } catch (err) {
+      throw new DataError('network', 'Gagal menyimpan laporan di perangkat ini.', err);
+    }
+    return { isSaved };
+  }
+
   async togglePostSave(postId: string, _userId: string): Promise<{ savesCount: number; isSaved: boolean }> {
     const post = this.posts.find((p) => p.id === postId);
     if (!post) {
@@ -681,6 +717,16 @@ export class MockDataAdapter implements IDataAdapter {
 
   async getSavedPosts(_userId: string): Promise<Post[]> {
     return this.posts.filter((p) => p.isSavedByMe);
+  }
+
+  async getSavedReports(userId: string): Promise<Report[]> {
+    await this.ensurePersistedReportsLoaded();
+    const savedIds = new Set(
+      loadStoredArray<string>(`${SAVED_REPORTS_STORAGE_KEY}_${userId}`, [])
+    );
+    return this.reports
+      .filter((report) => savedIds.has(report.id))
+      .map((report) => ({ ...report, isSavedByMe: true }));
   }
 
   async addComment(
@@ -781,7 +827,12 @@ export class MockDataAdapter implements IDataAdapter {
   }
 
   async getUserReports(userId: string): Promise<Report[]> {
-    return this.reports.filter((r) => r.reporterUserId === userId && r.reporterType !== 'anonymous');
+    const savedIds = new Set(
+      loadStoredArray<string>(`${SAVED_REPORTS_STORAGE_KEY}_${userId}`, [])
+    );
+    return this.reports
+      .filter((r) => r.reporterUserId === userId && r.reporterType !== 'anonymous')
+      .map((report) => ({ ...report, isSavedByMe: savedIds.has(report.id) }));
   }
 
   async getPostById(postId: string): Promise<Post | null> {

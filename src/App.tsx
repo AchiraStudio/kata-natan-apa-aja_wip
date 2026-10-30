@@ -15,6 +15,7 @@ const AdminView = React.lazy(() => import('./views/AdminView').then((m) => ({ de
 const WorkflowView = React.lazy(() => import('./views/WorkflowView').then((m) => ({ default: m.WorkflowView })));
 const ReportDetailView = React.lazy(() => import('./views/ReportDetailView').then((m) => ({ default: m.ReportDetailView })));
 const MyReportsView = React.lazy(() => import('./views/MyReportsView').then((m) => ({ default: m.MyReportsView })));
+const SavedReportsView = React.lazy(() => import('./views/SavedReportsView').then((m) => ({ default: m.SavedReportsView })));
 const ProfileView = React.lazy(() => import('./views/ProfileView').then((m) => ({ default: m.ProfileView })));
 const PostDetailView = React.lazy(() => import('./views/PostDetailView').then((m) => ({ default: m.PostDetailView })));
 
@@ -139,6 +140,14 @@ export const AppRoutes: React.FC = () => {
           <Route path="/explore" element={<ExploreView />} />
           <Route path="/map" element={<MapView />} />
           <Route path="/track" element={<TrackReportView />} />
+          <Route
+            path="/tersimpan"
+            element={
+              <AuthenticatedRoute>
+                <SavedReportsView />
+              </AuthenticatedRoute>
+            }
+          />
           <Route path="/u/:username" element={<ProfileView />} />
           <Route path="/profile/:username" element={<ProfileView />} />
           <Route path="/post/:id" element={<PostDetailView />} />

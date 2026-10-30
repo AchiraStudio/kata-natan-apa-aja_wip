@@ -38,13 +38,14 @@ npm run dev
 Execute the SQL migration files located in `supabase/migrations/` in sequential order:
 
 - Forward-only security hardening migration: `supabase/migrations/20261028000001_security_hardening.sql`
+- Saved-report bookmarks: `supabase/migrations/20261030000001_add_report_saves.sql`
 - Or use `supabase/schema.sql` for a clean full setup.
 
 ### Option A: Via Supabase Dashboard SQL Editor (Quickest)
 
 1. Open your Supabase Dashboard:
    `https://supabase.com/dashboard/project/<your-project-ref>/sql/new`
-2. Open `supabase/migrations/20261028000001_security_hardening.sql` (or `supabase/schema.sql`) and run the script in the SQL editor.
+2. For an existing installation, run pending migrations in order, including `20261030000001_add_report_saves.sql` to enable private report bookmarks. For a clean setup, run `supabase/schema.sql`.
 
 ### Option B: Via Supabase CLI
 

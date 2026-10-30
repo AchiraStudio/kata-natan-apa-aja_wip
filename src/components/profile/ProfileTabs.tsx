@@ -7,7 +7,7 @@ interface ProfileTabsProps {
 }
 
 export const ProfileTabs: React.FC<ProfileTabsProps> = ({ ctrl }) => {
-  const { posts, reports, savedPosts, activeTab, setActiveTab, isOwnProfile } = ctrl;
+  const { posts, reports, savedPosts, savedReports, activeTab, setActiveTab, isOwnProfile } = ctrl;
   return (
     <>
             <div className="p-1 bg-[#EBE9DF]/70 dark:bg-[#131916] rounded-2xl border border-[#E4E2DA] dark:border-[#26352E] flex items-center gap-1 overflow-x-auto no-scrollbar">
@@ -48,7 +48,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({ ctrl }) => {
                   }`}
                 >
                   <Bookmark className="w-3.5 h-3.5" />
-                  <span>Disimpan ({savedPosts.length})</span>
+                  <span>Disimpan ({savedPosts.length + savedReports.length})</span>
                 </button>
               )}
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MockDataAdapter } from '../services/adapters/mockAdapter';
 
 describe('Report Service & State Machine Tests', () => {
@@ -6,6 +6,10 @@ describe('Report Service & State Machine Tests', () => {
 
   beforeEach(() => {
     adapter = new MockDataAdapter();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('generates valid public reference format and secret follow-up token on report submission', async () => {
@@ -116,6 +120,26 @@ describe('Report Service & State Machine Tests', () => {
       expect(isSupported).toBe(true);
       expect(supportCount).toBe(initialCount + 1);
     }
+  });
+
+  it('saves reports privately per user and removes them from the saved list when toggled again', async () => {
+    const storedValues = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => storedValues.get(key) ?? null,
+      setItem: (key: string, value: string) => storedValues.set(key, value),
+    });
+
+    const [post] = await adapter.getFeedPosts();
+    const reportId = post.relatedReport?.id;
+    expect(reportId).toBeDefined();
+    if (!reportId) throw new Error('Seed post must include its related report.');
+
+    await expect(adapter.toggleReportSave(reportId, 'user-1')).resolves.toEqual({ isSaved: true });
+    await expect(adapter.getSavedReports('user-1')).resolves.toHaveLength(1);
+    await expect(adapter.getSavedReports('user-2')).resolves.toHaveLength(0);
+
+    await expect(adapter.toggleReportSave(reportId, 'user-1')).resolves.toEqual({ isSaved: false });
+    await expect(adapter.getSavedReports('user-1')).resolves.toHaveLength(0);
   });
 
   it('retrieves comments and successfully adds a new comment to a post', async () => {

@@ -32,6 +32,7 @@ export interface TitikContextType {
   setLandingBannerOpen: (open: boolean) => void;
   currentUserId?: string;
   toggleSupport: (reportId: string) => Promise<void>;
+  toggleReportSave?: (reportId: string) => Promise<{ isSaved: boolean }>;
   togglePostSave?: (postId: string) => Promise<void>;
   togglePostLike?: (postId: string) => Promise<void>;
   addComment: (
@@ -201,6 +202,37 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         })
       );
       throw err;
+    }
+  };
+
+  const toggleReportSave = async (reportId: string) => {
+    const reportInFeed = posts.find((post) => post.relatedReportId === reportId)?.relatedReport;
+    const report = selectedReport?.id === reportId ? selectedReport : reportInFeed;
+    const wasSaved = report?.isSavedByMe ?? false;
+    const updateSavedState = (isSavedByMe: boolean) => {
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.relatedReportId === reportId && post.relatedReport
+            ? {
+                ...post,
+                relatedReport: { ...post.relatedReport, isSavedByMe },
+              }
+            : post
+        )
+      );
+      setSelectedReport((prev) =>
+        prev?.id === reportId ? { ...prev, isSavedByMe } : prev
+      );
+    };
+
+    updateSavedState(!wasSaved);
+    try {
+      const result = await dataService.toggleReportSave(reportId, currentUserId);
+      updateSavedState(result.isSaved);
+      return result;
+    } catch (error) {
+      updateSavedState(wasSaved);
+      throw error;
     }
   };
 
@@ -388,6 +420,7 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setLandingBannerOpen,
         currentUserId,
         toggleSupport,
+        toggleReportSave,
         togglePostSave,
         togglePostLike,
         addComment,

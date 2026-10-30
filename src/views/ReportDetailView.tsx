@@ -38,6 +38,7 @@ import { Report } from '../types/domain';
 import { createCivicTileLayer } from '../utils/mapTiles';
 import { getReportMediaType } from '../utils/reportEvidence';
 import { UserAvatar } from '../components/common/UserAvatar';
+import { SaveReportButton } from '../components/reporting/SaveReportButton';
 import './ReportDetailView.css';
 
 interface Testimony {
@@ -53,7 +54,7 @@ interface Testimony {
 export const ReportDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toggleSupport } = useTitik();
+  const { toggleSupport, currentUserId } = useTitik();
   const { profile } = useAuth();
 
   const [report, setReport] = useState<Report | null>(null);
@@ -110,7 +111,7 @@ export const ReportDetailView: React.FC = () => {
     let isMounted = true;
     if (id) {
       dataService
-        .getReportByReference(id)
+        .getReportByReference(id, currentUserId)
         .then((res) => {
           if (isMounted) {
             setReport(res);
@@ -151,7 +152,7 @@ export const ReportDetailView: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, currentUserId]);
 
   // Leaflet Map Initialization & Tab Switching
   useEffect(() => {
@@ -446,6 +447,13 @@ export const ReportDetailView: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              <SaveReportButton
+                reportId={report.id}
+                isSavedByMe={report.isSavedByMe}
+                onSavedChange={(isSaved) =>
+                  setReport((current) => current ? { ...current, isSavedByMe: isSaved } : current)
+                }
+              />
               <button
                 type="button"
                 onClick={handleCopyShareUrl}

@@ -163,6 +163,14 @@ CREATE TABLE IF NOT EXISTS public.report_supports (
   PRIMARY KEY (report_id, user_id)
 );
 
+-- Private saved-report collection
+CREATE TABLE IF NOT EXISTS public.report_saves (
+  report_id TEXT NOT NULL REFERENCES public.reports(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (report_id, user_id)
+);
+
 -- Post Comments
 CREATE TABLE IF NOT EXISTS public.comments (
   id TEXT PRIMARY KEY,
@@ -576,6 +584,36 @@ GRANT EXECUTE ON FUNCTION public.toggle_post_like(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.toggle_post_save(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.toggle_report_support(TEXT) TO authenticated;
 
+CREATE OR REPLACE FUNCTION public.toggle_report_save(p_report_id TEXT)
+RETURNS JSONB AS $$
+DECLARE
+  v_uid TEXT;
+  v_exists BOOLEAN;
+BEGIN
+  v_uid := (SELECT auth.uid()::text);
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Autentikasi diperlukan untuk menyimpan laporan.';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.report_saves
+    WHERE report_id = p_report_id AND user_id = v_uid
+  ) INTO v_exists;
+
+  IF v_exists THEN
+    DELETE FROM public.report_saves
+    WHERE report_id = p_report_id AND user_id = v_uid;
+  ELSE
+    INSERT INTO public.report_saves (report_id, user_id)
+    VALUES (p_report_id, v_uid)
+    ON CONFLICT DO NOTHING;
+  END IF;
+
+  RETURN jsonb_build_object('is_saved', NOT v_exists);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+GRANT EXECUTE ON FUNCTION public.toggle_report_save(TEXT) TO authenticated;
+
 -- Submit Report RPC
 DROP FUNCTION IF EXISTS public.submit_report(UUID, TEXT, TEXT, TEXT, TEXT, JSONB, TEXT, JSONB, JSONB, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT);
 CREATE OR REPLACE FUNCTION public.submit_report(
@@ -913,6 +951,20 @@ DROP POLICY IF EXISTS "Users can manage report supports" ON public.report_suppor
 CREATE POLICY "Users can manage report supports" ON public.report_supports FOR ALL
   USING (user_id = (SELECT auth.uid()::text)) WITH CHECK (user_id = (SELECT auth.uid()::text));
 
+-- Saved reports are private to the user who saved them
+ALTER TABLE public.report_saves ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.report_saves FROM anon, authenticated;
+GRANT SELECT, INSERT, DELETE ON public.report_saves TO authenticated;
+DROP POLICY IF EXISTS "Users can view own saved reports" ON public.report_saves;
+CREATE POLICY "Users can view own saved reports" ON public.report_saves
+  FOR SELECT USING (user_id = (SELECT auth.uid()::text));
+DROP POLICY IF EXISTS "Users can save reports for themselves" ON public.report_saves;
+CREATE POLICY "Users can save reports for themselves" ON public.report_saves
+  FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()::text));
+DROP POLICY IF EXISTS "Users can remove their saved reports" ON public.report_saves;
+CREATE POLICY "Users can remove their saved reports" ON public.report_saves
+  FOR DELETE USING (user_id = (SELECT auth.uid()::text));
+
 -- Report Events
 ALTER TABLE public.report_events ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Report events viewable by everyone" ON public.report_events;
@@ -1125,4 +1177,3 @@ END $$;
 -- 8. RELOAD SCHEMA CACHE
 -- -----------------------------------------------------------------------------
 NOTIFY pgrst, 'reload schema';
-

@@ -73,10 +73,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
     {
       label: 'Laporan Tersimpan',
       icon: Bookmark,
-      href: '#',
-      active: false,
+      href: '/tersimpan',
+      active: currentPath === '/tersimpan',
       onClick: () => {
-        // Reserved for saved bookmark collection
+        if (location.pathname !== '/tersimpan') {
+          navigate('/tersimpan');
+        }
       },
     },
     ...(isAuthenticated

@@ -7,6 +7,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
+import { SaveReportButton } from './SaveReportButton';
 import '../../views/ReportDetailView.css';
 
 export const ReportDetailDrawer: React.FC = () => {
@@ -54,13 +55,19 @@ export const ReportDetailDrawer: React.FC = () => {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={closeReportDetail}
-            className="p-1.5 rounded-full text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#1A221E] transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <SaveReportButton
+              reportId={selectedReport.id}
+              isSavedByMe={selectedReport.isSavedByMe}
+            />
+            <button
+              type="button"
+              onClick={closeReportDetail}
+              className="p-1.5 rounded-full text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#1A221E] transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}

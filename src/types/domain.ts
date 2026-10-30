@@ -142,6 +142,7 @@ export interface Report {
   reporterDisplayName?: string;
   supportCount: number; // "Saya terdampak juga" civic support count
   isSupportedByMe?: boolean;
+  isSavedByMe?: boolean;
   budgetContext: BudgetSectorContext;
   events: ReportEvent[];
   evidence_verification_status?: EvidenceVerificationStatus;

@@ -17,6 +17,7 @@ export function useProfileController() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
+  const [savedReports, setSavedReports] = useState<Report[]>([]);
   const [activeTab, setActiveTab] = useState<'posts' | 'reports' | 'saved' | 'settings'>('posts');
 
   const [isLoading, setIsLoading] = useState(true);
@@ -111,12 +112,18 @@ export function useProfileController() {
           currentAuthProfile.username.toLowerCase() === fetchedProfile.username.toLowerCase());
 
       if (isViewerOwner) {
-        try {
-          const saved = await dataService.getSavedPosts(currentAuthProfile.id);
-          setSavedPosts(saved);
-        } catch {
-          setSavedPosts([]);
-        }
+        const [saved, savedReportsList] = await Promise.all([
+          dataService.getSavedPosts(currentAuthProfile.id).catch((err) => {
+            console.warn('Could not load saved posts:', err);
+            return [];
+          }),
+          dataService.getSavedReports(currentAuthProfile.id),
+        ]);
+        setSavedPosts(saved);
+        setSavedReports(savedReportsList);
+      } else {
+        setSavedPosts([]);
+        setSavedReports([]);
       }
     } catch (err: unknown) {
       console.error('Failed to load profile data:', err);
@@ -343,6 +350,8 @@ export function useProfileController() {
     setReports,
     savedPosts,
     setSavedPosts,
+    savedReports,
+    setSavedReports,
     activeTab,
     setActiveTab,
     isLoading,

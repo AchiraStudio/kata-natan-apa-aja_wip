@@ -45,7 +45,7 @@ export interface FeedComment {
 export interface IDataAdapter {
   getFeedPosts(tab?: 'for_you' | 'following' | 'nearby', category?: string, userId?: string): Promise<Post[]>;
   getMyReports(reporterUserId: string): Promise<Report[]>;
-  getReportByReference(reference: string): Promise<Report | null>;
+  getReportByReference(reference: string, userId?: string): Promise<Report | null>;
   verifyReportTracking(reference: string, token: string): Promise<Report | null>;
   submitReport(input: NewReportInput): Promise<ReportSubmitResult>;
   resubmitRejectedReport(
@@ -79,9 +79,11 @@ export interface IDataAdapter {
   ): Promise<boolean>;
   getPrivateEvidenceSignedUrl(filePath: string): Promise<string>;
   toggleReportSupport(reportId: string, userId?: string): Promise<{ supportCount: number; isSupported: boolean }>;
+  toggleReportSave(reportId: string, userId?: string): Promise<{ isSaved: boolean }>;
   togglePostSave(postId: string, userId?: string): Promise<{ savesCount: number; isSaved: boolean }>;
   togglePostLike(postId: string, userId?: string): Promise<{ likesCount: number; isLiked: boolean }>;
   getSavedPosts(userId: string): Promise<Post[]>;
+  getSavedReports(userId: string): Promise<Report[]>;
   addComment(postId: string, authorName: string, avatarUrl: string, body: string, parentId?: string): Promise<FeedComment>;
   getComments(postId: string): Promise<FeedComment[]>;
   getFacilities(query?: string, category?: string): Promise<Facility[]>;

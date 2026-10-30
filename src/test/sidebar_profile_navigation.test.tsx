@@ -60,6 +60,8 @@ describe('Sidebar Profile Navigation Suite', () => {
     expect(html).toContain('href="/u/budi.santoso"');
     expect(html).toContain('title="Profil Saya"');
     expect(html).toContain('Budi Santoso');
+    expect(html).toContain('href="/tersimpan"');
+    expect(html).toContain('Laporan Tersimpan');
 
     // 2. Does NOT link to login when authenticated
     expect(html).not.toContain('href="/login"');
