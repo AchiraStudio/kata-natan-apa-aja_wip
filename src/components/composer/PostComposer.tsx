@@ -141,14 +141,14 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Post Type Selector */}
-      <div className="flex items-center gap-2 p-1 bg-[#E4E2DA]/50 dark:bg-[#1A221E] rounded-xl text-xs font-semibold">
+      <div className="flex items-center gap-2 p-1 bg-[#E3E0D6]/50 dark:bg-[#1A221E] rounded-xl text-xs font-semibold">
         <button
           type="button"
           onClick={() => setPostType('community_discussion')}
           className={`flex-1 py-1.5 px-3 rounded-lg transition-all ${
             postType === 'community_discussion'
-              ? 'bg-white dark:bg-[#26352E] text-[#263F35] dark:text-[#34D399] shadow-xs'
-              : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4]'
+              ? 'bg-white dark:bg-[#26352E] text-[#1B4332] dark:text-[#34D399] shadow-xs'
+              : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4]'
           }`}
         >
           Diskusi Warga
@@ -158,8 +158,8 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
           onClick={() => setPostType('citizen_report')}
           className={`flex-1 py-1.5 px-3 rounded-lg transition-all ${
             postType === 'citizen_report'
-              ? 'bg-white dark:bg-[#26352E] text-[#263F35] dark:text-[#34D399] shadow-xs'
-              : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4]'
+              ? 'bg-white dark:bg-[#26352E] text-[#1B4332] dark:text-[#34D399] shadow-xs'
+              : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4]'
           }`}
         >
           Kabar Lapangan
@@ -171,7 +171,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
             className={`flex-1 py-1.5 px-3 rounded-lg transition-all ${
               postType === 'official_update'
                 ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 shadow-xs'
-                : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4]'
+                : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4]'
             }`}
           >
             Pembaruan Resmi
@@ -186,13 +186,13 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
           alt={profile.displayName}
           name={profile.displayName}
           role={profile.role}
-          className="w-9 h-9 rounded-full object-cover ring-1 ring-[#E4E2DA] dark:ring-[#26352E]"
+          className="w-9 h-9 rounded-full object-cover ring-1 ring-[#E3E0D6] dark:ring-[#26352E]"
         />
         <div className="min-w-0">
-          <p className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] truncate">
+          <p className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4] truncate">
             {profile.displayName}
           </p>
-          <p className="text-[11px] text-[#686B65] dark:text-[#9EACA3] truncate">
+          <p className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] truncate">
             @{profile.username}{profile.district ? ` • ${profile.district}` : ''}
           </p>
         </div>
@@ -205,19 +205,19 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
           value={draft.caption}
           onChange={(e) => updateDraft({ caption: e.target.value })}
           placeholder="Bagikan situasi fasilitas publik, kondisi jalan, atau tanggapan Anda..."
-          className="w-full p-3.5 bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-xl text-sm text-[#20221D] dark:text-[#F3F6F4] placeholder:text-[#686B65] focus:outline-hidden focus:ring-2 focus:ring-[#263F35] dark:focus:ring-[#10B981] transition-all resize-none"
+          className="w-full p-3.5 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-sm text-[#101913] dark:text-[#F3F6F4] placeholder:text-[#4F5A52] focus:outline-hidden focus:ring-2 focus:ring-[#1B4332] dark:focus:ring-[#10B981] transition-all resize-none"
           maxLength={MAX_CHARS}
           required
         />
         <div className="flex items-center justify-between mt-1 px-1">
-          <span className="text-[11px] text-[#686B65] dark:text-[#9EACA3]">
+          <span className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
             Privasi: Terbuka untuk umum di linimasa TITIK
           </span>
           <span
             className={`text-[11px] font-mono tabular-nums ${
               remainingChars < 100
                 ? 'text-rose-600 font-bold'
-                : 'text-[#686B65] dark:text-[#9EACA3]'
+                : 'text-[#4F5A52] dark:text-[#9EACA3]'
             }`}
           >
             {remainingChars} / {MAX_CHARS}
@@ -226,25 +226,25 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
       </div>
 
       {/* Location Input */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-xl">
-        <MapPin className="w-4 h-4 text-[#263F35] dark:text-[#34D399] shrink-0" />
+      <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl">
+        <MapPin className="w-4 h-4 text-[#1B4332] dark:text-[#34D399] shrink-0" />
         <input
           type="text"
           value={draft.locationTag}
           onChange={(e) => updateDraft({ locationTag: e.target.value })}
           placeholder="Lokasi (contoh: Bogor Tengah, Jl. Pajajaran)"
-          className="w-full bg-transparent text-xs text-[#20221D] dark:text-[#F3F6F4] placeholder:text-[#686B65] focus:outline-hidden"
+          className="w-full bg-transparent text-xs text-[#101913] dark:text-[#F3F6F4] placeholder:text-[#4F5A52] focus:outline-hidden"
         />
       </div>
 
       {/* Optional Linked Facility */}
       {facilities.length > 0 && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-xl">
-          <Link2 className="w-4 h-4 text-[#686B65] dark:text-[#9EACA3] shrink-0" />
+        <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl">
+          <Link2 className="w-4 h-4 text-[#4F5A52] dark:text-[#9EACA3] shrink-0" />
           <select
             value={selectedFacilityId}
             onChange={(e) => setSelectedFacilityId(e.target.value)}
-            className="w-full bg-transparent text-xs text-[#20221D] dark:text-[#F3F6F4] focus:outline-hidden"
+            className="w-full bg-transparent text-xs text-[#101913] dark:text-[#F3F6F4] focus:outline-hidden"
           >
             <option value="">Hubungkan dengan fasilitas publik (opsional)...</option>
             {facilities.map((fac) => (
@@ -262,7 +262,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
           {items.map((item) => (
             <div
               key={item.id}
-              className="relative aspect-square rounded-xl overflow-hidden bg-black/5 dark:bg-black/30 border border-[#E4E2DA] dark:border-[#26352E] group"
+              className="relative aspect-square rounded-xl overflow-hidden bg-black/5 dark:bg-black/30 border border-[#E3E0D6] dark:border-[#26352E] group"
             >
               {item.type === 'video' ? (
                 <div className="w-full h-full flex items-center justify-center bg-black/60 text-white">
@@ -297,7 +297,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
       )}
 
       {/* Action Footer */}
-      <div className="pt-2 flex items-center justify-between border-t border-[#E4E2DA] dark:border-[#26352E]">
+      <div className="pt-2 flex items-center justify-between border-t border-[#E3E0D6] dark:border-[#26352E]">
         <div className="flex items-center gap-2">
           <input
             ref={fileInputRef}
@@ -311,10 +311,10 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
           />
           <label
             htmlFor="post-media-input"
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E4E2DA] dark:border-[#26352E] text-xs font-semibold cursor-pointer transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E3E0D6] dark:border-[#26352E] text-xs font-semibold cursor-pointer transition-colors ${
               items.length >= 4 || isProcessing
-                ? 'opacity-50 cursor-not-allowed bg-transparent text-[#686B65]'
-                : 'hover:bg-white dark:hover:bg-[#1A221E] text-[#263F35] dark:text-[#34D399]'
+                ? 'opacity-50 cursor-not-allowed bg-transparent text-[#4F5A52]'
+                : 'hover:bg-white dark:hover:bg-[#1A221E] text-[#1B4332] dark:text-[#34D399]'
             }`}
           >
             {isProcessing ? (
@@ -330,14 +330,14 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-xs font-semibold text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] transition-colors cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] transition-colors cursor-pointer"
           >
             Batal
           </button>
           <button
             type="submit"
             disabled={isSubmitting || !draft.caption.trim()}
-            className="inline-flex items-center gap-2 px-5 py-2 bg-[#263F35] dark:bg-[#10B981] hover:bg-[#1d3129] dark:hover:bg-[#34D399] text-white dark:text-[#0A1610] rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2 bg-[#1B4332] dark:bg-[#10B981] hover:bg-[#14352A] dark:hover:bg-[#34D399] text-white dark:text-[#0A1610] rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSubmitting ? (
               <>

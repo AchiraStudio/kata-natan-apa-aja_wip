@@ -39,7 +39,44 @@ import { createCivicTileLayer } from '../utils/mapTiles';
 import { getReportMediaType } from '../utils/reportEvidence';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { SaveReportButton } from '../components/reporting/SaveReportButton';
+import confetti from 'canvas-confetti';
 import './ReportDetailView.css';
+
+const formatAbsoluteTimestamp = (dateString?: string): string => {
+  if (!dateString) return 'Waktu tidak tersedia';
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return dateString;
+  const day = d.getDate();
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
+};
+
+const CIVIC_STAGES = [
+  { step: 1, key: 'baru', label: '1. Tercatat', sub: 'Laporan Warga Masuk' },
+  { step: 2, key: 'verifikasi', label: '2. Diverifikasi', sub: 'Bukti Valid & Terperiksa' },
+  { step: 3, key: 'ditindak', label: '3. Ditindak', sub: 'Routing Disposisi Dinas' },
+  { step: 4, key: 'tuntas', label: '4. Tuntas', sub: 'Pekerjaan Fisik Selesai' },
+];
+
+const getActiveStageNumber = (status: string) => {
+  switch (status) {
+    case 'resolved':
+      return 4;
+    case 'forwarded_to_institution':
+    case 'institution_responded':
+      return 3;
+    case 'under_review':
+      return 2;
+    case 'submitted':
+    case 'needs_info':
+    default:
+      return 1;
+  }
+};
 
 interface Testimony {
   id: string;
@@ -153,6 +190,27 @@ export const ReportDetailView: React.FC = () => {
       isMounted = false;
     };
   }, [id, currentUserId]);
+
+  // Celebrate resolved/tuntas civic report with gentle radial confetti
+  useEffect(() => {
+    if (report?.status === 'resolved') {
+      const prefersReducedMotion =
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!prefersReducedMotion) {
+        try {
+          confetti({
+            particleCount: 50,
+            spread: 65,
+            origin: { y: 0.65 },
+            colors: ['#1B4332', '#2D6A4F', '#34D399', '#D97706'],
+          });
+        } catch {
+          // ignore if canvas is unavailable
+        }
+      }
+    }
+  }, [report?.status]);
 
   // Leaflet Map Initialization & Tab Switching
   useEffect(() => {
@@ -361,10 +419,10 @@ export const ReportDetailView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-full bg-[#F7F6F1] dark:bg-[#0C100E] flex flex-col items-center justify-center">
+      <div className="h-screen w-full bg-[#F7F5EF] dark:bg-[#0C100E] flex flex-col items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-3 border-[#263F35] dark:border-[#10B981] border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-xs text-[#686B65] dark:text-[#9EACA3] font-medium tracking-wide">
+          <div className="w-10 h-10 border-3 border-[#1B4332] dark:border-[#10B981] border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-xs text-[#4F5A52] dark:text-[#9EACA3] font-medium tracking-wide">
             Memuat berkas dossier investigasi & korelasi APBD...
           </span>
         </div>
@@ -379,14 +437,14 @@ export const ReportDetailView: React.FC = () => {
           <div className="w-16 h-16 rounded-3xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-amber-700 dark:text-amber-400">
             <AlertTriangle className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold text-[#20221D] dark:text-[#F3F6F4]">Berkas Laporan Tidak Ditemukan</h2>
-          <p className="text-xs text-[#686B65] dark:text-[#9EACA3] max-w-sm leading-relaxed">
+          <h2 className="text-xl font-bold text-[#101913] dark:text-[#F3F6F4]">Berkas Laporan Tidak Ditemukan</h2>
+          <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] max-w-sm leading-relaxed">
             Nomor referensi tiket publik yang Anda tuju tidak terdaftar di sistem atau sedang dalam tahap moderasi awal.
           </p>
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="report-pill-btn px-6 py-2.5 bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-full text-xs font-semibold hover:bg-[#1d3129] dark:hover:bg-[#34D399] transition-colors cursor-pointer"
+            className="report-pill-btn px-6 py-2.5 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-full text-xs font-semibold hover:bg-[#14352A] dark:hover:bg-[#34D399] transition-colors cursor-pointer"
           >
             ← Kembali ke Feed Publik
           </button>
@@ -408,16 +466,16 @@ export const ReportDetailView: React.FC = () => {
   return (
     <>
       {/* 1. Mobile Header (Hidden in Print) */}
-      <header className="lg:hidden h-14 bg-[#F7F6F1] dark:bg-[#131916] border-b border-[#E4E2DA] dark:border-[#26352E] px-4 flex items-center justify-between shrink-0 z-20 print:hidden">
+      <header className="lg:hidden h-14 bg-[#F7F5EF] dark:bg-[#131916] border-b border-[#E3E0D6] dark:border-[#26352E] px-4 flex items-center justify-between shrink-0 z-20 print:hidden">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="report-pill-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] text-xs font-semibold text-[#20221D] dark:text-[#F3F6F4] hover:text-[#263F35] dark:hover:text-[#34D399] cursor-pointer"
+          className="report-pill-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] text-xs font-semibold text-[#101913] dark:text-[#F3F6F4] hover:text-[#1B4332] dark:hover:text-[#34D399] cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Kembali</span>
         </button>
-        <span className="font-mono text-xs font-bold text-[#686B65] dark:text-[#9EACA3] px-2.5 py-1 rounded-full bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E]">{report.publicReference}</span>
+        <span className="font-mono text-xs font-bold text-[#4F5A52] dark:text-[#9EACA3] px-2.5 py-1 rounded-full bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E]">{report.publicReference}</span>
       </header>
 
 
@@ -425,25 +483,25 @@ export const ReportDetailView: React.FC = () => {
       <main className="flex-1 h-screen overflow-y-auto no-scrollbar w-full min-w-0 pb-28 lg:pb-16">
         <div className="w-full max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 space-y-6">
           {/* Top Breadcrumbs & Utility Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#E4E2DA] dark:border-[#26352E] print:hidden">
-            <div className="flex items-center gap-2 text-xs text-[#686B65] dark:text-[#9EACA3]">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#E3E0D6] dark:border-[#26352E] print:hidden">
+            <div className="flex items-center gap-2 text-xs text-[#4F5A52] dark:text-[#9EACA3]">
               <button
                 type="button"
                 onClick={() => navigate('/')}
-                className="hover:text-[#20221D] dark:hover:text-[#F3F6F4] transition-colors cursor-pointer"
+                className="hover:text-[#101913] dark:hover:text-[#F3F6F4] transition-colors cursor-pointer"
               >
                 Feed Publik
               </button>
-              <ChevronRight className="w-3.5 h-3.5 text-[#686B65]/60 dark:text-[#9EACA3]/60" />
+              <ChevronRight className="w-3.5 h-3.5 text-[#4F5A52]/60 dark:text-[#9EACA3]/60" />
               <button
                 type="button"
                 onClick={() => navigate('/explore')}
-                className="hover:text-[#20221D] dark:hover:text-[#F3F6F4] transition-colors cursor-pointer"
+                className="hover:text-[#101913] dark:hover:text-[#F3F6F4] transition-colors cursor-pointer"
               >
                 {report.category}
               </button>
-              <ChevronRight className="w-3.5 h-3.5 text-[#686B65]/60 dark:text-[#9EACA3]/60" />
-              <span className="font-mono font-bold text-[#20221D] dark:text-[#F3F6F4]">{report.publicReference}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-[#4F5A52]/60 dark:text-[#9EACA3]/60" />
+              <span className="font-mono font-bold text-[#101913] dark:text-[#F3F6F4]">{report.publicReference}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -457,7 +515,7 @@ export const ReportDetailView: React.FC = () => {
               <button
                 type="button"
                 onClick={handleCopyShareUrl}
-                className="report-pill-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-full text-xs font-semibold text-[#20221D] dark:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-colors cursor-pointer"
+                className="report-pill-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-full text-xs font-semibold text-[#101913] dark:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#131916] transition-colors cursor-pointer"
               >
                 {copiedShare ? (
                   <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -470,16 +528,16 @@ export const ReportDetailView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="report-pill-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-full text-xs font-semibold text-[#20221D] dark:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-colors cursor-pointer"
+                className="report-pill-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-full text-xs font-semibold text-[#101913] dark:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#131916] transition-colors cursor-pointer"
                 title="Cetak Berkas Dossier (PDF)"
               >
-                <Printer className="w-3.5 h-3.5 text-[#686B65] dark:text-[#9EACA3]" />
+                <Printer className="w-3.5 h-3.5 text-[#4F5A52] dark:text-[#9EACA3]" />
                 <span className="hidden sm:inline">Cetak PDF</span>
               </button>
 
               <a
                 href={`/track?ref=${encodeURIComponent(report.publicReference)}`}
-                className="report-pill-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#E7EBDD] dark:bg-[#1A2E24] border border-[#263F35]/20 dark:border-[#10B981]/30 rounded-full text-xs font-semibold text-[#263F35] dark:text-[#34D399] hover:bg-[#d8e0cc] dark:hover:bg-[#243f31] transition-colors"
+                className="report-pill-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#E7EBDD] dark:bg-[#1A2E24] border border-[#1B4332]/20 dark:border-[#10B981]/30 rounded-full text-xs font-semibold text-[#1B4332] dark:text-[#34D399] hover:bg-[#d8e0cc] dark:hover:bg-[#243f31] transition-colors"
               >
                 <Shield className="w-3.5 h-3.5" />
                 <span>Lacak Status Tiket</span>
@@ -487,8 +545,8 @@ export const ReportDetailView: React.FC = () => {
             </div>
           </div>
 
-          {/* Dossier Header Hero Banner with Geometric Ribbons & Angled Slashes (-35deg) in #263F35 */}
-          <div className="report-hero-banner relative overflow-hidden rounded-3xl p-6 lg:p-8 border border-[#263F35]/20 shadow-xs">
+          {/* Dossier Header Hero Banner with Geometric Ribbons & Angled Slashes (-35deg) in #1B4332 */}
+          <div className="report-hero-banner relative overflow-hidden rounded-3xl p-6 lg:p-8 border border-[#1B4332]/20 shadow-xs">
             {/* Geometric Angled Slashes Container */}
             <div className="report-slashes-container report-detail-slashes-container" aria-hidden="true">
               <div className="report-ambient-glow" />
@@ -505,13 +563,13 @@ export const ReportDetailView: React.FC = () => {
                   type="button"
                   onClick={handleCopyRef}
                   title="Klik untuk menyalin nomor referensi"
-                  className="report-pill-btn inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#1A221E] border border-white/30 dark:border-[#26352E] font-mono text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-colors cursor-pointer shadow-xs"
+                  className="titik-id report-pill-btn inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#1A221E] border border-white/30 dark:border-[#26352E] font-mono text-xs font-bold text-[#101913] dark:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#131916] transition-colors cursor-pointer shadow-xs"
                 >
                   <span>{report.publicReference}</span>
                   {copiedRef ? (
                     <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   ) : (
-                    <Copy className="w-3.5 h-3.5 text-[#686B65] dark:text-[#9EACA3]" />
+                    <Copy className="w-3.5 h-3.5 text-[#4F5A52] dark:text-[#9EACA3]" />
                   )}
                 </button>
 
@@ -562,11 +620,7 @@ export const ReportDetailView: React.FC = () => {
                 <div className="flex items-center gap-1.5 font-mono">
                   <Calendar className="w-3.5 h-3.5 text-[#E7EBDD]/70 shrink-0" />
                   <span>
-                    Dilaporkan: {new Date(report.createdAt).toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
+                    Dilaporkan: {formatAbsoluteTimestamp(report.createdAt)}
                   </span>
                 </div>
                 <span className="text-white/30 hidden sm:inline">•</span>
@@ -577,6 +631,132 @@ export const ReportDetailView: React.FC = () => {
             </div>
           </div>
 
+          {/* 4-Stage Civic Tracking Pipeline ("Setiap masalah adalah titik: muncul, bergerak, tuntas") */}
+          {(() => {
+            const activeStage = getActiveStageNumber(report.status);
+            return (
+              <div className="bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#E3E0D6] dark:border-[#26352E]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#1B4332] dark:bg-[#10B981] titik-live" />
+                    <span className="text-xs font-black uppercase tracking-wider text-[#101913] dark:text-[#F3F6F4]">
+                      Alur Progres Titik · Sistem Akuntabilitas Pemkot Bogor
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-mono font-bold text-[#1B4332] dark:text-[#34D399] bg-[#EBF2EE] dark:bg-[#1E2E25] px-3 py-1 rounded-full">
+                    Tahap {activeStage} dari 4: {CIVIC_STAGES[activeStage - 1].label}
+                  </span>
+                </div>
+
+                <div className="relative pt-3 pb-2 px-2 sm:px-6">
+                  {/* Background Track Line */}
+                  <div className="absolute top-7 left-8 right-8 h-1 bg-[#E3E0D6] dark:border-[#26352E] rounded-full -translate-y-1/2 z-0" />
+
+                  {/* Active Colored Fill Line */}
+                  <div
+                    ref={(el) => {
+                      if (el) {
+                        el.style.width = `${((activeStage - 1) / (CIVIC_STAGES.length - 1)) * 100}%`;
+                        el.style.maxWidth = 'calc(100% - 4rem)';
+                      }
+                    }}
+                    className="absolute top-7 left-8 h-1 bg-[#1B4332] dark:bg-[#10B981] rounded-full -translate-y-1/2 transition-all duration-500 z-0"
+                  />
+
+                  {/* Stage Nodes Grid */}
+                  <div className="grid grid-cols-4 gap-2 relative z-10">
+                    {CIVIC_STAGES.map((st) => {
+                      const isDone = st.step < activeStage || (activeStage === 4 && st.step === 4);
+                      const isCurrent = st.step === activeStage && activeStage !== 4;
+
+                      return (
+                        <div key={st.key} className="flex flex-col items-center text-center">
+                          <div
+                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all ${
+                              isDone
+                                ? 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] shadow-sm'
+                                : isCurrent
+                                ? 'bg-[#1B4332] dark:bg-[#10B981] text-white ring-4 ring-[#EBF2EE] dark:ring-[#1E2E25] shadow-md'
+                                : 'bg-white dark:bg-[#131916] border-2 border-[#E3E0D6] dark:border-[#26352E] text-[#4F5A52] dark:text-[#9EACA3]'
+                            }`}
+                          >
+                            {isDone ? (
+                              <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+                            ) : isCurrent ? (
+                              <span className="w-3 h-3 rounded-full bg-white dark:bg-[#0A1610] titik-live" />
+                            ) : (
+                              <span className="text-xs font-mono font-bold">{st.step}</span>
+                            )}
+                          </div>
+
+                          <div className="mt-2.5 space-y-0.5 max-w-[120px]">
+                            <div
+                              className={`text-xs font-black leading-tight ${
+                                isCurrent
+                                  ? 'text-[#1B4332] dark:text-[#34D399]'
+                                  : isDone
+                                  ? 'text-[#101913] dark:text-[#F3F6F4]'
+                                  : 'text-[#4F5A52]/70 dark:text-[#9EACA3]/70'
+                              }`}
+                            >
+                              {st.label}
+                            </div>
+                            <div className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3] hidden sm:block truncate">
+                              {st.sub}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Prominent APBD Context Banner */}
+          {budget && (
+            <div className="bg-[#EBF2EE]/90 dark:bg-[#16231C]/90 border border-[#C5D9CE] dark:border-[#2D4537] rounded-3xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-[#1B4332] text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <TrendingUp className="w-5 h-5 text-[#34D399]" />
+                </div>
+                <div className="space-y-0.5 min-w-0">
+                  <div className="inline-flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#1B4332] text-[#34D399]">
+                      APBD {budget.fiscalYear} KOTA BOGOR
+                    </span>
+                    <span className="text-xs text-[#4F5A52] dark:text-[#9EACA3] truncate">
+                      {budget.responsibleAgency}
+                    </span>
+                  </div>
+                  <div className="text-sm sm:text-base font-black text-[#101913] dark:text-[#F3F6F4] truncate">
+                    Dialokasikan Rp {(budget.paguAllocation / 1e9).toFixed(1)} Miliar · {budget.sectorName}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 shrink-0 bg-white/70 dark:bg-[#131916]/70 px-4 py-2.5 rounded-2xl border border-[#C5D9CE] dark:border-[#2D4537]">
+                <div className="space-y-0.5">
+                  <div className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3] uppercase tracking-wider font-semibold">
+                    Status Serapan Belanja
+                  </div>
+                  <div className="text-xs font-mono font-black text-[#1B4332] dark:text-[#34D399] tabular-nums">
+                    {budget.executionRatePercent}% (Rp {(budget.realizedSpending / 1e9).toFixed(1)} M)
+                  </div>
+                </div>
+                <div className="w-20 sm:w-28 h-2.5 rounded-full bg-[#E3E0D6] dark:bg-[#26352E] overflow-hidden border border-black/5">
+                  <div
+                    ref={(el) => {
+                      if (el) el.style.width = `${Math.min(100, budget.executionRatePercent)}%`;
+                    }}
+                    className="h-full bg-[#1B4332] dark:bg-[#10B981] rounded-full transition-all duration-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 4. Asymmetric 2-Column Responsive Layout (7:5 Ratio on Desktop) */}
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-10 pt-2">
             {/* ============================================================== */}
@@ -584,19 +764,19 @@ export const ReportDetailView: React.FC = () => {
             {/* ============================================================== */}
             <div className="xl:col-span-7 space-y-7 min-w-0">
               {/* Evidence Showcase Card with Interactive Photo/Map Tabs */}
-              <div className="bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#E4E2DA] dark:border-[#26352E]">
-                  <div className="flex items-center gap-1 bg-[#F7F6F1] dark:bg-[#131916] p-1.5 rounded-full border border-[#E4E2DA] dark:border-[#26352E]">
+              <div className="bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#E3E0D6] dark:border-[#26352E]">
+                  <div className="flex items-center gap-1 bg-[#F7F5EF] dark:bg-[#131916] p-1.5 rounded-full border border-[#E3E0D6] dark:border-[#26352E]">
                     <button
                       type="button"
                       onClick={() => setActiveMediaTab('photos')}
                       className={`report-pill-btn flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                         activeMediaTab === 'photos'
-                          ? 'bg-white dark:bg-[#26352E] text-[#20221D] dark:text-[#F3F6F4] shadow-xs'
-                          : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4]'
+                          ? 'bg-white dark:bg-[#26352E] text-[#101913] dark:text-[#F3F6F4] shadow-xs'
+                          : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4]'
                       }`}
                     >
-                      <Camera className="w-3.5 h-3.5 text-[#263F35] dark:text-[#34D399]" />
+                      <Camera className="w-3.5 h-3.5 text-[#1B4332] dark:text-[#34D399]" />
                       <span>Bukti Foto & Video ({report.mediaUrls.length})</span>
                     </button>
                     <button
@@ -604,11 +784,11 @@ export const ReportDetailView: React.FC = () => {
                       onClick={() => setActiveMediaTab('map')}
                       className={`report-pill-btn flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                         activeMediaTab === 'map'
-                          ? 'bg-white dark:bg-[#26352E] text-[#20221D] dark:text-[#F3F6F4] shadow-xs'
-                          : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4]'
+                          ? 'bg-white dark:bg-[#26352E] text-[#101913] dark:text-[#F3F6F4] shadow-xs'
+                          : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4]'
                       }`}
                     >
-                      <MapIcon className="w-3.5 h-3.5 text-[#263F35] dark:text-[#34D399]" />
+                      <MapIcon className="w-3.5 h-3.5 text-[#1B4332] dark:text-[#34D399]" />
                       <span>Peta Geospasial Interaktif</span>
                     </button>
                   </div>
@@ -617,7 +797,7 @@ export const ReportDetailView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsLightboxOpen(true)}
-                      className="report-pill-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E7EBDD] dark:bg-[#1A2E24] text-xs text-[#263F35] dark:text-[#34D399] font-semibold hover:bg-[#d8e0cc] dark:hover:bg-[#243f31] transition-colors cursor-pointer"
+                      className="report-pill-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E7EBDD] dark:bg-[#1A2E24] text-xs text-[#1B4332] dark:text-[#34D399] font-semibold hover:bg-[#d8e0cc] dark:hover:bg-[#243f31] transition-colors cursor-pointer"
                     >
                       <Maximize2 className="w-3.5 h-3.5" />
                       <span>Perbesar Layar Penuh</span>
@@ -628,7 +808,7 @@ export const ReportDetailView: React.FC = () => {
                 {/* TAB 1: Photo and video evidence viewer */}
                 {activeMediaTab === 'photos' && (
                   <div className="space-y-3">
-                    <div className="relative rounded-xl overflow-hidden border border-[#E4E2DA] dark:border-[#26352E] bg-neutral-900 aspect-[16/10] sm:aspect-[16/9] flex items-center justify-center group shadow-inner">
+                    <div className="relative rounded-xl overflow-hidden border border-[#E3E0D6] dark:border-[#26352E] bg-neutral-900 aspect-[16/10] sm:aspect-[16/9] flex items-center justify-center group shadow-inner">
                       {currentMediaType === 'video' ? (
                         <video
                           src={currentPhotoUrl}
@@ -673,8 +853,8 @@ export const ReportDetailView: React.FC = () => {
                             onClick={() => setSelectedPhotoIndex(idx)}
                             className={`relative w-20 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${
                               selectedPhotoIndex === idx
-                                ? 'border-[#263F35] dark:border-[#10B981] ring-2 ring-[#263F35]/20 dark:ring-[#10B981]/20 shadow-xs'
-                                : 'border-[#E4E2DA] dark:border-[#26352E] opacity-70 hover:opacity-100'
+                                ? 'border-[#1B4332] dark:border-[#10B981] ring-2 ring-[#1B4332]/20 dark:ring-[#10B981]/20 shadow-xs'
+                                : 'border-[#E3E0D6] dark:border-[#26352E] opacity-70 hover:opacity-100'
                             }`}
                           >
                             {getReportMediaType(url) === 'video' ? (
@@ -694,17 +874,17 @@ export const ReportDetailView: React.FC = () => {
                   <div className="space-y-3">
                     <div
                       ref={mapContainerRef}
-                      className="w-full h-[400px] sm:h-[460px] rounded-2xl overflow-hidden border border-[#E4E2DA] dark:border-[#26352E] relative z-10"
+                      className="w-full h-[400px] sm:h-[460px] rounded-2xl overflow-hidden border border-[#E3E0D6] dark:border-[#26352E] relative z-10"
                     />
 
                     {/* Geospatial Controls & External Navigation */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs bg-[#F7F6F1] dark:bg-[#131916] p-3.5 rounded-2xl border border-[#E4E2DA] dark:border-[#26352E]">
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs bg-[#F7F5EF] dark:bg-[#131916] p-3.5 rounded-2xl border border-[#E3E0D6] dark:border-[#26352E]">
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                        <span className="font-mono tabular-nums text-[#20221D] dark:text-[#F3F6F4] font-medium">
+                        <span className="font-mono tabular-nums text-[#101913] dark:text-[#F3F6F4] font-medium">
                           {report.location.latitude.toFixed(6)}, {report.location.longitude.toFixed(6)}
                         </span>
-                        <span className="text-[11px] text-[#686B65] dark:text-[#9EACA3]">
+                        <span className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
                           (Radius dampak: 200m)
                         </span>
                       </div>
@@ -714,17 +894,17 @@ export const ReportDetailView: React.FC = () => {
                           href={`https://www.google.com/maps/search/?api=1&query=${report.location.latitude},${report.location.longitude}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[#263F35] dark:text-[#34D399] font-semibold hover:underline"
+                          className="inline-flex items-center gap-1 text-[#1B4332] dark:text-[#34D399] font-semibold hover:underline"
                         >
                           <span>Buka Google Maps</span>
                           <ExternalLink className="w-3 h-3" />
                         </a>
-                        <span className="text-[#E4E2DA] dark:text-[#26352E]">|</span>
+                        <span className="text-[#E3E0D6] dark:text-[#26352E]">|</span>
                         <a
                           href={`https://www.openstreetmap.org/?mlat=${report.location.latitude}&mlon=${report.location.longitude}#map=16/${report.location.latitude}/${report.location.longitude}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[#263F35] dark:text-[#34D399] font-semibold hover:underline"
+                          className="inline-flex items-center gap-1 text-[#1B4332] dark:text-[#34D399] font-semibold hover:underline"
                         >
                           <span>OpenStreetMap</span>
                           <ExternalLink className="w-3 h-3" />
@@ -736,91 +916,100 @@ export const ReportDetailView: React.FC = () => {
               </div>
 
               {/* Citizen Narrative & Problem Statement */}
-              <div className="bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-6 lg:p-7 shadow-xs space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-[#E4E2DA] dark:border-[#26352E]">
+              <div className="bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 lg:p-7 shadow-xs space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E3E0D6] dark:border-[#26352E]">
                   <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-[#263F35] dark:text-[#34D399]" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#686B65] dark:text-[#9EACA3]">
+                    <FileText className="w-4 h-4 text-[#1B4332] dark:text-[#34D399]" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#4F5A52] dark:text-[#9EACA3]">
                       Kronologi & Dampak Langsung Warga
                     </h3>
                   </div>
-                  <span className="text-[11px] text-[#686B65] dark:text-[#9EACA3]">
-                    Kategori: <strong className="text-[#20221D] dark:text-[#F3F6F4]">{report.category}</strong>
+                  <span className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
+                    Kategori: <strong className="text-[#101913] dark:text-[#F3F6F4]">{report.category}</strong>
                   </span>
                 </div>
 
-                <div className="prose prose-sm max-w-none text-sm text-[#20221D] dark:text-[#F3F6F4] leading-relaxed">
-                  <p className="whitespace-pre-line text-[15px] font-normal leading-relaxed text-[#20221D] dark:text-[#F3F6F4]">
+                <div className="prose prose-sm max-w-none text-sm text-[#101913] dark:text-[#F3F6F4] leading-relaxed">
+                  <p className="whitespace-pre-line text-[15px] font-normal leading-relaxed text-[#101913] dark:text-[#F3F6F4]">
                     {report.description}
                   </p>
                 </div>
 
                 {/* Reporter Identity Provenance */}
-                <div className="pt-4 border-t border-[#E4E2DA] dark:border-[#26352E] flex flex-wrap items-center justify-between gap-3 text-xs bg-[#F7F6F1] dark:bg-[#131916] -mx-6 -mb-6 lg:-mx-7 lg:-mb-7 p-4 sm:p-5 rounded-b-3xl">
-                  <div className="flex items-center gap-2.5">
-                    {report.reporterType === 'anonymous' ? (
-                      <div className="w-8 h-8 rounded-full bg-[#263F35]/10 dark:bg-[#10B981]/15 flex items-center justify-center text-[#263F35] dark:text-[#34D399]">
-                        <Shield className="w-4 h-4" />
-                      </div>
-                    ) : (
-                      <a
-                        href={`/u/${(report.reporterDisplayName || 'warga').toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate(`/u/${(report.reporterDisplayName || 'warga').toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
-                        }}
-                        className="block shrink-0 group cursor-pointer"
-                        title={`Lihat profil ${report.reporterDisplayName || 'Pelapor'}`}
-                      >
-                        <img
-                          src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
-                          alt={report.reporterDisplayName || 'Pelapor'}
-                          className="w-8 h-8 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E] group-hover:scale-105 transition-transform"
-                        />
-                      </a>
-                    )}
-                    <div>
-                      <div className="font-semibold text-[#20221D] dark:text-[#F3F6F4]">
+                {(() => {
+                  const reporterTarget = report.reporterUserId
+                    ? report.reporterUserId.replace(/^@+/, '').trim()
+                    : (report.reporterDisplayName || 'warga').replace(/^@+/, '').trim().toLowerCase().replace(/[^a-z0-9_.]/g, '_');
+
+                  return (
+                    <div className="pt-4 border-t border-[#E3E0D6] dark:border-[#26352E] flex flex-wrap items-center justify-between gap-3 text-xs bg-[#F7F5EF] dark:bg-[#131916] -mx-6 -mb-6 lg:-mx-7 lg:-mb-7 p-4 sm:p-5 rounded-b-3xl">
+                      <div className="flex items-center gap-2.5">
                         {report.reporterType === 'anonymous' ? (
-                          'Warga Anonim Terenkripsi'
+                          <div className="w-8 h-8 rounded-full bg-[#1B4332]/10 dark:bg-[#10B981]/15 flex items-center justify-center text-[#1B4332] dark:text-[#34D399]">
+                            <Shield className="w-4 h-4" />
+                          </div>
                         ) : (
                           <a
-                            href={`/u/${(report.reporterDisplayName || 'warga').toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                            href={`/u/${reporterTarget}`}
                             onClick={(e) => {
                               e.preventDefault();
-                              navigate(`/u/${(report.reporterDisplayName || 'warga').toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                              navigate(`/u/${reporterTarget}`);
                             }}
-                            className="hover:underline hover:text-[#263F35] dark:hover:text-[#34D399] transition-colors cursor-pointer"
+                            className="block shrink-0 group cursor-pointer"
                             title={`Lihat profil ${report.reporterDisplayName || 'Pelapor'}`}
                           >
-                            {report.reporterDisplayName || (report.reporterType === 'verified_citizen' ? 'Warga Terverifikasi' : 'Warga Terdaftar')}
+                            <UserAvatar
+                              alt={report.reporterDisplayName || 'Pelapor'}
+                              name={report.reporterDisplayName || 'Pelapor'}
+                              role="citizen"
+                              className="w-8 h-8 rounded-full object-cover border border-[#E3E0D6] dark:border-[#26352E] group-hover:scale-105 transition-transform"
+                            />
                           </a>
                         )}
+                        <div>
+                          <div className="font-semibold text-[#101913] dark:text-[#F3F6F4]">
+                            {report.reporterType === 'anonymous' ? (
+                              'Warga Anonim Terenkripsi'
+                            ) : (
+                              <a
+                                href={`/u/${reporterTarget}`}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  navigate(`/u/${reporterTarget}`);
+                                }}
+                                className="hover:underline hover:text-[#1B4332] dark:hover:text-[#34D399] transition-colors cursor-pointer"
+                                title={`Lihat profil ${report.reporterDisplayName || 'Pelapor'}`}
+                              >
+                                {report.reporterDisplayName || (report.reporterType === 'verified_citizen' ? 'Warga Terverifikasi' : 'Warga Terdaftar')}
+                              </a>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
+                            {report.reporterType === 'anonymous'
+                              ? 'Identitas dilindungi token kriptografis'
+                              : report.reporterType === 'verified_citizen'
+                              ? 'Warga Terverifikasi'
+                              : 'Warga Terdaftar'}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-[11px] text-[#686B65] dark:text-[#9EACA3]">
-                        {report.reporterType === 'anonymous'
-                          ? 'Identitas dilindungi token kriptografis'
-                          : report.reporterType === 'verified_citizen'
-                          ? 'Warga Terverifikasi'
-                          : 'Warga Terdaftar'}
+
+                      <div className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] font-mono">
+                        ID Tiket: {report.publicReference}
                       </div>
                     </div>
-                  </div>
-
-                  <div className="text-[11px] text-[#686B65] dark:text-[#9EACA3] font-mono">
-                    ID Tiket: {report.publicReference}
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Citizen Endorsement & Support Banner */}
-              <div className="bg-[#E7EBDD]/70 dark:bg-[#1A2E24]/70 border border-[#263F35]/25 dark:border-[#10B981]/30 rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+              <div className="bg-[#E7EBDD]/70 dark:bg-[#1A2E24]/70 border border-[#1B4332]/25 dark:border-[#10B981]/30 rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
                 <div>
-                  <div className="flex items-center gap-2 text-sm font-bold text-[#20221D] dark:text-[#F3F6F4]">
-                    <ThumbsUp className="w-4 h-4 text-[#263F35] dark:text-[#34D399]" />
+                  <div className="flex items-center gap-2 text-sm font-bold text-[#101913] dark:text-[#F3F6F4]">
+                    <ThumbsUp className="w-4 h-4 text-[#1B4332] dark:text-[#34D399]" />
                     <span className="tabular-nums">{report.supportCount.toLocaleString('id-ID')} Warga Mengonfirmasi Dampak</span>
                   </div>
-                  <p className="text-xs text-[#686B65] dark:text-[#9EACA3] mt-0.5">
+                  <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] mt-0.5">
                     Konfirmasi warga meningkatkan indeks urgensi dalam antrean routing dinas.
                   </p>
                 </div>
@@ -831,7 +1020,7 @@ export const ReportDetailView: React.FC = () => {
                   className={`report-pill-btn px-6 py-2.5 rounded-full text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-xs shrink-0 cursor-pointer ${
                     report.isSupportedByMe
                       ? 'bg-rose-600 text-white hover:bg-rose-700'
-                      : 'bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] hover:bg-[#1d3129] dark:hover:bg-[#34D399]'
+                      : 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] hover:bg-[#14352A] dark:hover:bg-[#34D399]'
                   }`}
                 >
                   <ThumbsUp className="w-3.5 h-3.5" />
@@ -842,11 +1031,11 @@ export const ReportDetailView: React.FC = () => {
               </div>
 
               {/* Community Eyewitness Testimonials & Ground Truth */}
-              <div className="bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-6 lg:p-7 shadow-xs space-y-5">
-                <div className="flex items-center justify-between pb-3 border-b border-[#E4E2DA] dark:border-[#26352E]">
+              <div className="bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 lg:p-7 shadow-xs space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E3E0D6] dark:border-[#26352E]">
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-[#263F35] dark:text-[#34D399]" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#686B65] dark:text-[#9EACA3]">
+                    <MessageSquare className="w-4 h-4 text-[#1B4332] dark:text-[#34D399]" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#4F5A52] dark:text-[#9EACA3]">
                       Kesaksian Lapangan & Tanggapan Warga ({testimonies.length})
                     </h3>
                   </div>
@@ -854,7 +1043,7 @@ export const ReportDetailView: React.FC = () => {
                     type="button"
                     onClick={refreshTestimoniesOnly}
                     disabled={isRefreshingTestimonies}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-all cursor-pointer disabled:opacity-40"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#131916] transition-all cursor-pointer disabled:opacity-40"
                     title="Segarkan kesaksian warga"
                     aria-label="Segarkan kesaksian warga"
                   >
@@ -864,8 +1053,8 @@ export const ReportDetailView: React.FC = () => {
                 </div>
 
                 {/* Input Form for New Eyewitness Testimony */}
-                <form onSubmit={handleSubmitTestimony} className="space-y-3 bg-[#F7F6F1] dark:bg-[#131916] p-4 sm:p-5 rounded-2xl border border-[#E4E2DA] dark:border-[#26352E]">
-                  <div className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4]">
+                <form onSubmit={handleSubmitTestimony} className="space-y-3 bg-[#F7F5EF] dark:bg-[#131916] p-4 sm:p-5 rounded-2xl border border-[#E3E0D6] dark:border-[#26352E]">
+                  <div className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
                     Tambah Kesaksian / Konfirmasi Kondisi Terkini:
                   </div>
                   <textarea
@@ -873,7 +1062,7 @@ export const ReportDetailView: React.FC = () => {
                     value={testimonyText}
                     onChange={(e) => setTestimonyText(e.target.value)}
                     placeholder="Contoh: Saya lewat tadi pagi pukul 07.30, air masih tergenang setinggi mata kaki dan motor sulit melintas..."
-                    className="w-full text-xs p-3 rounded-2xl border border-[#E4E2DA] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#20221D] dark:text-[#F3F6F4] placeholder-[#686B65] dark:placeholder-[#6C7D73] focus:outline-none focus:ring-1 focus:ring-[#263F35] dark:focus:ring-[#10B981] resize-none"
+                    className="w-full text-xs p-3 rounded-2xl border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#101913] dark:text-[#F3F6F4] placeholder-[#4F5A52] dark:placeholder-[#6C7D73] focus:outline-none focus:ring-1 focus:ring-[#1B4332] dark:focus:ring-[#10B981] resize-none"
                     required
                   />
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -882,12 +1071,12 @@ export const ReportDetailView: React.FC = () => {
                       value={authorNameInput}
                       onChange={(e) => setAuthorNameInput(e.target.value)}
                       placeholder="Nama Anda (opsional, kosongkan untuk anonim)"
-                      className="text-xs px-3.5 py-2 rounded-full border border-[#E4E2DA] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#20221D] dark:text-[#F3F6F4] placeholder-[#686B65] dark:placeholder-[#6C7D73] w-56 focus:outline-none focus:ring-1 focus:ring-[#263F35] dark:focus:ring-[#10B981]"
+                      className="text-xs px-3.5 py-2 rounded-full border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#101913] dark:text-[#F3F6F4] placeholder-[#4F5A52] dark:placeholder-[#6C7D73] w-56 focus:outline-none focus:ring-1 focus:ring-[#1B4332] dark:focus:ring-[#10B981]"
                     />
                     <button
                       type="submit"
                       disabled={isSubmittingTestimony || !testimonyText.trim()}
-                      className="report-pill-btn inline-flex items-center gap-1.5 px-5 py-2 bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-full text-xs font-semibold hover:bg-[#1d3129] dark:hover:bg-[#34D399] transition-colors disabled:opacity-50 cursor-pointer"
+                      className="report-pill-btn inline-flex items-center gap-1.5 px-5 py-2 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-full text-xs font-semibold hover:bg-[#14352A] dark:hover:bg-[#34D399] transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       <Send className="w-3.5 h-3.5" />
                       <span>{isSubmittingTestimony ? 'Mengirim...' : 'Kirim Kesaksian'}</span>
@@ -896,14 +1085,18 @@ export const ReportDetailView: React.FC = () => {
                 </form>
 
                 {/* Un-boxed Editorial List of Community Testimonies */}
-                <div className="divide-y divide-[#E4E2DA]/60 dark:divide-[#26352E]">
+                <div className="divide-y divide-[#E3E0D6]/60 dark:divide-[#26352E]">
                   {testimonies.length === 0 ? (
-                    <div className="text-center py-6 text-xs text-[#686B65] dark:text-[#9EACA3]">
+                    <div className="text-center py-6 text-xs text-[#4F5A52] dark:text-[#9EACA3]">
                       Belum ada kesaksian warga di titik ini. Jadilah yang pertama memberikan konfirmasi lapangan!
                     </div>
                   ) : (
                     sortedTestimonies.map((testimony) => {
                       const isMyTestimony = isCommentAuthoredByUser(testimony, profile);
+                      const testimonyTarget = (testimony as any).authorId
+                        ? (testimony as any).authorId.replace(/^@+/, '').trim()
+                        : testimony.authorName.replace(/^@+/, '').trim().toLowerCase().replace(/[^a-z0-9_.]/g, '_');
+
                       return (
                         <div
                           key={testimony.id}
@@ -912,10 +1105,10 @@ export const ReportDetailView: React.FC = () => {
                           <div className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
                               <a
-                                href={`/u/${testimony.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                                href={`/u/${testimonyTarget}`}
                                 onClick={(e) => {
                                   e.preventDefault();
-                                  navigate(`/u/${testimony.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                                  navigate(`/u/${testimonyTarget}`);
                                 }}
                                 className="shrink-0 block cursor-pointer"
                                 title={`Lihat profil ${testimony.authorName}`}
@@ -925,16 +1118,16 @@ export const ReportDetailView: React.FC = () => {
                                   alt={testimony.authorName}
                                   name={testimony.authorName}
                                   role="citizen"
-                                  className="w-6 h-6 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E] hover:scale-105 transition-transform"
+                                  className="w-6 h-6 rounded-full object-cover border border-[#E3E0D6] dark:border-[#26352E] hover:scale-105 transition-transform"
                                 />
                               </a>
                               <a
-                                href={`/u/${testimony.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`}
+                                href={`/u/${testimonyTarget}`}
                                 onClick={(e) => {
                                   e.preventDefault();
-                                  navigate(`/u/${testimony.authorName.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`);
+                                  navigate(`/u/${testimonyTarget}`);
                                 }}
-                                className="font-semibold text-[#20221D] dark:text-[#F3F6F4] hover:underline hover:text-[#263F35] dark:hover:text-[#34D399] transition-colors cursor-pointer"
+                                className="font-semibold text-[#101913] dark:text-[#F3F6F4] hover:underline hover:text-[#1B4332] dark:hover:text-[#34D399] transition-colors cursor-pointer"
                                 title={`Lihat profil ${testimony.authorName}`}
                               >
                                 {testimony.authorName}
@@ -944,7 +1137,7 @@ export const ReportDetailView: React.FC = () => {
                                   Anda
                                 </span>
                               )}
-                              <span className="text-[10px] text-[#686B65] dark:text-[#9EACA3]">• {testimony.timeAgo}</span>
+                              <span className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3]">• {testimony.timeAgo}</span>
                             </div>
 
                             <button
@@ -952,15 +1145,15 @@ export const ReportDetailView: React.FC = () => {
                               onClick={() => handleTestimonyLike(testimony.id)}
                               className={`report-pill-btn flex items-center gap-1 text-[11px] tabular-nums px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
                                 testimony.isLiked
-                                  ? 'bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#263F35] dark:text-[#34D399] font-semibold'
-                                  : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4]'
+                                  ? 'bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#1B4332] dark:text-[#34D399] font-semibold'
+                                  : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4]'
                               }`}
                             >
                               <ThumbsUp className="w-3 h-3" />
                               <span>{testimony.likes}</span>
                             </button>
                           </div>
-                          <p className="text-xs text-[#20221D] dark:text-[#F3F6F4] leading-relaxed pl-8">
+                          <p className="text-xs text-[#101913] dark:text-[#F3F6F4] leading-relaxed pl-8">
                             {testimony.body}
                           </p>
                         </div>
@@ -978,52 +1171,52 @@ export const ReportDetailView: React.FC = () => {
               <div className="xl:sticky xl:top-6 space-y-6">
                 {/* 1. THE APBD 2026 INVESTIGATIVE LEDGER (OGD Backbone) */}
                 {budget ? (
-                  <div className="bg-white dark:bg-[#1A221E] border-2 border-[#263F35]/25 dark:border-[#10B981]/30 rounded-3xl p-6 shadow-xs space-y-5">
-                    <div className="flex items-center justify-between pb-3.5 border-b border-[#E4E2DA] dark:border-[#26352E]">
-                      <div className="flex items-center gap-2 text-xs font-bold text-[#20221D] dark:text-[#F3F6F4]">
-                        <TrendingUp className="w-4 h-4 text-[#263F35] dark:text-[#34D399]" />
+                  <div className="bg-white dark:bg-[#1A221E] border-2 border-[#1B4332]/25 dark:border-[#10B981]/30 rounded-3xl p-6 shadow-xs space-y-5">
+                    <div className="flex items-center justify-between pb-3.5 border-b border-[#E3E0D6] dark:border-[#26352E]">
+                      <div className="flex items-center gap-2 text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
+                        <TrendingUp className="w-4 h-4 text-[#1B4332] dark:text-[#34D399]" />
                         <span>Konteks APBD Kota Bogor TA {budget.fiscalYear}</span>
                       </div>
-                      <span className="text-[10px] font-mono px-3 py-1 rounded-full bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#263F35] dark:text-[#34D399] font-bold tracking-wider">
+                      <span className="text-[10px] font-mono px-3 py-1 rounded-full bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#1B4332] dark:text-[#34D399] font-bold tracking-wider">
                         SIKD KEMENDAGRI
                       </span>
                     </div>
 
                     {/* Sector & Sub-Program Title */}
                     <div className="space-y-1">
-                      <div className="text-[11px] font-semibold uppercase tracking-wider text-[#686B65] dark:text-[#9EACA3]">
+                      <div className="text-[11px] font-semibold uppercase tracking-wider text-[#4F5A52] dark:text-[#9EACA3]">
                         Sektor Alokasi Anggaran
                       </div>
-                      <h4 className="font-bold text-sm sm:text-base text-[#20221D] dark:text-[#F3F6F4] leading-snug">
+                      <h4 className="font-bold text-sm sm:text-base text-[#101913] dark:text-[#F3F6F4] leading-snug">
                         {budget.sectorName}
                       </h4>
-                      <div className="text-xs text-[#263F35] dark:text-[#34D399] font-semibold">
+                      <div className="text-xs text-[#1B4332] dark:text-[#34D399] font-semibold">
                         {budget.subSectorName}
                       </div>
                     </div>
 
                     {/* High-Contrast 3-Way Financial Ledger */}
-                    <div className="grid grid-cols-3 gap-2.5 p-3.5 bg-[#F7F6F1] dark:bg-[#131916] rounded-2xl border border-[#E4E2DA] dark:border-[#26352E]">
+                    <div className="grid grid-cols-3 gap-2.5 p-3.5 bg-[#F7F5EF] dark:bg-[#131916] rounded-2xl border border-[#E3E0D6] dark:border-[#26352E]">
                       <div className="space-y-0.5">
-                        <div className="text-[10px] font-medium text-[#686B65] dark:text-[#9EACA3]">Pagu Alokasi</div>
-                        <div className="font-mono tabular-nums font-bold text-xs sm:text-sm text-[#20221D] dark:text-[#F3F6F4]">
+                        <div className="text-[10px] font-medium text-[#4F5A52] dark:text-[#9EACA3]">Pagu Alokasi</div>
+                        <div className="font-mono tabular-nums font-bold text-xs sm:text-sm text-[#101913] dark:text-[#F3F6F4]">
                           Rp {(budget.paguAllocation / 1e9).toFixed(1)} M
                         </div>
-                        <div className="text-[9px] text-[#686B65] dark:text-[#9EACA3]">Tahun 2026</div>
+                        <div className="text-[9px] text-[#4F5A52] dark:text-[#9EACA3]">Tahun 2026</div>
                       </div>
 
-                      <div className="space-y-0.5 border-x border-[#E4E2DA] dark:border-[#26352E] px-2">
-                        <div className="text-[10px] font-medium text-[#686B65] dark:text-[#9EACA3]">Realisasi</div>
-                        <div className="font-mono tabular-nums font-bold text-xs sm:text-sm text-[#263F35] dark:text-[#34D399]">
+                      <div className="space-y-0.5 border-x border-[#E3E0D6] dark:border-[#26352E] px-2">
+                        <div className="text-[10px] font-medium text-[#4F5A52] dark:text-[#9EACA3]">Realisasi</div>
+                        <div className="font-mono tabular-nums font-bold text-xs sm:text-sm text-[#1B4332] dark:text-[#34D399]">
                           Rp {(budget.realizedSpending / 1e9).toFixed(1)} M
                         </div>
-                        <div className="text-[9px] tabular-nums font-semibold text-[#263F35] dark:text-[#34D399]">
+                        <div className="text-[9px] tabular-nums font-semibold text-[#1B4332] dark:text-[#34D399]">
                           {budget.executionRatePercent}% Terserap
                         </div>
                       </div>
 
                       <div className="space-y-0.5 pl-1">
-                        <div className="text-[10px] font-medium text-[#686B65] dark:text-[#9EACA3]">Sisa Pagu</div>
+                        <div className="text-[10px] font-medium text-[#4F5A52] dark:text-[#9EACA3]">Sisa Pagu</div>
                         <div className="font-mono tabular-nums font-bold text-xs sm:text-sm text-amber-800 dark:text-amber-400">
                           Rp {(unspentBudget / 1e9).toFixed(1)} M
                         </div>
@@ -1036,13 +1229,13 @@ export const ReportDetailView: React.FC = () => {
                     {/* Visual Segmented Health Bar */}
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs">
-                        <span className="text-[#686B65] dark:text-[#9EACA3]">Penyerapan Realisasi Belanja:</span>
-                        <strong className="text-[#20221D] dark:text-[#F3F6F4] font-mono tabular-nums">
+                        <span className="text-[#4F5A52] dark:text-[#9EACA3]">Penyerapan Realisasi Belanja:</span>
+                        <strong className="text-[#101913] dark:text-[#F3F6F4] font-mono tabular-nums">
                           {budget.executionRatePercent}%
                         </strong>
                       </div>
 
-                      <div className="w-full h-3 rounded-full bg-[#E4E2DA] dark:bg-[#26352E] overflow-hidden flex border border-[#E4E2DA] dark:border-[#26352E]">
+                      <div className="w-full h-3 rounded-full bg-[#E3E0D6] dark:bg-[#26352E] overflow-hidden flex border border-[#E3E0D6] dark:border-[#26352E]">
                         <div
                           ref={(el) => {
                             if (el) el.style.setProperty('--budget-realized-pct', `${budget.executionRatePercent}%`);
@@ -1059,9 +1252,9 @@ export const ReportDetailView: React.FC = () => {
                         />
                       </div>
 
-                      <div className="flex items-center justify-between text-[11px] text-[#686B65] dark:text-[#9EACA3]">
+                      <div className="flex items-center justify-between text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
                         <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-[#263F35] dark:bg-[#10B981]"></span>
+                          <span className="w-2 h-2 rounded-full bg-[#1B4332] dark:bg-[#10B981]"></span>
                           <span>Realisasi Belanja Dinas</span>
                         </span>
                         <span className="flex items-center gap-1.5">
@@ -1072,32 +1265,32 @@ export const ReportDetailView: React.FC = () => {
                     </div>
 
                     {/* Budget Insight Analysis Callout */}
-                    <div className="p-3.5 bg-[#E7EBDD]/60 dark:bg-[#1A2E24]/60 rounded-2xl border border-[#263F35]/20 dark:border-[#10B981]/30 text-xs text-[#20221D] dark:text-[#F3F6F4] leading-relaxed">
+                    <div className="p-3.5 bg-[#E7EBDD]/60 dark:bg-[#1A2E24]/60 rounded-2xl border border-[#1B4332]/20 dark:border-[#10B981]/30 text-xs text-[#101913] dark:text-[#F3F6F4] leading-relaxed">
                       <strong>Konteks Anggaran:</strong> Sisa alokasi pagu sebesar{' '}
                       <strong className="tabular-nums">Rp {(unspentBudget / 1e9).toFixed(1)} Miliar</strong> masih tersedia untuk program ini. Dana mencukupi bagi dinas untuk melakukan intervensi fisik pada titik ini sebelum akhir tahun anggaran.
                     </div>
 
                     {/* Responsible Agency Profile & Responsiveness Metrics */}
-                    <div className="pt-3 border-t border-[#E4E2DA] dark:border-[#26352E] space-y-2.5">
+                    <div className="pt-3 border-t border-[#E3E0D6] dark:border-[#26352E] space-y-2.5">
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <Building className="w-4 h-4 text-[#686B65] dark:text-[#9EACA3] shrink-0" />
-                          <span className="font-semibold text-[#20221D] dark:text-[#F3F6F4] truncate">
+                          <Building className="w-4 h-4 text-[#4F5A52] dark:text-[#9EACA3] shrink-0" />
+                          <span className="font-semibold text-[#101913] dark:text-[#F3F6F4] truncate">
                             {budget.responsibleAgency}
                           </span>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="bg-[#F7F6F1] dark:bg-[#131916] p-3 rounded-2xl border border-[#E4E2DA] dark:border-[#26352E]">
-                          <div className="text-[10px] text-[#686B65] dark:text-[#9EACA3]">Indeks Responsif:</div>
-                          <div className="font-bold tabular-nums text-[#263F35] dark:text-[#34D399] text-sm">
+                        <div className="bg-[#F7F5EF] dark:bg-[#131916] p-3 rounded-2xl border border-[#E3E0D6] dark:border-[#26352E]">
+                          <div className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3]">Indeks Responsif:</div>
+                          <div className="font-bold tabular-nums text-[#1B4332] dark:text-[#34D399] text-sm">
                             {budget.responsivenessScore} / 100
                           </div>
                         </div>
-                        <div className="bg-[#F7F6F1] dark:bg-[#131916] p-3 rounded-2xl border border-[#E4E2DA] dark:border-[#26352E]">
-                          <div className="text-[10px] text-[#686B65] dark:text-[#9EACA3]">SLA Penyelesaian:</div>
-                          <div className="font-bold tabular-nums text-[#20221D] dark:text-[#F3F6F4] text-sm">
+                        <div className="bg-[#F7F5EF] dark:bg-[#131916] p-3 rounded-2xl border border-[#E3E0D6] dark:border-[#26352E]">
+                          <div className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3]">SLA Penyelesaian:</div>
+                          <div className="font-bold tabular-nums text-[#101913] dark:text-[#F3F6F4] text-sm">
                             {budget.avgResolutionDays} Hari Kerja
                           </div>
                         </div>
@@ -1105,45 +1298,45 @@ export const ReportDetailView: React.FC = () => {
                     </div>
 
                     {/* Legal Provenance Footer */}
-                    <div className="text-[10px] text-[#686B65]/80 dark:text-[#9EACA3]/80 font-mono leading-relaxed pt-1">
+                    <div className="text-[10px] text-[#4F5A52]/80 dark:text-[#9EACA3]/80 font-mono leading-relaxed pt-1">
                       {budget.dataSource} • Diperbarui {budget.lastUpdated} [Data Contoh Simulasi]
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-6 text-center text-xs text-[#686B65] dark:text-[#9EACA3]">
+                  <div className="bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 text-center text-xs text-[#4F5A52] dark:text-[#9EACA3]">
                     Belum ada data anggaran yang terhubung dengan laporan ini.
                   </div>
                 )}
 
                 {/* 2. OFFICIAL AUDIT TRAIL (Un-boxed Immutable State Transition History) */}
-                <div className="bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-6 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-[#E4E2DA] dark:border-[#26352E]">
-                    <div className="flex items-center gap-2 text-xs font-bold text-[#20221D] dark:text-[#F3F6F4]">
-                      <Clock className="w-4 h-4 text-[#263F35] dark:text-[#34D399]" />
+                <div className="bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#E3E0D6] dark:border-[#26352E]">
+                    <div className="flex items-center gap-2 text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
+                      <Clock className="w-4 h-4 text-[#1B4332] dark:text-[#34D399]" />
                       <span>Jejak Audit & Alur Status Resmi</span>
                     </div>
-                    <span className="text-[10px] text-[#686B65] dark:text-[#9EACA3] font-mono tabular-nums px-2.5 py-0.5 rounded-full bg-[#F7F6F1] dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E]">
+                    <span className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3] font-mono tabular-nums px-2.5 py-0.5 rounded-full bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E]">
                       {report.events.length} Perubahan
                     </span>
                   </div>
 
-                  <div className="relative pl-6 space-y-5 border-l-2 border-[#E4E2DA] dark:border-[#26352E] ml-2 pt-1">
+                  <div className="relative pl-6 space-y-5 border-l-2 border-[#E3E0D6] dark:border-[#26352E] ml-2 pt-1">
                     {report.events.map((ev) => (
                       <div key={ev.id} className="relative">
-                        <span className="absolute -left-[31px] top-1 w-3.5 h-3.5 rounded-full bg-[#263F35] dark:bg-[#10B981] ring-4 ring-white dark:ring-[#1A221E]"></span>
+                        <span className="absolute -left-[31px] top-1 w-3.5 h-3.5 rounded-full bg-[#1B4332] dark:bg-[#10B981] ring-4 ring-white dark:ring-[#1A221E]"></span>
                         <div className="space-y-1">
-                          <div className="flex items-center justify-between text-xs font-semibold text-[#20221D] dark:text-[#F3F6F4]">
-                            <span className="px-2.5 py-0.5 rounded-full bg-[#F7F6F1] dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] font-mono text-[10px]">
+                          <div className="flex items-center justify-between text-xs font-semibold text-[#101913] dark:text-[#F3F6F4]">
+                            <span className="px-2.5 py-0.5 rounded-full bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] font-mono text-[10px]">
                               {ev.eventType}
                             </span>
-                            <span className="text-[10px] text-[#686B65] dark:text-[#9EACA3] font-normal font-mono">
-                              {ev.timestamp}
+                            <span className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3] font-normal font-mono">
+                              {formatAbsoluteTimestamp(ev.timestamp)}
                             </span>
                           </div>
-                          <div className="text-[11px] text-[#263F35] dark:text-[#34D399] font-semibold">
+                          <div className="text-[11px] text-[#1B4332] dark:text-[#34D399] font-semibold">
                             Oleh: {ev.actorName}
                           </div>
-                          <p className="text-xs text-[#686B65] dark:text-[#9EACA3] leading-relaxed">
+                          <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] leading-relaxed">
                             {ev.description}
                           </p>
                         </div>
@@ -1153,24 +1346,24 @@ export const ReportDetailView: React.FC = () => {
                 </div>
 
                 {/* 3. CASE DOSSIER QUICK ACTION CARD */}
-                <div className="bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-6 shadow-xs space-y-3">
-                  <div className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4]">Aksi Berkas Tiket:</div>
+                <div className="bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 shadow-xs space-y-3">
+                  <div className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">Aksi Berkas Tiket:</div>
                   <div className="grid grid-cols-1 gap-2.5">
                     <button
                       type="button"
                       onClick={handleCopyRef}
-                      className="report-pill-btn w-full flex items-center justify-between px-4 py-2.5 rounded-full border border-[#E4E2DA] dark:border-[#26352E] text-xs font-semibold text-[#20221D] dark:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-colors cursor-pointer"
+                      className="report-pill-btn w-full flex items-center justify-between px-4 py-2.5 rounded-full border border-[#E3E0D6] dark:border-[#26352E] text-xs font-semibold text-[#101913] dark:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#131916] transition-colors cursor-pointer"
                     >
                       <span className="flex items-center gap-2">
-                        <Copy className="w-3.5 h-3.5 text-[#686B65] dark:text-[#9EACA3]" />
+                        <Copy className="w-3.5 h-3.5 text-[#4F5A52] dark:text-[#9EACA3]" />
                         <span>Salin Nomor Tiket</span>
                       </span>
-                      <span className="font-mono text-[#686B65] dark:text-[#9EACA3]">{report.publicReference}</span>
+                      <span className="font-mono text-[#4F5A52] dark:text-[#9EACA3]">{report.publicReference}</span>
                     </button>
 
                     <a
                       href={`/track?ref=${encodeURIComponent(report.publicReference)}`}
-                      className="report-pill-btn w-full flex items-center justify-between px-4 py-2.5 rounded-full bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] text-xs font-semibold hover:bg-[#1d3129] dark:hover:bg-[#34D399] transition-colors"
+                      className="report-pill-btn w-full flex items-center justify-between px-4 py-2.5 rounded-full bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] text-xs font-semibold hover:bg-[#14352A] dark:hover:bg-[#34D399] transition-colors"
                     >
                       <span className="flex items-center gap-2">
                         <Shield className="w-3.5 h-3.5" />

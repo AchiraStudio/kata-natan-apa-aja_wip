@@ -283,13 +283,13 @@ export const FeedContainer: React.FC = () => {
                 }}
                 className={`text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-full transition-all cursor-pointer lg:text-xs lg:tracking-wide lg:rounded-none lg:px-0 lg:py-0 lg:pb-1.5 lg:relative ${
                   isActive
-                    ? 'bg-white/20 text-white font-bold backdrop-blur-xs shadow-xs lg:bg-transparent lg:text-[#20221D] dark:lg:text-[#F3F6F4] lg:font-bold'
-                    : 'text-white/70 hover:text-white lg:text-[#686B65] dark:lg:text-[#8FA096] lg:font-medium hover:lg:text-[#20221D] dark:hover:lg:text-[#F3F6F4]'
+                    ? 'bg-white/20 text-white font-bold backdrop-blur-xs shadow-xs lg:bg-transparent lg:text-[#101913] dark:lg:text-[#F3F6F4] lg:font-bold'
+                    : 'text-white/70 hover:text-white lg:text-[#4F5A52] dark:lg:text-[#8FA096] lg:font-medium hover:lg:text-[#101913] dark:hover:lg:text-[#F3F6F4]'
                 }`}
               >
                 <span>{tab.label}</span>
                 {isActive && (
-                  <span className="hidden lg:block absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-[#263F35] dark:bg-[#10B981] rounded-full"></span>
+                  <span className="hidden lg:block absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-[#1B4332] dark:bg-[#10B981] rounded-full"></span>
                 )}
               </button>
             );
@@ -301,7 +301,7 @@ export const FeedContainer: React.FC = () => {
           <button
             type="button"
             onClick={() => setSearchModalOpen(true)}
-            className="w-8 h-8 rounded-full bg-black/40 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border border-white/15 lg:border-transparent text-white/90 lg:text-[#686B65] dark:lg:text-[#9EACA3] hover:text-white hover:bg-black/60 lg:hover:bg-white dark:lg:hover:bg-[#1A221E] transition-colors cursor-pointer flex items-center justify-center shadow-xs"
+            className="w-8 h-8 rounded-full bg-black/40 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border border-white/15 lg:border-transparent text-white/90 lg:text-[#4F5A52] dark:lg:text-[#9EACA3] hover:text-white hover:bg-black/60 lg:hover:bg-white dark:lg:hover:bg-[#1A221E] transition-colors cursor-pointer flex items-center justify-center shadow-xs"
             title="Cari laporan atau fasilitas"
             aria-label="Cari"
           >
@@ -317,10 +317,10 @@ export const FeedContainer: React.FC = () => {
         className="home-feed-stream w-full h-[100dvh] lg:h-[calc(100vh-3rem)] flex-1 flex flex-col items-center overflow-y-scroll snap-y snap-mandatory lg:scroll-smooth no-scrollbar select-none"
       >
         {posts.length === 0 ? (
-          <div className="p-12 text-center text-[#686B65] dark:text-[#9EACA3] bg-white dark:bg-[#1A221E] rounded-2xl border border-[#E4E2DA] dark:border-[#26352E] max-w-md my-auto">
-            <Sparkles className="w-8 h-8 text-[#263F35] dark:text-[#10B981] mx-auto mb-2" />
-            <h4 className="font-bold text-sm text-[#20221D] dark:text-[#F3F6F4]">Belum ada laporan di tab ini</h4>
-            <p className="text-xs text-[#686B65] dark:text-[#9EACA3] mt-1">
+          <div className="p-12 text-center text-[#4F5A52] dark:text-[#9EACA3] bg-white dark:bg-[#1A221E] rounded-2xl border border-[#E3E0D6] dark:border-[#26352E] max-w-md my-auto">
+            <Sparkles className="w-8 h-8 text-[#1B4332] dark:text-[#10B981] mx-auto mb-2" />
+            <h4 className="font-bold text-sm text-[#101913] dark:text-[#F3F6F4]">Belum ada laporan di tab ini</h4>
+            <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] mt-1">
               Jadilah yang pertama mendokumentasikan fasilitas di lingkungan Anda!
             </p>
           </div>
@@ -357,7 +357,7 @@ export const FeedContainer: React.FC = () => {
           type="button"
           disabled={currentActiveIndex <= 0}
           onClick={() => scrollToIndex(currentActiveIndex - 1)}
-          className="p-2.5 rounded-full bg-white/80 dark:bg-[#161F1B]/85 backdrop-blur-md border border-[#E4E2DA] dark:border-[#24322B] text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:border-[#263F35]/40 dark:hover:border-[#10B981]/50 active:scale-95 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+          className="p-2.5 rounded-full bg-white/80 dark:bg-[#161F1B]/85 backdrop-blur-md border border-[#E3E0D6] dark:border-[#24322B] text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:border-[#1B4332]/40 dark:hover:border-[#10B981]/50 active:scale-95 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           title="Laporan Sebelumnya (ArrowUp)"
         >
           <ChevronUp className="w-4 h-4 stroke-[2.2]" />
@@ -366,7 +366,7 @@ export const FeedContainer: React.FC = () => {
           type="button"
           disabled={currentActiveIndex >= posts.length - 1}
           onClick={() => scrollToIndex(currentActiveIndex + 1)}
-          className="p-2.5 rounded-full bg-white/80 dark:bg-[#161F1B]/85 backdrop-blur-md border border-[#E4E2DA] dark:border-[#24322B] text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:border-[#263F35]/40 dark:hover:border-[#10B981]/50 active:scale-95 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+          className="p-2.5 rounded-full bg-white/80 dark:bg-[#161F1B]/85 backdrop-blur-md border border-[#E3E0D6] dark:border-[#24322B] text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:border-[#1B4332]/40 dark:hover:border-[#10B981]/50 active:scale-95 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           title="Laporan Berikutnya (ArrowDown)"
         >
           <ChevronDown className="w-4 h-4 stroke-[2.2]" />

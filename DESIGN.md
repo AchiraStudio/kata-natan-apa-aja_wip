@@ -1,159 +1,65 @@
 ---
-name: TITIK. Editorial Civic Design System
-version: 2.0.0
-description: "High-craft Civic-Tech, Geospatial & Data-Transparency design tokens for TITIK. (Transparansi Infrastruktur, Anggaran & Tindak Komunitas) powered by taste-skill anti-slop guidelines."
+name: TITIK. Botani Civic-Ledger Design System
+version: 2.5.0
+description: "Precision Civic-Tech & Bogor City Telemetry design system for TITIK. Grounded in 'Setiap masalah adalah titik' (Every problem is a point/dot that appears, pulses, travels, and settles)."
 colors:
-  canvas-light: "#FAF9F6"
-  canvas-subtle-light: "#F3F2ED"
-  surface-light: "#FFFFFF"
-  surface-hover-light: "#F7F6F2"
-  canvas-dark: "#0C100E"
-  canvas-subtle-dark: "#131916"
-  surface-dark: "#1A221E"
-  surface-hover-dark: "#24302A"
-  ink-primary-light: "#0F172A"
-  ink-secondary-light: "#475569"
-  ink-muted-light: "#64748B"
-  ink-primary-dark: "#F3F6F4"
-  ink-secondary-dark: "#9EACA3"
-  ink-muted-dark: "#6C7D73"
-  border-hairline-light: "#E5E4DF"
-  border-subtle-light: "#D8D6CE"
-  border-hairline-dark: "#26352E"
-  border-subtle-dark: "#364A40"
-  cta-primary-light: "#0F172A"
-  cta-hover-light: "#1E293B"
-  cta-primary-dark: "#10B981"
-  cta-hover-dark: "#34D399"
-  accent-emerald: "#10B981"
-  accent-emerald-subtle: "rgba(16, 185, 129, 0.14)"
-  accent-mint: "#34D399"
-  accent-mint-subtle: "rgba(52, 211, 153, 0.16)"
-  accent-teal: "#0D9488"
-  accent-teal-subtle: "rgba(13, 148, 136, 0.12)"
-  accent-amber: "#D97706"
-  accent-amber-subtle: "rgba(217, 119, 6, 0.12)"
-  accent-crimson: "#E11D48"
-  accent-crimson-subtle: "rgba(225, 29, 72, 0.12)"
-  accent-cobalt: "#2563EB"
-  accent-cobalt-subtle: "rgba(37, 99, 235, 0.12)"
+  paper: "#F7F5EF"
+  surface: "#FFFFFF"
+  ink: "#101913"
+  muted: "#4F5A52"
+  line: "#E3E0D6"
+  botani-900: "#1B4332"
+  botani-700: "#2D6A4F"
+  botani-subtle: "#E7EBDD"
+  hujan-600: "#2E5E8C"
+  status-baru: "#B45309"
+  status-diverifikasi: "#2563EB"
+  status-ditindak: "#2E5E8C"
+  status-tuntas: "#2D6A4F"
+  status-ditolak: "#B3261E"
+  dark-canvas: "#0C100E"
+  dark-surface: "#1A221E"
+  dark-line: "#26352E"
+  dark-ink: "#F3F6F4"
+  dark-muted: "#9EACA3"
 typography:
-  display-hero:
-    fontFamily: "Poppins, -apple-system, sans-serif"
-    fontSize: "clamp(2rem, 4.5vw, 3.75rem)"
-    fontWeight: "800"
-    lineHeight: "1.08"
-    letterSpacing: "-0.035em"
-  h1:
-    fontFamily: "Poppins, -apple-system, sans-serif"
-    fontSize: "clamp(2rem, 3.5vw, 2.75rem)"
-    fontWeight: "700"
-    lineHeight: "1.15"
-    letterSpacing: "-0.03em"
-  h2:
-    fontFamily: "Poppins, -apple-system, sans-serif"
-    fontSize: "clamp(1.5rem, 2.5vw, 2rem)"
-    fontWeight: "700"
-    lineHeight: "1.2"
-    letterSpacing: "-0.025em"
-  h3:
-    fontFamily: "Poppins, -apple-system, sans-serif"
-    fontSize: "1.25rem"
-    fontWeight: "600"
-    lineHeight: "1.3"
-    letterSpacing: "-0.015em"
-  body-lead:
-    fontFamily: "Poppins, -apple-system, sans-serif"
-    fontSize: "1.125rem"
-    fontWeight: "400"
-    lineHeight: "1.65"
-  body-default:
-    fontFamily: "Poppins, -apple-system, sans-serif"
-    fontSize: "0.875rem"
-    fontWeight: "400"
-    lineHeight: "1.6"
-  label-caps:
-    fontFamily: "JetBrains Mono, monospace"
-    fontSize: "0.6875rem"
-    fontWeight: "600"
-    letterSpacing: "0.08em"
-    textTransform: "uppercase"
-  mono-data:
-    fontFamily: "JetBrains Mono, monospace"
-    fontSize: "0.8125rem"
-    fontWeight: "500"
-    fontVariantNumeric: "tabular-nums"
-rounded:
-  sm: "6px"
-  md: "10px"
-  lg: "16px"
-  xl: "22px"
-  full: "9999px"
-spacing:
-  xs: "4px"
-  sm: "8px"
-  md: "16px"
-  lg: "24px"
-  xl: "36px"
-  xxl: "56px"
-components:
-  card:
-    backgroundColor: "{colors.surface-light}"
-    border: "1px solid {colors.border-hairline-light}"
-    rounded: "{rounded.lg}"
-    boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.03)"
-  button-primary:
-    backgroundColor: "{colors.cta-primary-light}"
-    textColor: "#FFFFFF"
-    rounded: "{rounded.md}"
-    padding: "12px 22px"
-    letterSpacing: "-0.01em"
-  button-outline:
-    backgroundColor: "transparent"
-    border: "1px solid {colors.border-hairline-light}"
-    textColor: "{colors.ink-primary-light}"
-    rounded: "{rounded.md}"
-    padding: "12px 22px"
+  display: "Plus Jakarta Sans, system-ui, sans-serif"
+  body: "Plus Jakarta Sans, system-ui, sans-serif"
+  mono-id: "IBM Plex Mono, JetBrains Mono, monospace"
+  tabular: "tabular-nums"
 ---
 
-# TITIK. Design Specification (v2.0 — Taste-Skill Overhaul)
+# TITIK. Design Specification (v2.5 — Botani Civic-Ledger)
 
-## 1. Overview & Visual Philosophy
-TITIK. is a high-trust Civic-Tech, Regional Public Services Observatory & Participatory Budget Accountability platform for **Multimedia In Action (MIA) 2026 - Web In Action (WIA)**.
+## 1. Brand Concept: "Setiap Masalah Adalah Titik"
+Every civic report is a **titik** (point/dot in Indonesian). A titik has a clear lifecycle:
+1. **Muncul (Appears)**: Warga melapor, titik terdaftar dengan ID monospaced unik (`TIK-2026-XXXX`).
+2. **Berdenyut (Pulses)**: Menandakan laporan aktif dan sedang dihimpun dukungannya (`.titik-live`).
+3. **Ditindak (Moves)**: Dinas terkait menugaskan tim lapangan beserta status alokasi APBD.
+4. **Tuntas (Settles)**: Masalah terselesaikan dengan bukti foto penuntasan dan tandatangan verifikasi dinas.
 
-The overhauled visual language merges **Investigative Civic Editorial (`editorial-report`)** with **Precision Instrument Telemetry (`quiet-instrument`)**:
-- **Tactile broadsheet canvas**: Natural alabaster paper (`#FAF9F6`) in daylight mode and deep obsidian slate (`#0A0E17`) in midnight mode.
-- **Dramatic typographic contrast**: Bold modernist grotesque sans paired with expressive editorial italics (`Instrument Serif`) and monospaced tabular data (`JetBrains Mono`).
-- **Anti-slop enforcement**: No generic 3-card feature templates with icons in circles; no violet/neon glows; no hollow significance inflation.
+## 2. Bogor Identity & Telemetry
+- **Kota Hujan (Rain City)**: Telemetri presipitasi & curah hujan real-time pada header direktori dan peta geospatial.
+- **Botani Green Palette**: Formalisasi hijau Kebun Raya Bogor (`#1B4332`, `#2D6A4F`) di atas kanvas kertas hangat (`#F7F5EF`).
+- **Pemerintah Kota Bogor Co-Branding**: Elemen institusional yang mempertegas bahwa TITIK adalah kanal tindak nyata resmi berpartner dengan dinas terkait (PUPR, DLH, Dishub).
 
-## 2. Color System
-- **Daylight Canvas (`#FAF9F6`)**: Architectural warm paper ground that reduces eye strain and evokes official investigative reports.
-- **Midnight Canvas (`#0A0E17`)**: Deep obsidian dark ground with crisp slate cards (`#141C2B`).
-- **Primary Ink**: `#0F172A` (Daylight) / `#F8FAFC` (Midnight).
-- **Secondary Ink**: `#475569` (Daylight) / `#94A3B8` (Midnight).
-- **Semantic Accents (High-Contrast, Non-Neon)**:
-  - **Forest Teal (`#0D9488`)**: Verified civic evidence, resolved community issues, completed public works.
-  - **Signal Amber (`#D97706`)**: Committed APBD contracts, active procurement, in-progress civic actions.
-  - **Crimson Alert (`#E11D48`)**: Unresolved citizen defects, critical infrastructure hazards, budget discrepancies.
-  - **Civic Cobalt (`#2563EB`)**: Public facility geospatial coordinates (Schools, Health Centers, Primary Drainage).
+## 3. The Trust Layer
+1. **4-Stage Status System**:
+   - `Baru` (Amber `#B45309`) -> `Diverifikasi` (Cobalt `#2563EB`) -> `Ditindak` (Hujan `#2E5E8C`) -> `Tuntas` (Botani `#2D6A4F`).
+2. **Official Agency Response ("Respons Resmi")**:
+   - Background tinted Botani (`#1B4332` 4-6% opacity).
+   - Border kiri 3px warna instansi.
+   - Badge "Respons Resmi", logo resmi dinas, dan checklist verifikasi akun dinas.
+3. **Absolute Timestamps**:
+   - Format standar: `"31 Okt 2026, 14:20 WIB"` agar memiliki kekuatan arsip hukum dan akuntabilitas sipil.
+4. **Alokasi APBD Terbuka**:
+   - Informasi anggaran ditampilkan langsung pada kartu detail laporan: *"Dialokasikan Rp 250 jt · APBD 2026 · Status serapan: 62%"*.
 
-## 3. Typography Architecture
-1. **Headline Discipline**: Strict ban on mixed-family serif italics in headlines. Titles use a single, confident architectural grotesque sans (`Poppins`) with high-contrast semantic accents (e.g., `#0D9488` for positive punchlines, `#DC2626` for anomalies).
-2. **Restrained Scale**: Hero headlines are sized intentionally (`clamp(2rem, 4.5vw, 3.75rem)`) so that CTAs, search bars, and the financial ledger fit within the desktop viewport without excessive scrolling.
-3. **Data Ledger**: Monospaced tabular figures (`JetBrains Mono`) for all financial sums (Rp), fiscal percentages, coordinates, and case references (`TITIK-2026-XXXXX`).
-4. **Clean Hierarchy**: No floating eyebrow badges or capsule pills cluttering headings. Headlines and descriptions speak directly with intentional whitespace and clean typography.
-
-## 4. Layout & Grid Rules
-- **Structural 12-Column Grid**: Strict horizontal and vertical baselines with 1px solid hairline dividers (`#E5E4DF` light, `#243042` dark).
-- **Whitespace with Intent**: Sections breathe with 48px–80px spacing instead of separating everything with boxes or pills.
-- **Mobile First Rhythms**: Responsive collapse from desktop side-by-side bento layouts to stacked editorial narrative blocks without horizontal overflow.
-
-## 5. Strict Anti-Slop Banned Patterns
-- ❌ No eyebrow badges, pill badges, or decorative capsule tags cluttering headlines and cards.
-- ❌ No mixed-family serif italics in titles or headings (e.g. no Instrument Serif inserted into sans headlines).
-- ❌ No oversized headline scales that push CTAs below the initial desktop viewport fold.
-- ❌ No generic 3-column feature cards with colorful rounded icon circles.
-- ❌ No purple or cyberpunk gradient fills.
-- ❌ No artificial low-contrast gray text on gray backgrounds.
-- ❌ No decorative pill badge soup cluttering headings.
-- ❌ No simulated data without explicit source attribution (`Sumber: SIKD Kemendagri & Portal Satu Data 2026`).
+## 4. Motion & Micro-Interactions
+- **Signature Move**: `.titik-live` (ripple pulse 2.4s).
+- **Easing**: `--ease-out: cubic-bezier(0.22, 1, 0.36, 1)`, `--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1)`.
+- **Like Burst**: 8-dot radial burst (titik partikel, bukan hati biasa).
+- **Tuntas Celebration**: Ripple burst dan animasi status saat masalah terselesaikan.
+- **Chip & Tabs**: Sliding active indicator pill (`layoutId`).
+- **Physical Feel**: Tombol memiliki micro-scale tap feedback (`active:scale-[0.98]`).
+- **Accessibility**: Mendukung penuh `prefers-reduced-motion: reduce`.

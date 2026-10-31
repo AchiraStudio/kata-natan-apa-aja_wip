@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTitik } from '../../context/TitikContext';
 import { dataService } from '../../services/dataService';
@@ -95,39 +95,52 @@ export function useProfileController() {
       }
 
       setProfile(fetchedProfile);
+      setError(null);
 
-      // Load posts and reports for this user
-      const [userPosts, userReports] = await Promise.all([
-        dataService.getUserPosts(fetchedProfile.id).catch(() => []),
-        dataService.getUserReports(fetchedProfile.id).catch(() => []),
-      ]);
-
-      setPosts(userPosts);
-      setReports(userReports);
-
-      // If viewing own profile, load saved posts
-      const isViewerOwner =
-        isAuthenticated &&
-        (currentAuthProfile.id === fetchedProfile.id ||
-          currentAuthProfile.username.toLowerCase() === fetchedProfile.username.toLowerCase());
-
-      if (isViewerOwner) {
-        const [saved, savedReportsList] = await Promise.all([
-          dataService.getSavedPosts(currentAuthProfile.id).catch((err) => {
-            console.warn('Could not load saved posts:', err);
-            return [];
-          }),
-          dataService.getSavedReports(currentAuthProfile.id),
+      // Load posts and reports for this user safely without crashing profile
+      try {
+        const [userPosts, userReports] = await Promise.all([
+          dataService.getUserPosts(fetchedProfile.id).catch(() => []),
+          dataService.getUserReports(fetchedProfile.id).catch(() => []),
         ]);
-        setSavedPosts(saved);
-        setSavedReports(savedReportsList);
-      } else {
-        setSavedPosts([]);
-        setSavedReports([]);
+
+        setPosts(userPosts);
+        setReports(userReports);
+
+        // If viewing own profile, load saved posts
+        const isViewerOwner =
+          isAuthenticated &&
+          (currentAuthProfile.id === fetchedProfile.id ||
+            currentAuthProfile.username.toLowerCase() === fetchedProfile.username.toLowerCase());
+
+        if (isViewerOwner) {
+          const [saved, savedReportsList] = await Promise.all([
+            dataService.getSavedPosts(currentAuthProfile.id).catch((err) => {
+              console.warn('Could not load saved posts:', err);
+              return [];
+            }),
+            dataService.getSavedReports(currentAuthProfile.id).catch((err) => {
+              console.warn('Could not load saved reports:', err);
+              return [];
+            }),
+          ]);
+          setSavedPosts(saved);
+          setSavedReports(savedReportsList);
+        } else {
+          setSavedPosts([]);
+          setSavedReports([]);
+        }
+      } catch (auxErr) {
+        console.warn('Could not load auxiliary user activities/saved items:', auxErr);
       }
     } catch (err: unknown) {
       console.error('Failed to load profile data:', err);
-      setError('Gagal memuat profil. Silakan coba kembali.');
+      setProfile((current) => {
+        if (!current) {
+          setError('Gagal memuat profil. Silakan coba kembali.');
+        }
+        return current;
+      });
     } finally {
       setIsLoading(false);
     }

@@ -18,11 +18,12 @@ const MyReportsView = React.lazy(() => import('./views/MyReportsView').then((m) 
 const SavedReportsView = React.lazy(() => import('./views/SavedReportsView').then((m) => ({ default: m.SavedReportsView })));
 const ProfileView = React.lazy(() => import('./views/ProfileView').then((m) => ({ default: m.ProfileView })));
 const PostDetailView = React.lazy(() => import('./views/PostDetailView').then((m) => ({ default: m.PostDetailView })));
+const AccountSetupView = React.lazy(() => import('./views/AccountSetupView').then((m) => ({ default: m.AccountSetupView })));
 
 const PageFallback: React.FC = () => (
-  <div className="min-h-screen bg-[#F7F6F1] dark:bg-[#0A100D] flex items-center justify-center text-xs font-semibold text-[#686B65] dark:text-[#9EACA3]">
+  <div className="min-h-screen bg-[#F7F5EF] dark:bg-[#0A100D] flex items-center justify-center text-xs font-semibold text-[#4F5A52] dark:text-[#9EACA3]">
     <div className="flex items-center gap-2">
-      <div className="w-2 h-2 rounded-full bg-[#263F35] dark:bg-[#34D399] animate-pulse" />
+      <div className="w-2 h-2 rounded-full bg-[#1B4332] dark:bg-[#34D399] animate-pulse" />
       <span>Memuat halaman...</span>
     </div>
   </div>
@@ -38,7 +39,7 @@ export const AuthenticatedRoute: React.FC<{ children: React.ReactElement }> = ({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-sm text-[#686B65]">
+      <div className="min-h-screen flex items-center justify-center text-sm text-[#4F5A52]">
         Memeriksa sesi...
       </div>
     );
@@ -52,14 +53,14 @@ export const MeRedirect: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-sm text-[#686B65]">
+      <div className="min-h-screen flex items-center justify-center text-sm text-[#4F5A52]">
         Memeriksa sesi...
       </div>
     );
   }
 
   return isAuthenticated ? (
-    <Navigate to={`/u/${profile.username}`} replace />
+    <Navigate to={`/u/${encodeURIComponent(profile.username)}`} replace />
   ) : (
     <Navigate to="/login" replace />
   );
@@ -70,7 +71,7 @@ export const AdminOnlyRoute: React.FC<{ children: React.ReactElement }> = ({ chi
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F7F6F1] dark:bg-[#0C100E] flex items-center justify-center text-xs font-semibold text-[#686B65] dark:text-[#9EACA3]">
+      <div className="min-h-screen bg-[#F7F5EF] dark:bg-[#0C100E] flex items-center justify-center text-xs font-semibold text-[#4F5A52] dark:text-[#9EACA3]">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
           <span>Memeriksa akses admin...</span>
@@ -85,22 +86,22 @@ export const AdminOnlyRoute: React.FC<{ children: React.ReactElement }> = ({ chi
 
   if (profile.role !== 'admin') {
     return (
-      <div className="min-h-screen bg-[#F7F6F1] dark:bg-[#0C100E] flex flex-col items-center justify-center p-4 text-center">
-        <div className="max-w-md w-full bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+      <div className="min-h-screen bg-[#F7F5EF] dark:bg-[#0C100E] flex flex-col items-center justify-center p-4 text-center">
+        <div className="max-w-md w-full bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
           <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
             <ShieldAlert className="w-6 h-6" />
           </div>
-          <h2 className="text-lg sm:text-xl font-black text-[#20221D] dark:text-[#F3F6F4]">
+          <h2 className="text-lg sm:text-xl font-black text-[#101913] dark:text-[#F3F6F4]">
             Akses Khusus Verifikator PUPR
           </h2>
-          <p className="text-xs text-[#686B65] dark:text-[#9EACA3] leading-relaxed">
+          <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] leading-relaxed">
             Halaman ini khusus untuk verifikator resmi Dinas PUPR. Akun Anda saat ini terdaftar sebagai{' '}
-            <strong className="text-[#20221D] dark:text-[#F3F6F4]">{profile.displayName}</strong> (@{profile.username}) dengan peran warga.
+            <strong className="text-[#101913] dark:text-[#F3F6F4]">{profile.displayName}</strong> (@{profile.username}) dengan peran warga.
           </p>
           <div className="pt-2 flex flex-col sm:flex-row gap-2">
             <a
               href="/"
-              className="flex-1 py-2.5 px-4 rounded-xl border border-[#E4E2DA] dark:border-[#26352E] text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#26352E] transition-colors text-center"
+              className="flex-1 py-2.5 px-4 rounded-xl border border-[#E3E0D6] dark:border-[#26352E] text-xs font-bold text-[#101913] dark:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#26352E] transition-colors text-center"
             >
               Kembali ke Beranda
             </a>
@@ -126,6 +127,8 @@ export const AppRoutes: React.FC = () => {
         {/* Public Routes */}
         <Route path="/login" element={<LoginView />} />
         <Route path="/daftar" element={<RegisterView />} />
+        <Route path="/setup-profil" element={<AccountSetupView />} />
+        <Route path="/onboarding" element={<Navigate to="/setup-profil" replace />} />
         <Route path="/register" element={<Navigate to="/daftar" replace />} />
         <Route path="/masuk" element={<Navigate to="/login" replace />} />
         <Route path="/workflow" element={<Navigate to="/alur" replace />} />

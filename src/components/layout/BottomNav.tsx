@@ -60,7 +60,7 @@ export const BottomNav: React.FC = () => {
   return (
     <nav
       aria-label="Navigasi Utama Mobile"
-      className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom,16px))] left-1/2 -translate-x-1/2 z-40 lg:hidden grid grid-cols-5 items-center w-[92%] max-w-sm px-2 py-2 bg-[#20221D]/90 dark:bg-[#131916]/95 backdrop-blur-md rounded-full shadow-2xl border border-white/10 dark:border-[#26352E] text-white transition-all duration-300 ${
+      className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom,16px))] left-1/2 -translate-x-1/2 z-40 lg:hidden grid grid-cols-5 items-center w-[92%] max-w-sm px-2 py-2 bg-[#101913]/90 dark:bg-[#131916]/95 backdrop-blur-md rounded-full shadow-2xl border border-white/10 dark:border-[#26352E] text-white transition-all duration-300 ${
         isVisible && !isCommentsSheetOpen
           ? 'translate-y-0 opacity-100 scale-100'
           : 'translate-y-28 opacity-0 pointer-events-none scale-95'
@@ -104,7 +104,7 @@ export const BottomNav: React.FC = () => {
         <button
           type="button"
           onClick={() => openComposer('post')}
-          className="flex items-center justify-center -my-1 w-11 h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-[#20221D] shadow-lg shadow-emerald-500/30 transition-transform active:scale-90 cursor-pointer"
+          className="flex items-center justify-center -my-1 w-11 h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-[#101913] shadow-lg shadow-emerald-500/30 transition-transform active:scale-90 cursor-pointer"
           title="Buat Postingan atau Laporan"
           aria-label="Buat"
         >
@@ -128,14 +128,14 @@ export const BottomNav: React.FC = () => {
 
       {isAuthenticated ? (
         <a
-          href={`/u/${profile.username}`}
+          href={`/u/${encodeURIComponent(profile.username)}`}
           onClick={(e) => {
             e.preventDefault();
-            const target = `/u/${profile.username}`;
+            const target = `/u/${encodeURIComponent(profile.username)}`;
             if (location.pathname !== target) navigate(target);
           }}
           className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
-            currentPath === `/u/${profile.username}` || currentPath === '/me' || (profile.role === 'admin' && currentPath === '/admin')
+            currentPath === `/u/${encodeURIComponent(profile.username)}` || currentPath === `/u/${profile.username}` || currentPath === '/me' || (profile.role === 'admin' && currentPath === '/admin')
               ? (currentPath === '/admin' ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold')
               : 'text-white/70 hover:text-white'
           }`}
@@ -159,7 +159,7 @@ export const BottomNav: React.FC = () => {
             />
             {profile.role === 'admin' && (
               <span
-                className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-[#20221D] dark:ring-[#131916]"
+                className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-[#101913] dark:ring-[#131916]"
                 title={
                   profile.verifiedAgency
                     ? `Akun Admin ${profile.verifiedAgency.toLowerCase().includes('pekerjaan umum') ? 'PUPR' : profile.verifiedAgency}`

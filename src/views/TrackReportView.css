@@ -1,12 +1,12 @@
 /* ==========================================================================
    TITIK. TrackReportView Dedicated Stylesheet
-   Design Spine: Deep Forest Green (#263F35), Geometric Angled Slashes (-35deg),
-   Soft Sage (#E7EBDD), Cream Canvas (#F7F6F1), Pill Ergonomics, Elevated Cards
+   Design Spine: Deep Forest Green (#1B4332), Geometric Angled Slashes (-35deg),
+   Soft Sage (#E7EBDD), Cream Canvas (#F7F5EF), Pill Ergonomics, Elevated Cards
    ========================================================================== */
 
 /* Hero Banner with Geometric Ribbons & Angled Slashes (-35deg) */
 .track-hero-banner {
-  background-color: var(--titik-forest, #263F35);
+  background-color: var(--titik-forest, #1B4332);
   color: #FFFFFF;
   position: relative;
   overflow: hidden;
@@ -103,7 +103,7 @@
   justify-content: center;
   gap: 0.5rem;
   border-radius: var(--titik-radius-pill, 9999px);
-  background-color: var(--titik-forest, #263F35);
+  background-color: var(--titik-forest, #1B4332);
   color: #FFFFFF;
   font-weight: 700;
   font-size: 0.75rem;
@@ -114,7 +114,7 @@
 }
 
 .track-submit-btn:hover:not(:disabled) {
-  background-color: var(--titik-forest-hover, #1D3129);
+  background-color: var(--titik-forest-hover, #14352A);
 }
 
 .track-submit-btn:active:not(:disabled) {

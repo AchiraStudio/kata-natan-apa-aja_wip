@@ -33,27 +33,27 @@ export const ReportAuditTrail: React.FC<ReportAuditTrailProps> = ({ events }) =>
   const sortedEvents = [...events].reverse();
 
   return (
-    <div className="pt-3 border-t border-[#E4E2DA] dark:border-[#26352E] space-y-2">
+    <div className="pt-3 border-t border-[#E3E0D6] dark:border-[#26352E] space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#686B65] dark:text-[#9EACA3] flex items-center gap-1.5">
-          <History className="w-3.5 h-3.5 text-[#263F35] dark:text-[#34D399]" />
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#4F5A52] dark:text-[#9EACA3] flex items-center gap-1.5">
+          <History className="w-3.5 h-3.5 text-[#1B4332] dark:text-[#34D399]" />
           Riwayat Audit Terakhir ({events.length} Peristiwa)
         </span>
       </div>
 
-      <div className="divide-y divide-[#E4E2DA]/60 dark:divide-[#26352E] max-h-48 overflow-y-auto no-scrollbar text-xs">
+      <div className="divide-y divide-[#E3E0D6]/60 dark:divide-[#26352E] max-h-48 overflow-y-auto no-scrollbar text-xs">
         {sortedEvents.length > 0 ? (
           sortedEvents.map((ev: ReportEvent) => {
             const isInternal = Boolean(ev.isInternal || ev.is_internal);
 
             return (
               <div key={ev.id} className="py-2.5 first:pt-1 last:pb-1 space-y-1">
-                <div className="flex items-center justify-between font-semibold text-[#20221D] dark:text-[#F3F6F4]">
+                <div className="flex items-center justify-between font-semibold text-[#101913] dark:text-[#F3F6F4]">
                   <div className="flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase bg-[#F7F6F1] dark:bg-[#131916] text-[#263F35] dark:text-[#34D399] border border-[#E4E2DA] dark:border-[#26352E]">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase bg-[#F7F5EF] dark:bg-[#131916] text-[#1B4332] dark:text-[#34D399] border border-[#E3E0D6] dark:border-[#26352E]">
                       {ev.eventType}
                     </span>
-                    <span className="text-[11px] text-[#20221D] dark:text-[#F3F6F4]">
+                    <span className="text-[11px] text-[#101913] dark:text-[#F3F6F4]">
                       {ev.actorName || (ev.actorType === 'agency_officer' ? 'Verifikator Dinas' : 'Warga Pelapor')}
                     </span>
                   </div>
@@ -70,19 +70,19 @@ export const ReportAuditTrail: React.FC<ReportAuditTrailProps> = ({ events }) =>
                         Publik
                       </span>
                     )}
-                    <span className="text-[10px] font-mono text-[#686B65] dark:text-[#9EACA3]">
+                    <span className="text-[10px] font-mono text-[#4F5A52] dark:text-[#9EACA3]">
                       {formatIndonesianTimestamp(ev.timestamp)}
                     </span>
                   </div>
                 </div>
 
-                <p className="text-[11px] text-[#686B65] dark:text-[#9EACA3] leading-relaxed break-words">
+                <p className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] leading-relaxed break-words">
                   {ev.description}
                 </p>
 
                 {ev.notes && ev.notes !== ev.description && (
-                  <div className="text-[10px] p-2 rounded-xl bg-[#F7F6F1] dark:bg-[#131916] text-[#20221D] dark:text-[#F3F6F4] border border-[#E4E2DA]/60 dark:border-[#26352E]/60">
-                    <span className="font-semibold text-[#686B65] dark:text-[#9EACA3]">Catatan verifikator: </span>
+                  <div className="text-[10px] p-2 rounded-xl bg-[#F7F5EF] dark:bg-[#131916] text-[#101913] dark:text-[#F3F6F4] border border-[#E3E0D6]/60 dark:border-[#26352E]/60">
+                    <span className="font-semibold text-[#4F5A52] dark:text-[#9EACA3]">Catatan verifikator: </span>
                     {ev.notes}
                   </div>
                 )}
@@ -90,7 +90,7 @@ export const ReportAuditTrail: React.FC<ReportAuditTrailProps> = ({ events }) =>
             );
           })
         ) : (
-          <div className="py-4 text-center text-xs text-[#686B65] dark:text-[#9EACA3]">
+          <div className="py-4 text-center text-xs text-[#4F5A52] dark:text-[#9EACA3]">
             Belum ada catatan riwayat audit.
           </div>
         )}

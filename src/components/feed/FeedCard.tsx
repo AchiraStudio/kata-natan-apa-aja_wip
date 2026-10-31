@@ -24,6 +24,7 @@ import { useTitik } from '../../context/TitikContext';
 import { CommentsBottomSheet } from './CommentsBottomSheet';
 import { formatEngagementMetric } from '../../utils/formatters';
 import { UserAvatar } from '../common/UserAvatar';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface FeedCardProps {
   post: Post;
@@ -58,8 +59,11 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [commentsDelta, setCommentsDelta] = useState(0);
   const [shareCopied, setShareCopied] = useState(false);
+  const [burstActive, setBurstActive] = useState(false);
   const [prevPostId, setPrevPostId] = useState(post.id);
   const [prevIsActive, setPrevIsActive] = useState(isActive);
+
+  const authorHandle = (post.author?.username || '').replace(/^@+/, '');
 
   if (post.id !== prevPostId) {
     setPrevPostId(post.id);
@@ -302,17 +306,17 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         {/* Author Avatar with Follow Badge */}
         <div className="relative">
           <a
-            href={`/u/${post.author.username}`}
+            href={`/u/${authorHandle}`}
             className="block cursor-pointer focus:outline-none"
             onClick={(e) => {
               e.stopPropagation();
               if (window.history && typeof window.history.pushState === 'function') {
                 e.preventDefault();
-                window.history.pushState({}, '', `/u/${post.author.username}`);
+                window.history.pushState({}, '', `/u/${authorHandle}`);
                 window.dispatchEvent(new PopStateEvent('popstate'));
               }
             }}
-            title={`Lihat profil @${post.author.username}`}
+            title={`Lihat profil @${authorHandle}`}
           >
             <UserAvatar
               src={post.author.avatarUrl}
@@ -331,8 +335,8 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
               }}
               className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center text-white transition-transform active:scale-90 ${
                 isFollowed
-                  ? 'bg-[#263F35] dark:bg-[#10B981] dark:text-[#0A1610]'
-                  : 'bg-[#263F35] dark:bg-[#10B981] dark:text-[#0A1610] hover:bg-[#1f332b] dark:hover:bg-[#34D399]'
+                  ? 'bg-[#1B4332] dark:bg-[#10B981] dark:text-[#0A1610]'
+                  : 'bg-[#1B4332] dark:bg-[#10B981] dark:text-[#0A1610] hover:bg-[#1f332b] dark:hover:bg-[#34D399]'
               }`}
             >
               {isFollowed ? <Check className="w-3 h-3 stroke-[3]" /> : <Plus className="w-3 h-3 stroke-[3]" />}
@@ -340,8 +344,32 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
           )}
         </div>
 
-        {/* "Saya terdampak juga / Dukung Laporan / Sukai" Action */}
-        <div className="flex flex-col items-center">
+        {/* "Saya terdampak juga / Dukung Laporan / Sukai" Action with 8-dot Titik Radial Burst */}
+        <div className="relative flex flex-col items-center">
+          <AnimatePresence>
+            {burstActive && (
+              <div className="absolute top-5 left-5 pointer-events-none z-20 flex items-center justify-center">
+                {Array.from({ length: 8 }).map((_, i) => {
+                  const angle = (i / 8) * 2 * Math.PI;
+                  return (
+                    <motion.span
+                      key={i}
+                      className="absolute w-2 h-2 rounded-full bg-[#34D399] shadow-sm shadow-emerald-400"
+                      initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                      animate={{
+                        x: Math.cos(angle) * 30,
+                        y: Math.sin(angle) * 30,
+                        opacity: 0,
+                        scale: 0.4,
+                      }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </AnimatePresence>
           <button
             type="button"
             onClick={(e) => {
@@ -350,6 +378,8 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
                 redirectToLogin();
                 return;
               }
+              setBurstActive(true);
+              setTimeout(() => setBurstActive(false), 600);
               if (post.relatedReportId) {
                 toggleSupport(post.relatedReportId);
               } else if (togglePostLike) {
@@ -400,7 +430,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
             }}
             aria-label="Bagikan"
             className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center backdrop-blur-md transition-all active:scale-90 ${
-              shareCopied ? 'bg-emerald-500 text-[#20221D]' : 'bg-black/45 text-white hover:bg-black/65'
+              shareCopied ? 'bg-emerald-500 text-[#101913]' : 'bg-black/45 text-white hover:bg-black/65'
             }`}
             title={shareCopied ? 'Tautan disalin!' : 'Bagikan'}
           >
@@ -421,7 +451,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
               handleSaveToggle();
             }}
             className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center backdrop-blur-md transition-all active:scale-90 cursor-pointer ${
-              isSaved ? 'bg-amber-400 text-[#20221D]' : 'bg-black/45 text-white hover:bg-black/65'
+              isSaved ? 'bg-amber-400 text-[#101913]' : 'bg-black/45 text-white hover:bg-black/65'
             }`}
             title="Simpan laporan"
           >
@@ -438,12 +468,12 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         {/* Author Handle & Name */}
         <div className="flex items-center gap-2 flex-wrap">
           <a
-            href={`/u/${post.author.username}`}
+            href={`/u/${authorHandle}`}
             onClick={(e) => {
               e.stopPropagation();
               if (window.history && typeof window.history.pushState === 'function') {
                 e.preventDefault();
-                window.history.pushState({}, '', `/u/${post.author.username}`);
+                window.history.pushState({}, '', `/u/${authorHandle}`);
                 window.dispatchEvent(new PopStateEvent('popstate'));
               }
             }}
@@ -453,18 +483,18 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
             {post.author.displayName}
           </a>
           <a
-            href={`/u/${post.author.username}`}
+            href={`/u/${authorHandle}`}
             onClick={(e) => {
               e.stopPropagation();
               if (window.history && typeof window.history.pushState === 'function') {
                 e.preventDefault();
-                window.history.pushState({}, '', `/u/${post.author.username}`);
+                window.history.pushState({}, '', `/u/${authorHandle}`);
                 window.dispatchEvent(new PopStateEvent('popstate'));
               }
             }}
             className="text-xs text-white/80 font-mono hover:underline hover:text-emerald-300 transition-colors cursor-pointer"
           >
-            @{post.author.username}
+            @{authorHandle}
           </a>
           <span className="text-xs text-white/70 font-mono">• {post.createdAt}</span>
         </div>
@@ -559,7 +589,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
                   openReportDetail(post.relatedReport);
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#263F35]/95 dark:bg-[#10B981]/95 dark:text-[#08130E] font-semibold backdrop-blur-md text-[11px] text-white border border-white/20 dark:border-[#10B981]/50 hover:bg-[#1d3129] dark:hover:bg-[#34D399] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1B4332]/95 dark:bg-[#10B981]/95 dark:text-[#08130E] font-semibold backdrop-blur-md text-[11px] text-white border border-white/20 dark:border-[#10B981]/50 hover:bg-[#14352A] dark:hover:bg-[#34D399] transition-colors cursor-pointer"
             >
               <span>Lihat Laporan & APBD ({post.relatedReport.publicReference})</span>
             </button>

@@ -191,16 +191,12 @@ export class MockDataAdapter implements IDataAdapter {
 
   async getSubmittedFeedPosts(
     tab: 'for_you' | 'following' | 'nearby' = 'for_you',
-    category?: string
+    category?: string,
+    userId?: string
   ): Promise<Post[]> {
     await this.ensurePersistedReportsLoaded();
-    return this.posts.filter((post) => {
-      if (!this.submittedPostIds.has(post.id)) return false;
-      if (category && category !== 'Semua' && post.relatedReport?.category.toLowerCase() !== category.toLowerCase()) {
-        return false;
-      }
-      return tab !== 'following' || post.author.username === 'sariwulan';
-    });
+    const feed = await this.getFeedPosts(tab, category, userId);
+    return feed.filter((post) => this.submittedPostIds.has(post.id));
   }
 
   async getMyReports(reporterUserId: string): Promise<Report[]> {

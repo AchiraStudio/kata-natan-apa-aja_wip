@@ -39,7 +39,7 @@ export const AdminMetricsCards: React.FC<AdminMetricsCardsProps> = ({
       status: 'resolved' as ReportStatus,
       label: 'Tuntas Ditangani',
       count: metrics.resolved,
-      colorText: 'text-[#263F35] dark:text-[#34D399]',
+      colorText: 'text-[#1B4332] dark:text-[#34D399]',
       activeRing: 'ring-2 ring-emerald-500/50',
     },
   ];
@@ -53,11 +53,11 @@ export const AdminMetricsCards: React.FC<AdminMetricsCardsProps> = ({
             key={card.status}
             type="button"
             onClick={() => onSelectStatus?.(card.status)}
-            className={`admin-metric-card text-left bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-5 shadow-xs hover:border-[#263F35]/30 dark:hover:border-[#10B981]/40 transition-all cursor-pointer ${
+            className={`admin-metric-card text-left bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-5 shadow-xs hover:border-[#1B4332]/30 dark:hover:border-[#10B981]/40 transition-all cursor-pointer ${
               isActive ? card.activeRing : ''
             }`}
           >
-            <span className="text-[11px] text-[#686B65] dark:text-[#9EACA3] font-medium block">
+            <span className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] font-medium block">
               {card.label}
             </span>
             <div

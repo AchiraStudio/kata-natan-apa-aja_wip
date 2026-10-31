@@ -33,8 +33,8 @@ const STATUS_BADGE_STYLES: Record<
   accepted_for_routing: {
     label: 'Disetujui',
     bg: 'bg-[#E7EBDD] dark:bg-[#1A2E24]',
-    text: 'text-[#263F35] dark:text-[#34D399]',
-    border: 'border-[#263F35]/30 dark:border-[#10B981]/40',
+    text: 'text-[#1B4332] dark:text-[#34D399]',
+    border: 'border-[#1B4332]/30 dark:border-[#10B981]/40',
   },
   forwarded_to_institution: {
     label: 'Diteruskan ke Dinas',
@@ -77,8 +77,8 @@ export const ReportQueueItem: React.FC<ReportQueueItemProps> = ({
   const statusConfig = STATUS_BADGE_STYLES[report.status] || {
     label: report.status.replace(/_/g, ' '),
     bg: 'bg-white/80 dark:bg-[#131916]',
-    text: 'text-[#686B65] dark:text-[#9EACA3]',
-    border: 'border-[#E4E2DA] dark:border-[#26352E]',
+    text: 'text-[#4F5A52] dark:text-[#9EACA3]',
+    border: 'border-[#E3E0D6] dark:border-[#26352E]',
   };
 
   const dotClass = SEVERITY_DOT[report.severity] || 'bg-neutral-400';
@@ -89,14 +89,14 @@ export const ReportQueueItem: React.FC<ReportQueueItemProps> = ({
       onClick={() => onSelect(report.id)}
       className={`w-full text-left py-3 px-3.5 rounded-2xl transition-all cursor-pointer ${
         isSelected
-          ? 'bg-[#E7EBDD]/90 dark:bg-[#1A2E24] ring-1 ring-[#263F35]/40 dark:ring-[#10B981]/50 shadow-2xs'
-          : 'hover:bg-[#F7F6F1] dark:hover:bg-[#131916]'
+          ? 'bg-[#E7EBDD]/90 dark:bg-[#1A2E24] ring-1 ring-[#1B4332]/40 dark:ring-[#10B981]/50 shadow-2xs'
+          : 'hover:bg-[#F7F5EF] dark:hover:bg-[#131916]'
       }`}
     >
       <div className="flex items-center justify-between text-[11px] mb-1">
         <div className="flex items-center gap-1.5">
           <span className={`w-2 h-2 rounded-full shrink-0 ${dotClass}`} title={`Urgensi: ${report.severity}`} />
-          <span className="font-mono font-bold text-[#20221D] dark:text-[#F3F6F4]">
+          <span className="font-mono font-bold text-[#101913] dark:text-[#F3F6F4]">
             {report.publicReference}
           </span>
         </div>
@@ -107,21 +107,21 @@ export const ReportQueueItem: React.FC<ReportQueueItemProps> = ({
         </span>
       </div>
 
-      <div className="text-xs font-bold text-[#20221D] dark:text-[#F3F6F4] truncate">
+      <div className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4] truncate">
         {report.title}
       </div>
 
-      <div className="flex items-center gap-1 text-[11px] text-[#686B65] dark:text-[#9EACA3] truncate mt-0.5">
-        <MapPin className="w-3 h-3 text-[#686B65] dark:text-[#9EACA3] shrink-0" />
+      <div className="flex items-center gap-1 text-[11px] text-[#4F5A52] dark:text-[#9EACA3] truncate mt-0.5">
+        <MapPin className="w-3 h-3 text-[#4F5A52] dark:text-[#9EACA3] shrink-0" />
         <span className="truncate">{report.location?.address || 'Lokasi belum dicantumkan'}</span>
       </div>
 
-      <div className="flex items-center gap-1.5 mt-1.5 pt-1 border-t border-[#E4E2DA]/40 dark:border-[#26352E]/40">
-        <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[#F7F6F1] dark:bg-[#131916] text-[#686B65] dark:text-[#9EACA3] border border-[#E4E2DA]/60 dark:border-[#26352E]/60">
+      <div className="flex items-center gap-1.5 mt-1.5 pt-1 border-t border-[#E3E0D6]/40 dark:border-[#26352E]/40">
+        <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[#F7F5EF] dark:bg-[#131916] text-[#4F5A52] dark:text-[#9EACA3] border border-[#E3E0D6]/60 dark:border-[#26352E]/60">
           {report.category}
         </span>
         {report.reporterDisplayName && (
-          <span className="text-[10px] text-[#686B65] dark:text-[#9EACA3] truncate">
+          <span className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3] truncate">
             Oleh: {report.reporterDisplayName}
           </span>
         )}

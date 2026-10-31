@@ -20,7 +20,7 @@ export const StatusTransitionActions: React.FC<StatusTransitionActionsProps> = (
   onDeleteReport,
 }) => {
   return (
-    <div className="space-y-3 pt-2 border-t border-[#E4E2DA] dark:border-[#26352E]">
+    <div className="space-y-3 pt-2 border-t border-[#E3E0D6] dark:border-[#26352E]">
       {/* Feedback Messages */}
       {actionError && (
         <div
@@ -43,10 +43,10 @@ export const StatusTransitionActions: React.FC<StatusTransitionActionsProps> = (
       )}
 
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#686B65] dark:text-[#9EACA3]">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#4F5A52] dark:text-[#9EACA3]">
           Aksi Transisi Status:
         </span>
-        <span className="text-[10px] font-mono text-[#686B65] dark:text-[#9EACA3]">
+        <span className="text-[10px] font-mono text-[#4F5A52] dark:text-[#9EACA3]">
           Status aktif: <span className="font-bold uppercase">{currentStatus.replace(/_/g, ' ')}</span>
         </span>
       </div>
@@ -76,7 +76,7 @@ export const StatusTransitionActions: React.FC<StatusTransitionActionsProps> = (
           type="button"
           disabled={isUpdating}
           onClick={() => onApplyTransition('accepted_for_routing')}
-          className="admin-transition-btn px-4 py-2 bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#263F35] dark:text-[#34D399] border border-[#263F35]/30 dark:border-[#10B981]/40 rounded-full font-semibold hover:bg-[#d8e0cc] dark:hover:bg-[#243f31] disabled:opacity-50 transition-all text-xs cursor-pointer"
+          className="admin-transition-btn px-4 py-2 bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#1B4332] dark:text-[#34D399] border border-[#1B4332]/30 dark:border-[#10B981]/40 rounded-full font-semibold hover:bg-[#d8e0cc] dark:hover:bg-[#243f31] disabled:opacity-50 transition-all text-xs cursor-pointer"
         >
           Setujui Laporan
         </button>

@@ -46,26 +46,26 @@ export const CreateModal: React.FC = () => {
     >
       <div
         ref={modalRef}
-        className="relative w-full max-w-lg bg-[#F7F6F1] dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] rounded-2xl shadow-2xl overflow-hidden my-auto"
+        className="relative w-full max-w-lg bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-2xl shadow-2xl overflow-hidden my-auto"
       >
         {/* Discard Confirmation Overlay */}
         {showDiscardConfirm && (
           <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/75 backdrop-blur-xs">
-            <div className="bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-2xl p-5 max-w-xs text-center space-y-3 shadow-xl">
+            <div className="bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-2xl p-5 max-w-xs text-center space-y-3 shadow-xl">
               <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
                 <AlertTriangle className="w-5 h-5" />
               </div>
-              <h4 className="text-sm font-bold text-[#20221D] dark:text-[#F3F6F4]">
+              <h4 className="text-sm font-bold text-[#101913] dark:text-[#F3F6F4]">
                 Tutup tanpa menyimpan?
               </h4>
-              <p className="text-xs text-[#686B65] dark:text-[#9EACA3]">
+              <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3]">
                 Draf yang belum diterbitkan akan tetap tersimpan di sesi browser ini.
               </p>
               <div className="flex items-center gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setShowDiscardConfirm(false)}
-                  className="flex-1 py-2 text-xs font-semibold rounded-xl border border-[#E4E2DA] dark:border-[#26352E] text-[#20221D] dark:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#26352E] cursor-pointer"
+                  className="flex-1 py-2 text-xs font-semibold rounded-xl border border-[#E3E0D6] dark:border-[#26352E] text-[#101913] dark:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#26352E] cursor-pointer"
                 >
                   Lanjut Menulis
                 </button>
@@ -82,16 +82,16 @@ export const CreateModal: React.FC = () => {
         )}
 
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#E4E2DA] dark:border-[#26352E] bg-white/70 dark:bg-[#1A221E]/70 backdrop-blur-sm">
+        <div className="flex items-center justify-between p-4 border-b border-[#E3E0D6] dark:border-[#26352E] bg-white/70 dark:bg-[#1A221E]/70 backdrop-blur-sm">
           {/* Tab Switcher */}
-          <div className="flex items-center p-1 bg-[#E4E2DA]/60 dark:bg-[#131916] rounded-xl text-xs font-bold">
+          <div className="flex items-center p-1 bg-[#E3E0D6]/60 dark:bg-[#131916] rounded-xl text-xs font-bold">
             <button
               type="button"
               onClick={() => openComposer('post')}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 composerTab === 'post'
-                  ? 'bg-white dark:bg-[#26352E] text-[#263F35] dark:text-[#34D399] shadow-xs'
-                  : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D]'
+                  ? 'bg-white dark:bg-[#26352E] text-[#1B4332] dark:text-[#34D399] shadow-xs'
+                  : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913]'
               }`}
             >
               <MessageSquare className="w-3.5 h-3.5" />
@@ -102,8 +102,8 @@ export const CreateModal: React.FC = () => {
               onClick={() => openComposer('report')}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 composerTab === 'report'
-                  ? 'bg-white dark:bg-[#26352E] text-[#263F35] dark:text-[#34D399] shadow-xs'
-                  : 'text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D]'
+                  ? 'bg-white dark:bg-[#26352E] text-[#1B4332] dark:text-[#34D399] shadow-xs'
+                  : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913]'
               }`}
             >
               <FileText className="w-3.5 h-3.5" />
@@ -115,7 +115,7 @@ export const CreateModal: React.FC = () => {
           <button
             type="button"
             onClick={handleCloseAttempt}
-            className="p-1.5 rounded-full text-[#686B65] hover:text-[#20221D] dark:text-[#9EACA3] dark:hover:text-white hover:bg-[#E4E2DA]/60 dark:hover:bg-[#26352E] transition-colors cursor-pointer"
+            className="p-1.5 rounded-full text-[#4F5A52] hover:text-[#101913] dark:text-[#9EACA3] dark:hover:text-white hover:bg-[#E3E0D6]/60 dark:hover:bg-[#26352E] transition-colors cursor-pointer"
             aria-label="Tutup modal pembuatan"
           >
             <X className="w-4 h-4" />

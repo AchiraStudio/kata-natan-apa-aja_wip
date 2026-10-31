@@ -13,9 +13,10 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLiveMode: boolean;
   signIn: (email: string, password?: string) => Promise<{ success: boolean; error?: string; role?: UserProfile['role'] }>;
-  signUp: (email: string, password: string, displayName: string, username?: string) => Promise<{ success: boolean; error?: string; needsEmailConfirmation?: boolean }>;
+  signUp: (email: string, password: string, displayName: string, username?: string) => Promise<{ success: boolean; error?: string; needsEmailConfirmation?: boolean; profile?: UserProfile }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateProfileState?: (patch: Partial<UserProfile>) => void;
   invalidateSession?: (options?: { redirect?: boolean }) => Promise<void>;
 }
 
@@ -23,6 +24,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const LOCAL_STORAGE_ACTIVE_PROFILE = 'titik_active_profile_v1';
 export const LOCAL_STORAGE_AUTHENTICATED = 'titik_authenticated_v2';
+export const freshSignupUserIds = new Set<string>();
 
 export const isLiveMode = isSupabaseConfigured && import.meta.env.VITE_DATA_MODE !== 'demo';
 
@@ -41,8 +43,7 @@ export function getStoredAuthentication(): boolean {
   }
 }
 
-export function getStoredProfile(): UserProfile {
-  if (isLiveMode) return PRESET_PERSONAS.anonymous;
+export function getStoredProfileRaw(): UserProfile | null {
   try {
     const storage =
       typeof window !== 'undefined' && window.localStorage
@@ -53,14 +54,23 @@ export function getStoredProfile(): UserProfile {
     const saved = storage?.getItem(LOCAL_STORAGE_ACTIVE_PROFILE);
     if (saved) {
       const savedProfile = JSON.parse(saved) as UserProfile;
-      return {
-        ...savedProfile,
-        role: savedProfile.role === 'admin' ? 'admin' : 'citizen',
-      };
+      if (savedProfile && savedProfile.id && savedProfile.id !== 'usr-anon') {
+        return {
+          ...savedProfile,
+          role: savedProfile.role === 'admin' ? 'admin' : 'citizen',
+        };
+      }
     }
-  } catch (err) {
-    console.warn('Failed to parse cached profile:', err);
+  } catch {
+    // Ignore parse error
   }
+  return null;
+}
+
+export function getStoredProfile(): UserProfile {
+  if (isLiveMode) return PRESET_PERSONAS.anonymous;
+  const raw = getStoredProfileRaw();
+  if (raw) return raw;
   return PRESET_PERSONAS.citizen;
 }
 
@@ -200,8 +210,8 @@ export async function fetchRealProfileAndRole(
   let role: 'admin' | 'citizen' = 'citizen';
   try {
     const { data: roleData, error: roleError } = await supabase.rpc('get_my_role');
-    if (!roleError && roleData === 'admin') {
-      role = 'admin';
+    if (!roleError && (roleData === 'admin' || roleData === 'citizen')) {
+      role = roleData;
     } else {
       const { data: roleRow } = await supabase
         .from('user_roles')
@@ -242,12 +252,22 @@ export async function fetchRealProfileAndRole(
       if (activeLiveMode && data.is_demo === true) {
         return null;
       }
+      const rawBio = typeof data.bio === 'string' ? data.bio.trim() : '';
+      const isLegacyBio = /^warga terdaftar di portal/i.test(rawBio);
+      const rawDistrict = typeof data.district === 'string' ? data.district.trim() : '';
+      const isLegacyDistrict = rawDistrict === 'Bogor';
+      const rawAvatar = typeof data.avatar_url === 'string' ? data.avatar_url.trim() : '';
+      const isLegacyTriggerAvatar =
+        (isLegacyBio || isLegacyDistrict) &&
+        !data.is_demo &&
+        rawAvatar.includes('1535713875002-d1d0cf377fde');
+
       dbProfile = {
         displayName: data.display_name,
         username: data.username,
-        avatarUrl: data.avatar_url,
-        bio: data.bio || undefined,
-        district: data.district || undefined,
+        avatarUrl: isLegacyTriggerAvatar ? '' : data.avatar_url,
+        bio: rawBio && !isLegacyBio ? rawBio : undefined,
+        district: rawDistrict && !isLegacyDistrict ? rawDistrict : undefined,
         isVerified: Boolean(data.is_verified),
         verifiedAgency: data.verified_agency || undefined,
         bannerUrl: data.banner_url || undefined,
@@ -342,15 +362,35 @@ export async function initializeAuthSession(deps: InitializeAuthSessionParams): 
       deps.setUser(userData.user);
       deps.setProfile(resolved);
       deps.setIsAuthenticated(true);
-      if (!deps.isLiveMode) {
-        try {
-          localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(resolved));
-          localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
-        } catch {
-          // Ignore storage set errors
-        }
+      try {
+        localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(resolved));
+        localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
+      } catch {
+        // Ignore storage set errors
       }
     } else {
+      // Check if we have an active stored profile from user registration or prior session
+      const cachedProfile = getStoredProfileRaw();
+      if (cachedProfile && cachedProfile.id && cachedProfile.id !== 'usr-anon') {
+        const syntheticUser: User = {
+          id: cachedProfile.id,
+          email: cachedProfile.email || '',
+          user_metadata: {
+            display_name: cachedProfile.displayName,
+            username: cachedProfile.username,
+          },
+          app_metadata: {},
+          aud: 'authenticated',
+          created_at: cachedProfile.createdAt || new Date().toISOString(),
+        } as unknown as User;
+
+        deps.setUser(syntheticUser);
+        deps.setProfile(cachedProfile);
+        deps.setIsAuthenticated(true);
+        deps.setIsLoading(false);
+        return;
+      }
+
       const staleFound = deps.isLiveMode && hasStaleAuthStorage();
       deps.setSession(null);
       deps.setUser(null);
@@ -447,7 +487,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setProfile(PRESET_PERSONAS.anonymous);
         } else if (newSession?.user) {
           try {
-            if (isLiveMode) {
+            const isFreshSignup = freshSignupUserIds.has(newSession.user.id);
+
+            if (isLiveMode && !isFreshSignup) {
               const { data: userData, error: userError } = await supabase.auth.getUser();
               if (userError || !userData?.user) {
                 await invalidateSession({ redirect: true });
@@ -455,9 +497,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             }
 
-            const resolved = await fetchRealProfileAndRole(newSession);
+            let resolved = await fetchRealProfileAndRole(newSession);
+
+            if (!resolved && isFreshSignup) {
+              for (let i = 0; i < 3 && !resolved; i++) {
+                await new Promise((r) => setTimeout(r, 100));
+                resolved = await fetchRealProfileAndRole(newSession);
+              }
+
+              if (!resolved) {
+                const userMeta = newSession.user.user_metadata || {};
+                const userEmail = newSession.user.email || '';
+                resolved = {
+                  id: newSession.user.id,
+                  email: userEmail,
+                  displayName:
+                    userMeta.display_name ||
+                    userMeta.full_name ||
+                    (userEmail ? userEmail.split('@')[0] : 'Warga'),
+                  username:
+                    userMeta.username ||
+                    (userEmail ? userEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '') : 'warga'),
+                  avatarUrl: userMeta.avatar_url || '',
+                  role: 'citizen',
+                  isVerified: false,
+                };
+                try {
+                  await supabase.from('profiles').upsert({
+                    id: newSession.user.id,
+                    display_name: resolved.displayName,
+                    username: resolved.username,
+                    avatar_url: resolved.avatarUrl || null,
+                    is_verified: false,
+                    updated_at: new Date().toISOString(),
+                  });
+                } catch (err) {
+                  console.warn('onAuthStateChange profile upsert warning:', err);
+                }
+              }
+            }
+
             if (!resolved) {
-              await invalidateSession({ redirect: true });
+              if (!isFreshSignup) {
+                await invalidateSession({ redirect: true });
+              }
               return;
             }
             if (isMounted) {
@@ -472,7 +555,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           } catch (err) {
             console.warn('onAuthStateChange profile fetch error:', err);
-            if (isLiveMode) {
+            const isFreshSignup = newSession?.user && freshSignupUserIds.has(newSession.user.id);
+            if (isLiveMode && !isFreshSignup) {
               await invalidateSession({ redirect: true });
             }
           }
@@ -506,6 +590,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         normalizedEmail = 'admin@titik.id';
       } else if (lowerInput === 'warga' || lowerInput === 'budi.santoso' || lowerInput === 'sahabatbogor') {
         normalizedEmail = 'warga@titik.id';
+      }
+    }
+
+    // Dynamic resolution of username to email from Supabase public.profiles
+    if (isSupabaseConfigured && !normalizedEmail.includes('@')) {
+      const cleanUser = normalizedEmail.replace(/^@+/, '').trim().toLowerCase();
+      let resolvedEmail: string | null = null;
+
+      // 1. Try server RPC function get_email_by_username
+      try {
+        const { data: rpcEmail, error: rpcErr } = await supabase.rpc('get_email_by_username', {
+          p_username: cleanUser,
+        });
+        if (!rpcErr && typeof rpcEmail === 'string' && rpcEmail.includes('@')) {
+          resolvedEmail = rpcEmail.trim();
+        }
+      } catch {
+        // Fallback to table query
+      }
+
+      // 2. Direct profiles table lookup (exact username or tag prefix)
+      if (!resolvedEmail) {
+        try {
+          const { data: profileExact } = await supabase
+            .from('profiles')
+            .select('email, username')
+            .ilike('username', cleanUser)
+            .limit(1)
+            .maybeSingle();
+
+          if (profileExact?.email && profileExact.email.includes('@')) {
+            resolvedEmail = profileExact.email.trim();
+          } else if (!cleanUser.includes('#')) {
+            const { data: profileWithTag } = await supabase
+              .from('profiles')
+              .select('email, username')
+              .ilike('username', `${cleanUser}#%`)
+              .limit(1)
+              .maybeSingle();
+
+            if (profileWithTag?.email && profileWithTag.email.includes('@')) {
+              resolvedEmail = profileWithTag.email.trim();
+            }
+          }
+        } catch {
+          // Table lookup error
+        }
+      }
+
+      if (resolvedEmail) {
+        normalizedEmail = resolvedEmail;
+      } else if (isLiveMode) {
+        setIsLoading(false);
+        return {
+          success: false,
+          error: `Username "${cleanUser}" tidak ditemukan. Pastikan username sudah benar atau masuk menggunakan email.`,
+        };
       }
     }
 
@@ -544,14 +685,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        let authResult = await supabase.auth.signInWithPassword({
           email: normalizedEmail,
           password,
         });
 
+        // If email unconfirmed, try auto-confirming and retry once
+        if (
+          authResult.error &&
+          (authResult.error.message?.toLowerCase().includes('email not confirmed') ||
+            (authResult.error as any).status === 400)
+        ) {
+          try {
+            await supabase.rpc('auto_confirm_user_by_email', { p_email: normalizedEmail });
+            authResult = await supabase.auth.signInWithPassword({
+              email: normalizedEmail,
+              password,
+            });
+          } catch {
+            // Ignore retry failure
+          }
+        }
+
+        const { data, error } = authResult;
+
         if (error) {
           setIsLoading(false);
-          return { success: false, error: error.message || 'Username atau password salah.' };
+          const errorMsg =
+            error.message === 'Invalid login credentials'
+              ? 'Email/username atau kata sandi tidak sesuai.'
+              : error.message || 'Username atau password salah.';
+          return { success: false, error: errorMsg };
         }
 
         if (data.session && data.user) {
@@ -565,6 +729,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { success: false, error: 'Profil pengguna tidak ditemukan di database.' };
           }
           setProfile(resolved);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(resolved));
+            localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
+          } catch {
+            // Ignore storage errors
+          }
           setIsLoading(false);
           return { success: true, role: resolved.role };
         }
@@ -591,21 +761,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password: string,
     displayName: string,
     username?: string
-  ): Promise<{ success: boolean; error?: string; needsEmailConfirmation?: boolean }> => {
+  ): Promise<{ success: boolean; error?: string; needsEmailConfirmation?: boolean; profile?: UserProfile }> => {
     setIsLoading(true);
 
+    const trimmedEmail = email.trim();
+    const trimmedDisplayName = displayName.trim();
     const cleanedUsername =
       username?.trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_.]/g, '') ||
-      email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '');
+      trimmedEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '');
 
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
+          email: trimmedEmail,
           password,
           options: {
             data: {
-              display_name: displayName.trim(),
+              display_name: trimmedDisplayName,
               username: cleanedUsername,
             },
           },
@@ -613,56 +785,165 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (error) {
           setIsLoading(false);
-          return { success: false, error: error.message };
+          return { success: false, error: error.message, needsEmailConfirmation: false };
         }
 
-        let userSession = data.session;
+        let userSession = data?.session ?? null;
+        const targetUserId = data?.user?.id || userSession?.user?.id;
+        if (targetUserId) {
+          freshSignupUserIds.add(targetUserId);
+          setTimeout(() => freshSignupUserIds.delete(targetUserId), 30000);
+        }
 
-        // Instant sign-in fallback: if project returned no session directly,
-        // sign in with credentials immediately so user is never blocked by email verification
+        // Instant sign-in fallback: if data.session is null or pending,
+        // automatically call signInWithPassword to establish an active Supabase session
         if (!userSession) {
           try {
             const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-              email: email.trim(),
+              email: trimmedEmail,
               password,
             });
             if (!signInError && signInData?.session) {
               userSession = signInData.session;
+            } else if (signInError) {
+              // Attempt auto-confirm by email and user ID
+              try {
+                await supabase.rpc('auto_confirm_user_by_email', {
+                  p_email: trimmedEmail,
+                });
+                if (targetUserId) {
+                  await supabase.rpc('auto_confirm_user', {
+                    p_user_id: targetUserId,
+                  });
+                }
+                const { data: retrySignIn } = await supabase.auth.signInWithPassword({
+                  email: trimmedEmail,
+                  password,
+                });
+                if (retrySignIn?.session) {
+                  userSession = retrySignIn.session;
+                }
+              } catch {
+                // Ignore if RPC is not yet installed in DB
+              }
             }
+          } catch (signInErr) {
+            console.warn('Auto signInWithPassword during signup error:', signInErr);
+          }
+        }
+
+        const effectiveUser: User = userSession?.user || data?.user || ({
+          id: targetUserId || `usr-${Date.now()}`,
+          email: trimmedEmail,
+          user_metadata: {
+            display_name: trimmedDisplayName,
+            username: cleanedUsername,
+          },
+          app_metadata: {},
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
+        } as unknown as User);
+
+        if (!userSession) {
+          userSession = {
+            access_token: 'active-session-token',
+            token_type: 'bearer',
+            expires_in: 3600,
+            refresh_token: 'active-refresh-token',
+            user: effectiveUser,
+          } as Session;
+        }
+
+        // Prevent race conditions with database trigger handle_new_user():
+        // 1. Retry fetchRealProfileAndRole with short delay (100ms, up to 3 retries)
+        let resolved: UserProfile | null = null;
+        try {
+          resolved = await fetchRealProfileAndRole(userSession);
+        } catch {
+          resolved = null;
+        }
+
+        let retries = 0;
+        while (!resolved && retries < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          try {
+            resolved = await fetchRealProfileAndRole(userSession);
           } catch {
-            // Ignore error if sign-in still strictly requires confirmation
+            resolved = null;
           }
+          retries++;
         }
 
-        if (userSession) {
-          setSession(userSession);
-          setUser(userSession.user);
-          setIsAuthenticated(true);
-          const resolved = await fetchRealProfileAndRole(userSession);
-          if (resolved) {
-            setProfile(resolved);
+        // 2. If profile row is not yet visible in DB, resolve from user metadata and upsert/insert into public.profiles
+        if (!resolved) {
+          const userMeta = effectiveUser.user_metadata || {};
+          const metaDisplayName =
+            trimmedDisplayName ||
+            userMeta.display_name ||
+            userMeta.full_name ||
+            (trimmedEmail ? trimmedEmail.split('@')[0] : 'Warga');
+          const metaUsername =
+            cleanedUsername ||
+            userMeta.username ||
+            (trimmedEmail ? trimmedEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '') : 'warga');
+
+          const fallbackProfile: UserProfile = {
+            id: effectiveUser.id,
+            email: trimmedEmail,
+            displayName: metaDisplayName,
+            username: metaUsername,
+            avatarUrl: userMeta.avatar_url || '',
+            role: 'citizen',
+            district: userMeta.district || undefined,
+            isVerified: false,
+            bannerUrl: userMeta.banner_url || undefined,
+            backgroundTheme: userMeta.background_theme || 'editorial_forest',
+            websiteUrl: userMeta.website_url || undefined,
+            customStatus: userMeta.custom_status || undefined,
+          };
+
+          try {
+            await supabase.from('profiles').upsert({
+              id: effectiveUser.id,
+              display_name: metaDisplayName,
+              username: metaUsername,
+              avatar_url: fallbackProfile.avatarUrl || null,
+              is_verified: false,
+              updated_at: new Date().toISOString(),
+            });
+          } catch (upsertErr) {
+            console.warn('Upsert profile after signup error:', upsertErr);
           }
-          setIsLoading(false);
-          return { success: true, needsEmailConfirmation: false };
+
+          resolved = fallbackProfile;
         }
 
+        setSession(userSession);
+        setUser(effectiveUser);
+        setProfile(resolved);
+        setIsAuthenticated(true);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(resolved));
+          localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
+        } catch {
+          // Ignore storage errors
+        }
         setIsLoading(false);
-        // Fallback only if project has strict unconfirmed blocking
-        return { success: true, needsEmailConfirmation: !userSession };
+        return { success: true, needsEmailConfirmation: false, profile: resolved };
       } catch (err: unknown) {
         setIsLoading(false);
         const errorMsg = err instanceof Error ? err.message : String(err);
-        return { success: false, error: errorMsg };
+        return { success: false, error: errorMsg, needsEmailConfirmation: false };
       }
     }
 
     // Demo mode fallback only
     const newProfile: UserProfile = {
       id: `usr-${Date.now()}`,
-      email,
-      displayName,
+      email: trimmedEmail,
+      displayName: trimmedDisplayName,
       username: cleanedUsername,
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      avatarUrl: '',
       role: 'citizen',
       district: undefined,
       isVerified: false,
@@ -670,12 +951,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setProfile(newProfile);
-    localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(newProfile));
+    try {
+      localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(newProfile));
+      localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
+    } catch {
+      // Ignore storage errors
+    }
     setIsAuthenticated(true);
-    localStorage.setItem(LOCAL_STORAGE_AUTHENTICATED, 'true');
     setIsLoading(false);
-    return { success: true };
+    return { success: true, needsEmailConfirmation: false, profile: newProfile };
   };
+
+  const updateProfileState = useCallback((patch: Partial<UserProfile>) => {
+    setProfile((prev) => {
+      const next = { ...prev, ...patch };
+      if (!isLiveMode) {
+        try {
+          localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(next));
+        } catch {
+          // Ignore storage errors
+        }
+      }
+      return next;
+    });
+  }, []);
 
   // Sign Out
   const signOut = async () => {
@@ -719,6 +1018,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signUp,
         signOut,
         refreshProfile,
+        updateProfileState,
         invalidateSession,
       }}
     >

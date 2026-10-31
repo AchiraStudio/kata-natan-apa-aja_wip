@@ -730,9 +730,9 @@ describe('TITIK Civic Platform Architecture Overhaul E2E Suite (R1–R5)', () =>
         const indexPath = path.resolve(ROOT_SRC, 'index.css');
         const indexCss = fs.readFileSync(indexPath, 'utf-8');
 
-        expect(indexCss).toContain('--titik-forest: #263F35');
-        expect(indexCss).toContain('--titik-canvas: #F7F6F1');
-        expect(indexCss).toContain('--titik-border: #E4E2DA');
+        expect(indexCss).toContain('--titik-forest: #1B4332');
+        expect(indexCss).toContain('--titik-canvas: #F7F5EF');
+        expect(indexCss).toContain('--titik-border: #E3E0D6');
       });
     });
 

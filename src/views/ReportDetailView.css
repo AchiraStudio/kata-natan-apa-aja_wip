@@ -1,12 +1,12 @@
 /* ==========================================================================
    TITIK. ReportDetailView Dedicated Stylesheet
-   Design Spine: Deep Forest Green (#263F35), Geometric Angled Slashes (-35deg),
-   Soft Sage (#E7EBDD), Cream Canvas (#F7F6F1), Pill Ergonomics, Elevated Cards
+   Design Spine: Deep Forest Green (#1B4332), Geometric Angled Slashes (-35deg),
+   Soft Sage (#E7EBDD), Cream Canvas (#F7F5EF), Pill Ergonomics, Elevated Cards
    ========================================================================== */
 
 /* Header Hero Banner with Geometric Ribbons & Angled Slashes */
 .report-hero-banner {
-  background-color: var(--titik-forest, #263F35);
+  background-color: var(--titik-forest, #1B4332);
   color: #FFFFFF;
   position: relative;
   overflow: hidden;
@@ -111,19 +111,19 @@
 }
 
 .leaflet-popup-report__title {
-  color: var(--titik-ink-primary, #20221D);
+  color: var(--titik-ink-primary, #101913);
   font-size: 13px;
   font-weight: 700;
 }
 
 .leaflet-popup-report__address {
-  color: var(--titik-ink-secondary, #686B65);
+  color: var(--titik-ink-secondary, #4F5A52);
 }
 
 /* APBD Budget Dynamic Progress Bars (CSS Custom Properties) */
 .budget-bar-realized {
   height: 100%;
-  background-color: var(--titik-forest, #263F35);
+  background-color: var(--titik-forest, #1B4332);
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   width: var(--budget-realized-pct, 0%);
 }
@@ -138,7 +138,7 @@
 /* Drawer Dynamic Budget Progress Bar */
 .drawer-budget-bar-fill {
   height: 100%;
-  background-color: var(--titik-forest, #263F35);
+  background-color: var(--titik-forest, #1B4332);
   border-radius: var(--titik-radius-pill, 9999px);
   transition: width 0.3s ease;
   width: var(--drawer-budget-pct, 0%);
@@ -147,7 +147,7 @@
 /* Elevated Container Cards (rounded-3xl) */
 .report-card-elevated {
   background-color: var(--titik-card, #FFFFFF);
-  border: 1px solid var(--titik-border, #E4E2DA);
+  border: 1px solid var(--titik-border, #E3E0D6);
   border-radius: var(--titik-radius-card-lg, 32px);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
 }

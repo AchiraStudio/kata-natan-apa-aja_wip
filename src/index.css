@@ -5,22 +5,22 @@
 @layer base {
   :root {
     /* Legacy aliases for backward compatibility */
-    --canvas: #F7F6F1;
+    --canvas: #F7F5EF;
     --card: #FFFFFF;
-    --text-main: #20221D;
-    --text-muted: #686B65;
-    --brand-primary: #263F35;
+    --text-main: #101913;
+    --text-muted: #4F5A52;
+    --brand-primary: #1B4332;
     --brand-muted: #E7EBDD;
-    --border-line: #E4E2DA;
+    --border-line: #E3E0D6;
 
     /* Master TITIK Design Tokens */
-    --titik-canvas: #F7F6F1;
+    --titik-canvas: #F7F5EF;
     --titik-card: #FFFFFF;
-    --titik-border: #E4E2DA;
-    --titik-ink-primary: #20221D;
-    --titik-ink-secondary: #686B65;
-    --titik-forest: #263F35;
-    --titik-forest-hover: #1D3129;
+    --titik-border: #E3E0D6;
+    --titik-ink-primary: #101913;
+    --titik-ink-secondary: #4F5A52;
+    --titik-forest: #1B4332;
+    --titik-forest-hover: #14352A;
     --titik-forest-subtle: #E7EBDD;
     --titik-forest-subtle-hover: #D8E0CC;
     --titik-slash-angle: -35deg;
@@ -34,6 +34,32 @@
     --titik-accent-amber: #D97706;
     --titik-accent-cobalt: #2563EB;
     --titik-accent-emerald: #059669;
+
+    --botani-900: #1B4332;
+    --botani-700: #2D6A4F;
+    --hujan-600: #2E5E8C;
+    --status-baru: #B45309;
+    --status-tuntas: #2D6A4F;
+    --status-ditolak: #B3261E;
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  .titik-id {
+    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .titik-eyebrow {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--titik-ink-secondary);
   }
 
   html,
@@ -87,10 +113,10 @@
   background-color: #1A221E;
 }
 
-:root[data-theme='dark'] [class~='bg-[#F7F6F1]']:not([class*='dark:bg-']),
-:root.dark [class~='bg-[#F7F6F1]']:not([class*='dark:bg-']),
-:root[data-theme='dark'] [class*='bg-[#F7F6F1]/']:not([class*='dark:bg-']),
-:root.dark [class*='bg-[#F7F6F1]/']:not([class*='dark:bg-']) {
+:root[data-theme='dark'] [class~='bg-[#F7F5EF]']:not([class*='dark:bg-']),
+:root.dark [class~='bg-[#F7F5EF]']:not([class*='dark:bg-']),
+:root[data-theme='dark'] [class*='bg-[#F7F5EF]/']:not([class*='dark:bg-']),
+:root.dark [class*='bg-[#F7F5EF]/']:not([class*='dark:bg-']) {
   background-color: #0C100E;
 }
 
@@ -101,18 +127,18 @@
   background-color: #1A2E24;
 }
 
-:root[data-theme='dark'] [class*='text-[#20221D]']:not([class*='dark:text-']),
-:root.dark [class*='text-[#20221D]']:not([class*='dark:text-']) {
+:root[data-theme='dark'] [class*='text-[#101913]']:not([class*='dark:text-']),
+:root.dark [class*='text-[#101913]']:not([class*='dark:text-']) {
   color: #F3F6F4;
 }
 
-:root[data-theme='dark'] [class*='text-[#686B65]']:not([class*='dark:text-']),
-:root.dark [class*='text-[#686B65]']:not([class*='dark:text-']) {
+:root[data-theme='dark'] [class*='text-[#4F5A52]']:not([class*='dark:text-']),
+:root.dark [class*='text-[#4F5A52]']:not([class*='dark:text-']) {
   color: #9EACA3;
 }
 
-:root[data-theme='dark'] [class*='border-[#E4E2DA]']:not([class*='dark:border-']),
-:root.dark [class*='border-[#E4E2DA]']:not([class*='dark:border-']) {
+:root[data-theme='dark'] [class*='border-[#E3E0D6]']:not([class*='dark:border-']),
+:root.dark [class*='border-[#E3E0D6]']:not([class*='dark:border-']) {
   border-color: #26352E;
 }
 
@@ -411,4 +437,23 @@
   border-top-right-radius: var(--titik-radius-sheet-mobile);
   margin-top: -1.5rem;
   background-color: var(--titik-canvas);
+}
+
+@keyframes titik-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(45, 106, 79, 0.45); }
+  70%  { box-shadow: 0 0 0 12px rgba(45, 106, 79, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(45, 106, 79, 0); }
+}
+
+.titik-live {
+  border-radius: 9999px;
+  animation: titik-pulse 2.4s var(--ease-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

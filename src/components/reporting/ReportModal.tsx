@@ -238,26 +238,26 @@ export const ReportModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl shadow-2xl p-6 overflow-hidden my-8">
+      <div className="relative w-full max-w-lg bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl shadow-2xl p-6 overflow-hidden my-8">
         {/* Close Button */}
         <button
           type="button"
           onClick={resetForm}
-          className="absolute top-5 right-5 p-2 rounded-full text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-colors"
+          className="absolute top-5 right-5 p-2 rounded-full text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#131916] transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
         <div className="mb-6">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#263F35] dark:text-[#34D399] text-xs font-semibold mb-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#1B4332] dark:text-[#34D399] text-xs font-semibold mb-2">
             <Shield className="w-3.5 h-3.5" />
             <span>Formulir Laporan Publik</span>
           </div>
-          <h3 className="text-xl font-bold text-[#20221D] dark:text-[#F3F6F4]">
+          <h3 className="text-xl font-bold text-[#101913] dark:text-[#F3F6F4]">
             {step === 4 ? 'Laporan Terkirim!' : 'Laporkan Masalah Infrastruktur'}
           </h3>
-          <p className="text-xs text-[#686B65] dark:text-[#9EACA3] mt-1">
+          <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] mt-1">
             {step === 1 && 'Langkah 1/3: Rincian masalah dan bukti visual foto/video.'}
             {step === 2 && 'Langkah 2/3: Titik koordinat dan alamat spesifik.'}
             {step === 3 && 'Langkah 3/3: Tinjau dan konfirmasi pengiriman.'}
@@ -276,12 +276,12 @@ export const ReportModal: React.FC = () => {
                 onClick={() => setShowReportExample((visible) => !visible)}
                 className="flex w-full items-center justify-between gap-3 p-3 text-left"
               >
-                <span className="flex items-center gap-2 text-xs font-semibold text-[#263F35]">
+                <span className="flex items-center gap-2 text-xs font-semibold text-[#1B4332]">
                   <BookOpen className="h-4 w-4 shrink-0" />
                   Lihat contoh laporan yang baik (simulasi)
                 </span>
                 <ChevronDown
-                  className={`h-4 w-4 shrink-0 text-[#686B65] transition-transform ${showReportExample ? 'rotate-180' : ''}`}
+                  className={`h-4 w-4 shrink-0 text-[#4F5A52] transition-transform ${showReportExample ? 'rotate-180' : ''}`}
                 />
               </button>
               {showReportExample && (
@@ -309,24 +309,24 @@ export const ReportModal: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#20221D] mb-1">Judul Laporan *</label>
+              <label className="block text-xs font-bold text-[#101913] mb-1">Judul Laporan *</label>
               <input
                 type="text"
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Contoh: Lubang Besar di Tengah Trotoar Dekat Halte"
-                className="w-full px-3.5 py-2.5 bg-[#F7F6F1] border border-[#E4E2DA] rounded-xl text-sm focus:outline-none focus:border-[#263F35]"
+                className="w-full px-3.5 py-2.5 bg-[#F7F5EF] border border-[#E3E0D6] rounded-xl text-sm focus:outline-none focus:border-[#1B4332]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-[#20221D] mb-1">Kategori Sektor *</label>
+                <label className="block text-xs font-bold text-[#101913] mb-1">Kategori Sektor *</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#F7F6F1] border border-[#E4E2DA] rounded-xl text-xs focus:outline-none focus:border-[#263F35]"
+                  className="w-full px-3 py-2 bg-[#F7F5EF] border border-[#E3E0D6] rounded-xl text-xs focus:outline-none focus:border-[#1B4332]"
                 >
                   {categories.map((c) => (
                     <option key={c} value={c}>
@@ -337,11 +337,11 @@ export const ReportModal: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#20221D] mb-1">Tingkat Urgensi</label>
+                <label className="block text-xs font-bold text-[#101913] mb-1">Tingkat Urgensi</label>
                 <select
                   value={severity}
                   onChange={(e) => setSeverity(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-[#F7F6F1] border border-[#E4E2DA] rounded-xl text-xs focus:outline-none focus:border-[#263F35]"
+                  className="w-full px-3 py-2 bg-[#F7F5EF] border border-[#E3E0D6] rounded-xl text-xs focus:outline-none focus:border-[#1B4332]"
                 >
                   <option value="low">Rendah (Mengganggu kenyamanan)</option>
                   <option value="medium">Sedang (Hambatan mobilitas)</option>
@@ -352,9 +352,9 @@ export const ReportModal: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#20221D] mb-1">Estimasi Biaya (Opsional)</label>
+              <label className="block text-xs font-bold text-[#101913] mb-1">Estimasi Biaya (Opsional)</label>
               <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-xs text-[#686B65]">Rp</span>
+                <span className="absolute left-3.5 top-2.5 text-xs text-[#4F5A52]">Rp</span>
                 <input
                   type="number"
                   min="0"
@@ -362,36 +362,36 @@ export const ReportModal: React.FC = () => {
                   value={estimatedCost}
                   onChange={(e) => setEstimatedCost(e.target.value)}
                   placeholder="Contoh: 25000000"
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-[#F7F6F1] border border-[#E4E2DA] rounded-xl text-sm focus:outline-none focus:border-[#263F35]"
+                  className="w-full pl-9 pr-3.5 py-2.5 bg-[#F7F5EF] border border-[#E3E0D6] rounded-xl text-sm focus:outline-none focus:border-[#1B4332]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#20221D] mb-1">Deskripsi Lengkap *</label>
+              <label className="block text-xs font-bold text-[#101913] mb-1">Deskripsi Lengkap *</label>
               <textarea
                 required
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Jelaskan kondisi kerusakan, dampak ke warga sekitar, dan sudah berapa lama terjadi..."
-                className="w-full px-3.5 py-2.5 bg-[#F7F6F1] border border-[#E4E2DA] rounded-xl text-xs focus:outline-none focus:border-[#263F35]"
+                className="w-full px-3.5 py-2.5 bg-[#F7F5EF] border border-[#E3E0D6] rounded-xl text-xs focus:outline-none focus:border-[#1B4332]"
               ></textarea>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-[#20221D] mb-1">Foto Bukti Lapangan *</label>
+                <label className="block text-xs font-bold text-[#101913] mb-1">Foto Bukti Lapangan *</label>
                 <div className="flex items-center gap-3">
                   {photoEvidence && (
                     <img
                       src={photoEvidence.dataUrl}
                       alt="Pratinjau foto bukti"
-                      className="w-20 h-20 rounded-xl object-cover border border-[#E4E2DA] shrink-0"
+                      className="w-20 h-20 rounded-xl object-cover border border-[#E3E0D6] shrink-0"
                     />
                   )}
-                  <label className="inline-flex items-center gap-2 px-3 py-2 bg-[#F7F6F1] border border-[#E4E2DA] hover:border-[#263F35] rounded-xl text-xs font-medium text-[#20221D] cursor-pointer transition-colors">
-                    <Upload className="w-3.5 h-3.5 text-[#263F35]" />
+                  <label className="inline-flex items-center gap-2 px-3 py-2 bg-[#F7F5EF] border border-[#E3E0D6] hover:border-[#1B4332] rounded-xl text-xs font-medium text-[#101913] cursor-pointer transition-colors">
+                    <Upload className="w-3.5 h-3.5 text-[#1B4332]" />
                     <span>{photoEvidence ? 'Ganti Foto' : 'Pilih Foto'}</span>
                     <input
                       type="file"
@@ -404,13 +404,13 @@ export const ReportModal: React.FC = () => {
                       }}
                     />
                   </label>
-                  {photoEvidence && <span className="text-[10px] text-[#686B65] truncate">{photoEvidence.fileName}</span>}
+                  {photoEvidence && <span className="text-[10px] text-[#4F5A52] truncate">{photoEvidence.fileName}</span>}
                 </div>
-                <p className="text-[10px] text-[#686B65] mt-1">JPG, PNG, atau WebP. Maksimal 10 MB.</p>
+                <p className="text-[10px] text-[#4F5A52] mt-1">JPG, PNG, atau WebP. Maksimal 10 MB.</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#20221D] mb-1">Video Bukti Lapangan *</label>
+                <label className="block text-xs font-bold text-[#101913] mb-1">Video Bukti Lapangan *</label>
                 <div className="flex items-center gap-3">
                   {videoEvidence && (
                     <video
@@ -418,11 +418,11 @@ export const ReportModal: React.FC = () => {
                       controls
                       playsInline
                       aria-label="Pratinjau video bukti"
-                      className="w-32 h-20 rounded-xl object-cover border border-[#E4E2DA] shrink-0"
+                      className="w-32 h-20 rounded-xl object-cover border border-[#E3E0D6] shrink-0"
                     />
                   )}
-                  <label className="inline-flex items-center gap-2 px-3 py-2 bg-[#F7F6F1] border border-[#E4E2DA] hover:border-[#263F35] rounded-xl text-xs font-medium text-[#20221D] cursor-pointer transition-colors">
-                    <Upload className="w-3.5 h-3.5 text-[#263F35]" />
+                  <label className="inline-flex items-center gap-2 px-3 py-2 bg-[#F7F5EF] border border-[#E3E0D6] hover:border-[#1B4332] rounded-xl text-xs font-medium text-[#101913] cursor-pointer transition-colors">
+                    <Upload className="w-3.5 h-3.5 text-[#1B4332]" />
                     <span>{videoEvidence ? 'Ganti Video' : 'Pilih Video'}</span>
                     <input
                       type="file"
@@ -435,21 +435,21 @@ export const ReportModal: React.FC = () => {
                       }}
                     />
                   </label>
-                  {videoEvidence && <span className="text-[10px] text-[#686B65] truncate">{videoEvidence.fileName}</span>}
+                  {videoEvidence && <span className="text-[10px] text-[#4F5A52] truncate">{videoEvidence.fileName}</span>}
                 </div>
-                <p className="text-[10px] text-[#686B65] mt-1">MP4, WebM, atau MOV. Maksimal 10 MB.</p>
+                <p className="text-[10px] text-[#4F5A52] mt-1">MP4, WebM, atau MOV. Maksimal 10 MB.</p>
               </div>
 
-              <p className="text-[10px] text-[#686B65]">
+              <p className="text-[10px] text-[#4F5A52]">
                 Unggah dokumentasi asli yang Anda ambil sendiri. Pemeriksaan otomatis hanya dapat menolak metadata yang secara eksplisit menyebut alat generatif AI; pemeriksaan ini tidak dapat memastikan keaslian berkas.
               </p>
               {evidenceError && <p role="alert" className="text-[11px] text-rose-600">{evidenceError}</p>}
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#20221D] mb-1">Dokumen Pendukung (Opsional)</label>
-              <label className="inline-flex items-center gap-2 px-3 py-2 bg-[#F7F6F1] border border-[#E4E2DA] hover:border-[#263F35] rounded-xl text-xs font-medium text-[#20221D] cursor-pointer transition-colors">
-                <Upload className="w-3.5 h-3.5 text-[#263F35]" />
+              <label className="block text-xs font-bold text-[#101913] mb-1">Dokumen Pendukung (Opsional)</label>
+              <label className="inline-flex items-center gap-2 px-3 py-2 bg-[#F7F5EF] border border-[#E3E0D6] hover:border-[#1B4332] rounded-xl text-xs font-medium text-[#101913] cursor-pointer transition-colors">
+                <Upload className="w-3.5 h-3.5 text-[#1B4332]" />
                 <span>Unggah surat RT/RW atau proposal</span>
                 <input
                   type="file"
@@ -462,12 +462,12 @@ export const ReportModal: React.FC = () => {
                   }}
                 />
               </label>
-              <p className="text-[10px] text-[#686B65] mt-1">PDF, DOC, DOCX, JPG, PNG. Maksimal 5 file, 10 MB per file.</p>
+              <p className="text-[10px] text-[#4F5A52] mt-1">PDF, DOC, DOCX, JPG, PNG. Maksimal 5 file, 10 MB per file.</p>
               {documentError && <p className="text-[11px] text-rose-600 mt-1">{documentError}</p>}
               {supportingDocuments.length > 0 && (
                 <ul className="mt-2 space-y-1.5">
                   {supportingDocuments.map((document, index) => (
-                    <li key={`${document.name}-${index}`} className="flex items-center justify-between gap-2 text-[11px] text-[#20221D]">
+                    <li key={`${document.name}-${index}`} className="flex items-center justify-between gap-2 text-[11px] text-[#101913]">
                       <span className="truncate">{document.name}</span>
                       <button
                         type="button"
@@ -483,10 +483,10 @@ export const ReportModal: React.FC = () => {
               )}
             </div>
 
-            <div className="pt-3 border-t border-[#E4E2DA] flex justify-end">
+            <div className="pt-3 border-t border-[#E3E0D6] flex justify-end">
               <button
                 type="submit"
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#263F35] text-white rounded-xl text-xs font-semibold hover:bg-[#1d3129] transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#1B4332] text-white rounded-xl text-xs font-semibold hover:bg-[#14352A] transition-colors cursor-pointer"
               >
                 <span>Lanjut ke Lokasi</span>
                 <ArrowRight className="w-4 h-4" />
@@ -499,7 +499,7 @@ export const ReportModal: React.FC = () => {
         {step === 2 && (
           <form onSubmit={handleNextStep2} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-[#20221D] mb-1.5">Fasilitas Umum Terkait</label>
+              <label className="block text-xs font-bold text-[#101913] mb-1.5">Fasilitas Umum Terkait</label>
               <select
                 value={facilityName}
                 onChange={(e) => {
@@ -511,7 +511,7 @@ export const ReportModal: React.FC = () => {
                     setLongitude(selected.longitude);
                   }
                 }}
-                className="w-full px-3.5 py-2.5 bg-[#F7F6F1] border border-[#E4E2DA] rounded-xl text-xs focus:outline-none focus:border-[#263F35]"
+                className="w-full px-3.5 py-2.5 bg-[#F7F5EF] border border-[#E3E0D6] rounded-xl text-xs focus:outline-none focus:border-[#1B4332]"
               >
                 <option value="">Pilih fasilitas atau isi lokasi manual</option>
                 {facilities.map((facility) => (
@@ -521,31 +521,31 @@ export const ReportModal: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#20221D] mb-1">Alamat atau Patokan Spesifik *</label>
+              <label className="block text-xs font-bold text-[#101913] mb-1">Alamat atau Patokan Spesifik *</label>
                 <input
                 type="text"
                 required
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Contoh: Jl. Pajajaran KM 3, Seberang Ruko No. 12"
-                className="w-full px-3.5 py-2.5 bg-[#F7F6F1] border border-[#E4E2DA] rounded-xl text-sm focus:outline-none focus:border-[#263F35]"
+                className="w-full px-3.5 py-2.5 bg-[#F7F5EF] border border-[#E3E0D6] rounded-xl text-sm focus:outline-none focus:border-[#1B4332]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#20221D] mb-1">Nama Fasilitas Terkait (Opsional)</label>
+              <label className="block text-xs font-bold text-[#101913] mb-1">Nama Fasilitas Terkait (Opsional)</label>
               <input
                 type="text"
                 value={facilityName}
                 onChange={(e) => setFacilityName(e.target.value)}
                 placeholder="Contoh: Trotoar Samping SDN 01 Bogor"
-                className="w-full px-3.5 py-2.5 bg-[#F7F6F1] border border-[#E4E2DA] rounded-xl text-xs focus:outline-none focus:border-[#263F35]"
+                className="w-full px-3.5 py-2.5 bg-[#F7F5EF] border border-[#E3E0D6] rounded-xl text-xs focus:outline-none focus:border-[#1B4332]"
               />
             </div>
 
             {/* Coordinates Selector Card */}
-            <div className="p-3.5 bg-[#F7F6F1] border border-[#E4E2DA] rounded-2xl space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-[#20221D]">
+            <div className="p-3.5 bg-[#F7F5EF] border border-[#E3E0D6] rounded-2xl space-y-2">
+              <div className="flex items-center justify-between text-xs font-semibold text-[#101913]">
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-red-500" />
                   <span>Titik Koordinat GPS</span>
@@ -554,38 +554,38 @@ export const ReportModal: React.FC = () => {
                   type="button"
                   onClick={handleUseCurrentLocation}
                   disabled={isLocating}
-                  className="text-[11px] text-[#263F35] font-semibold hover:underline disabled:opacity-60"
+                  className="text-[11px] text-[#1B4332] font-semibold hover:underline disabled:opacity-60"
                 >
                   {isLocating ? 'Mencari GPS...' : 'Gunakan GPS Saya'}
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div className="bg-white px-2.5 py-1.5 rounded-lg border border-[#E4E2DA]">
+                <div className="bg-white px-2.5 py-1.5 rounded-lg border border-[#E3E0D6]">
                   Lat: {latitude.toFixed(6)}
                 </div>
-                <div className="bg-white px-2.5 py-1.5 rounded-lg border border-[#E4E2DA]">
+                <div className="bg-white px-2.5 py-1.5 rounded-lg border border-[#E3E0D6]">
                   Lng: {longitude.toFixed(6)}
                 </div>
               </div>
-              <p className="text-[10px] text-[#686B65]">
+              <p className="text-[10px] text-[#4F5A52]">
                 Koordinat presisi digunakan sistem untuk memetakan dinas penanggung jawab dan alokasi APBD terdekat.
               </p>
               {locationError && <p className="text-[11px] text-rose-600">{locationError}</p>}
             </div>
 
-            <div className="pt-3 border-t border-[#E4E2DA] flex items-center justify-between">
+            <div className="pt-3 border-t border-[#E3E0D6] flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-[#686B65] hover:text-[#20221D]"
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-[#4F5A52] hover:text-[#101913]"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Kembali</span>
               </button>
               <button
                 type="submit"
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#263F35] text-white rounded-xl text-xs font-semibold hover:bg-[#1d3129] transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#1B4332] text-white rounded-xl text-xs font-semibold hover:bg-[#14352A] transition-colors cursor-pointer"
               >
                 <span>Tinjau Ringkasan</span>
                 <ArrowRight className="w-4 h-4" />
@@ -597,52 +597,52 @@ export const ReportModal: React.FC = () => {
         {/* STEP 3: Review & Submit */}
         {step === 3 && (
           <div className="space-y-4">
-            <div className="p-4 bg-[#F7F6F1] border border-[#E4E2DA] rounded-2xl space-y-3 text-xs">
+            <div className="p-4 bg-[#F7F5EF] border border-[#E3E0D6] rounded-2xl space-y-3 text-xs">
               <div>
-                <span className="text-[10px] text-[#686B65] uppercase font-bold tracking-wider">Judul & Sektor</span>
-                <div className="font-bold text-sm text-[#20221D]">{title}</div>
-                <div className="text-[#263F35] font-medium">{category} • Urgensi: {severity.toUpperCase()}</div>
+                <span className="text-[10px] text-[#4F5A52] uppercase font-bold tracking-wider">Judul & Sektor</span>
+                <div className="font-bold text-sm text-[#101913]">{title}</div>
+                <div className="text-[#1B4332] font-medium">{category} • Urgensi: {severity.toUpperCase()}</div>
               </div>
 
               <div>
-                <span className="text-[10px] text-[#686B65] uppercase font-bold tracking-wider">Lokasi</span>
-                <div className="text-[#20221D]">{address}</div>
-                <div className="font-mono text-[10px] text-[#686B65]">({latitude.toFixed(4)}, {longitude.toFixed(4)})</div>
+                <span className="text-[10px] text-[#4F5A52] uppercase font-bold tracking-wider">Lokasi</span>
+                <div className="text-[#101913]">{address}</div>
+                <div className="font-mono text-[10px] text-[#4F5A52]">({latitude.toFixed(4)}, {longitude.toFixed(4)})</div>
               </div>
 
               <div>
-                <span className="text-[10px] text-[#686B65] uppercase font-bold tracking-wider">Deskripsi</span>
-                <p className="text-[#20221D] line-clamp-3">{description}</p>
+                <span className="text-[10px] text-[#4F5A52] uppercase font-bold tracking-wider">Deskripsi</span>
+                <p className="text-[#101913] line-clamp-3">{description}</p>
               </div>
 
               <div>
-                <span className="text-[10px] text-[#686B65] uppercase font-bold tracking-wider">Bukti Lapangan</span>
-                <div className="text-[#20221D]">{photoEvidence?.fileName} • {videoEvidence?.fileName}</div>
+                <span className="text-[10px] text-[#4F5A52] uppercase font-bold tracking-wider">Bukti Lapangan</span>
+                <div className="text-[#101913]">{photoEvidence?.fileName} • {videoEvidence?.fileName}</div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <span className="text-[10px] text-[#686B65] uppercase font-bold tracking-wider">Estimasi Biaya</span>
-                  <div className="text-[#20221D]">{estimatedCost ? `Rp ${Number(estimatedCost).toLocaleString('id-ID')}` : 'Belum dicantumkan'}</div>
+                  <span className="text-[10px] text-[#4F5A52] uppercase font-bold tracking-wider">Estimasi Biaya</span>
+                  <div className="text-[#101913]">{estimatedCost ? `Rp ${Number(estimatedCost).toLocaleString('id-ID')}` : 'Belum dicantumkan'}</div>
                 </div>
                 <div>
-                  <span className="text-[10px] text-[#686B65] uppercase font-bold tracking-wider">Dokumen Pendukung</span>
-                  <div className="text-[#20221D]">{supportingDocuments.length} file</div>
+                  <span className="text-[10px] text-[#4F5A52] uppercase font-bold tracking-wider">Dokumen Pendukung</span>
+                  <div className="text-[#101913]">{supportingDocuments.length} file</div>
                 </div>
               </div>
             </div>
 
             {/* Reporter Privacy Mode */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[#20221D]">Identitas Pelapor</label>
+              <label className="block text-xs font-bold text-[#101913]">Identitas Pelapor</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setReporterType('anonymous')}
                   className={`p-3 rounded-xl border text-left text-xs transition-colors cursor-pointer ${
                     reporterType === 'anonymous'
-                      ? 'bg-[#E7EBDD] border-[#263F35] text-[#263F35] font-semibold'
-                      : 'bg-white border-[#E4E2DA] text-[#686B65]'
+                      ? 'bg-[#E7EBDD] border-[#1B4332] text-[#1B4332] font-semibold'
+                      : 'bg-white border-[#E3E0D6] text-[#4F5A52]'
                   }`}
                 >
                   <div className="font-bold">Lapor Anonim</div>
@@ -654,8 +654,8 @@ export const ReportModal: React.FC = () => {
                   onClick={() => setReporterType('verified_citizen')}
                   className={`p-3 rounded-xl border text-left text-xs transition-colors cursor-pointer ${
                     reporterType === 'verified_citizen'
-                      ? 'bg-[#E7EBDD] border-[#263F35] text-[#263F35] font-semibold'
-                      : 'bg-white border-[#E4E2DA] text-[#686B65]'
+                      ? 'bg-[#E7EBDD] border-[#1B4332] text-[#1B4332] font-semibold'
+                      : 'bg-white border-[#E3E0D6] text-[#4F5A52]'
                   }`}
                 >
                   <div className="font-bold">Nama Terbuka</div>
@@ -669,16 +669,16 @@ export const ReportModal: React.FC = () => {
                   placeholder="Nama Lengkap Anda"
                   value={reporterDisplayName}
                   onChange={(e) => setReporterDisplayName(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-[#F7F6F1] border border-[#E4E2DA] rounded-xl text-xs focus:outline-none focus:border-[#263F35]"
+                  className="w-full px-3.5 py-2 bg-[#F7F5EF] border border-[#E3E0D6] rounded-xl text-xs focus:outline-none focus:border-[#1B4332]"
                 />
               )}
             </div>
 
-            <div className="pt-3 border-t border-[#E4E2DA] flex items-center justify-between">
+            <div className="pt-3 border-t border-[#E3E0D6] flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-[#686B65] hover:text-[#20221D]"
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-[#4F5A52] hover:text-[#101913]"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Kembali</span>
@@ -687,7 +687,7 @@ export const ReportModal: React.FC = () => {
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleSubmit}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#263F35] text-white rounded-xl text-xs font-semibold hover:bg-[#1d3129] disabled:opacity-50 transition-colors cursor-pointer shadow-md"
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#1B4332] text-white rounded-xl text-xs font-semibold hover:bg-[#14352A] disabled:opacity-50 transition-colors cursor-pointer shadow-md"
               >
                 {isSubmitting ? (
                   <span>Mengirimkan Laporan...</span>
@@ -711,33 +711,33 @@ export const ReportModal: React.FC = () => {
             </div>
 
             <div>
-              <h4 className="text-base font-bold text-[#20221D]">Laporan Berhasil Dicatat!</h4>
-              <p className="text-xs text-[#686B65] mt-1 max-w-sm mx-auto">
+              <h4 className="text-base font-bold text-[#101913]">Laporan Berhasil Dicatat!</h4>
+              <p className="text-xs text-[#4F5A52] mt-1 max-w-sm mx-auto">
                 Laporan beserta bukti foto dan video telah tercatat. Penayangan publik mengikuti proses validasi bukti.
               </p>
             </div>
 
             {/* Reference Box */}
-            <div className="p-4 bg-[#F7F6F1] border border-[#E4E2DA] rounded-2xl text-left space-y-3">
+            <div className="p-4 bg-[#F7F5EF] border border-[#E3E0D6] rounded-2xl text-left space-y-3">
               <div>
-                <span className="text-[10px] text-[#686B65] uppercase font-bold">ID Referensi Publik:</span>
-                <div className="text-lg font-mono font-bold text-[#263F35]">
+                <span className="text-[10px] text-[#4F5A52] uppercase font-bold">ID Referensi Publik:</span>
+                <div className="text-lg font-mono font-bold text-[#1B4332]">
                   {submissionResult.publicReference}
                 </div>
               </div>
 
               <div>
-                <span className="text-[10px] text-[#686B65] uppercase font-bold">
+                <span className="text-[10px] text-[#4F5A52] uppercase font-bold">
                   Token Rahasia Pelacakan Anonim:
                 </span>
-                <div className="flex items-center justify-between gap-2 mt-1 p-2 bg-white rounded-xl border border-[#E4E2DA]">
-                  <span className="font-mono text-xs font-bold text-[#20221D] select-all">
+                <div className="flex items-center justify-between gap-2 mt-1 p-2 bg-white rounded-xl border border-[#E3E0D6]">
+                  <span className="font-mono text-xs font-bold text-[#101913] select-all">
                     {submissionResult.secretFollowUpToken}
                   </span>
                   <button
                     type="button"
                     onClick={handleCopyToken}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#263F35] text-white text-[10px] font-semibold hover:bg-[#1d3129] transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#1B4332] text-white text-[10px] font-semibold hover:bg-[#14352A] transition-colors"
                   >
                     {tokenCopied ? (
                       <>
@@ -766,14 +766,14 @@ export const ReportModal: React.FC = () => {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-6 py-2.5 bg-[#263F35] text-white rounded-xl text-xs font-semibold hover:bg-[#1d3129] transition-colors cursor-pointer"
+                className="px-6 py-2.5 bg-[#1B4332] text-white rounded-xl text-xs font-semibold hover:bg-[#14352A] transition-colors cursor-pointer"
               >
                 Kembali ke Beranda
               </button>
               {profile.role === 'admin' && (
                 <a
                   href="/track"
-                  className="px-4 py-2.5 bg-white border border-[#E4E2DA] text-[#20221D] rounded-xl text-xs font-semibold hover:bg-[#F7F6F1] transition-colors"
+                  className="px-4 py-2.5 bg-white border border-[#E3E0D6] text-[#101913] rounded-xl text-xs font-semibold hover:bg-[#F7F5EF] transition-colors"
                 >
                   Buka Pelacakan
                 </a>

@@ -68,7 +68,7 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
     <div className="space-y-4">
       {/* Evidence Verification Badge Strip */}
       <div className="flex items-center justify-between text-xs pb-1">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#686B65] dark:text-[#9EACA3]">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#4F5A52] dark:text-[#9EACA3]">
           Bukti Fisik & Deskripsi
         </span>
         <div className="flex items-center gap-1.5">
@@ -101,7 +101,7 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
               return (
                 <div
                   key={`${report.id}-evidence-${index}`}
-                  className="relative group cursor-pointer overflow-hidden rounded-2xl border border-[#E4E2DA] dark:border-[#26352E] shadow-2xs bg-neutral-100 dark:bg-neutral-900"
+                  className="relative group cursor-pointer overflow-hidden rounded-2xl border border-[#E3E0D6] dark:border-[#26352E] shadow-2xs bg-neutral-100 dark:bg-neutral-900"
                 >
                   {mediaType === 'video' ? (
                     <div className="w-24 h-24 relative flex items-center justify-center bg-black rounded-2xl">
@@ -154,16 +154,16 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
 
         {/* Editorial Description & Citizen Author Info */}
         <div className="text-xs space-y-2 flex-1 min-w-0">
-          <p className="text-[#20221D] dark:text-[#F3F6F4] leading-relaxed break-words whitespace-pre-line">
+          <p className="text-[#101913] dark:text-[#F3F6F4] leading-relaxed break-words whitespace-pre-line">
             {report.description}
           </p>
-          <div className="text-[11px] text-[#686B65] dark:text-[#9EACA3] pt-1">
+          <div className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] pt-1">
             Pelapor:{' '}
-            <span className="font-semibold text-[#20221D] dark:text-[#F3F6F4]">
+            <span className="font-semibold text-[#101913] dark:text-[#F3F6F4]">
               {report.reporterDisplayName || 'Anonim'}
             </span>{' '}
             • Sektor:{' '}
-            <span className="font-semibold text-[#20221D] dark:text-[#F3F6F4]">
+            <span className="font-semibold text-[#101913] dark:text-[#F3F6F4]">
               {report.category}
             </span>
           </div>
@@ -171,25 +171,25 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
       </div>
 
       {/* 3-Column Consolidated Metadata Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-[#F7F6F1]/80 dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] rounded-2xl text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-[#F7F5EF]/80 dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-2xl text-xs">
         <div>
-          <div className="text-[10px] uppercase font-bold text-[#686B65] dark:text-[#9EACA3]">
+          <div className="text-[10px] uppercase font-bold text-[#4F5A52] dark:text-[#9EACA3]">
             Dinas & Pagu
           </div>
-          <div className="font-semibold text-[#20221D] dark:text-[#F3F6F4] mt-0.5 flex items-center gap-1.5">
-            <Building className="w-3.5 h-3.5 text-[#263F35] dark:text-[#34D399] shrink-0" />
+          <div className="font-semibold text-[#101913] dark:text-[#F3F6F4] mt-0.5 flex items-center gap-1.5">
+            <Building className="w-3.5 h-3.5 text-[#1B4332] dark:text-[#34D399] shrink-0" />
             <span className="truncate">{report.responsibleAgency}</span>
           </div>
-          <div className="text-[11px] font-mono tabular-nums text-[#263F35] dark:text-[#34D399] font-semibold mt-0.5">
+          <div className="text-[11px] font-mono tabular-nums text-[#1B4332] dark:text-[#34D399] font-semibold mt-0.5">
             Alokasi: Rp {((report.budgetContext?.paguAllocation || 0) / 1000000000).toFixed(1)} M
           </div>
         </div>
 
         <div>
-          <div className="text-[10px] uppercase font-bold text-[#686B65] dark:text-[#9EACA3]">
+          <div className="text-[10px] uppercase font-bold text-[#4F5A52] dark:text-[#9EACA3]">
             Estimasi Biaya
           </div>
-          <div className="font-semibold tabular-nums text-[#20221D] dark:text-[#F3F6F4] mt-0.5">
+          <div className="font-semibold tabular-nums text-[#101913] dark:text-[#F3F6F4] mt-0.5">
             {report.estimatedCost
               ? `Rp ${report.estimatedCost.toLocaleString('id-ID')}`
               : 'Belum dicantumkan'}
@@ -197,18 +197,18 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
         </div>
 
         <div>
-          <div className="text-[10px] uppercase font-bold text-[#686B65] dark:text-[#9EACA3]">
+          <div className="text-[10px] uppercase font-bold text-[#4F5A52] dark:text-[#9EACA3]">
             Dokumen Pendukung
           </div>
           {report.supportingDocuments && report.supportingDocuments.length > 0 ? (
             <ul className="mt-0.5 space-y-1">
               {report.supportingDocuments.map((document, index) => (
                 <li key={`${document.name}-${index}`} className="flex items-center gap-1">
-                  <FileText className="w-3 h-3 text-[#263F35] dark:text-[#34D399] shrink-0" />
+                  <FileText className="w-3 h-3 text-[#1B4332] dark:text-[#34D399] shrink-0" />
                   <a
                     href={document.dataUrl}
                     download={document.name}
-                    className="text-[#263F35] dark:text-[#34D399] underline underline-offset-2 break-all truncate text-[11px]"
+                    className="text-[#1B4332] dark:text-[#34D399] underline underline-offset-2 break-all truncate text-[11px]"
                   >
                     {document.name}
                   </a>
@@ -216,7 +216,7 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
               ))}
             </ul>
           ) : (
-            <div className="font-medium text-[#686B65] dark:text-[#9EACA3] mt-0.5">
+            <div className="font-medium text-[#4F5A52] dark:text-[#9EACA3] mt-0.5">
               Tidak ada lampiran
             </div>
           )}

@@ -64,13 +64,13 @@ export const SavedReportsView: React.FC = () => {
   };
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-4xl px-4 py-6 pb-24 text-[#20221D] dark:text-[#F3F6F4] sm:px-6 lg:py-8">
+    <main className="mx-auto min-h-screen w-full max-w-4xl px-4 py-6 pb-24 text-[#101913] dark:text-[#F3F6F4] sm:px-6 lg:py-8">
       <header className="mb-6">
         <div className="flex items-center gap-2">
-          <Bookmark className="h-5 w-5 text-[#263F35] dark:text-[#34D399]" />
+          <Bookmark className="h-5 w-5 text-[#1B4332] dark:text-[#34D399]" />
           <h1 className="text-xl font-black">Laporan Tersimpan</h1>
         </div>
-        <p className="mt-1 text-xs text-[#686B65] dark:text-[#9EACA3]">
+        <p className="mt-1 text-xs text-[#4F5A52] dark:text-[#9EACA3]">
           Kumpulan postingan dan laporan yang Anda simpan untuk ditinjau kembali.
         </p>
       </header>
@@ -87,18 +87,18 @@ export const SavedReportsView: React.FC = () => {
       )}
 
       {isLoading ? (
-        <div className="flex items-center justify-center gap-2 py-20 text-xs text-[#686B65] dark:text-[#9EACA3]">
+        <div className="flex items-center justify-center gap-2 py-20 text-xs text-[#4F5A52] dark:text-[#9EACA3]">
           <RefreshCw className="h-4 w-4 animate-spin" />
           Memuat laporan tersimpan...
         </div>
       ) : savedPosts.length === 0 && savedReports.length === 0 ? (
-        <div className="rounded-2xl border border-[#E4E2DA] bg-white p-8 text-center dark:border-[#26352E] dark:bg-[#131916]">
-          <Bookmark className="mx-auto mb-3 h-8 w-8 text-[#686B65] opacity-40 dark:text-[#9EACA3]" />
+        <div className="rounded-2xl border border-[#E3E0D6] bg-white p-8 text-center dark:border-[#26352E] dark:bg-[#131916]">
+          <Bookmark className="mx-auto mb-3 h-8 w-8 text-[#4F5A52] opacity-40 dark:text-[#9EACA3]" />
           <h2 className="text-sm font-bold">Belum ada laporan tersimpan</h2>
-          <p className="mx-auto mt-2 max-w-sm text-xs text-[#686B65] dark:text-[#9EACA3]">
+          <p className="mx-auto mt-2 max-w-sm text-xs text-[#4F5A52] dark:text-[#9EACA3]">
             Tekan ikon simpan pada postingan atau laporan yang ingin Anda pantau. Semua pilihan Anda akan muncul di sini.
           </p>
-          <Link to="/" className="mt-4 inline-flex rounded-xl bg-[#263F35] px-4 py-2 text-xs font-bold text-white dark:bg-[#10B981] dark:text-[#0A1610]">
+          <Link to="/" className="mt-4 inline-flex rounded-xl bg-[#1B4332] px-4 py-2 text-xs font-bold text-white dark:bg-[#10B981] dark:text-[#0A1610]">
             Jelajahi Feed
           </Link>
         </div>
@@ -107,11 +107,11 @@ export const SavedReportsView: React.FC = () => {
           {savedPosts.length > 0 && (
             <section aria-labelledby="saved-posts-heading" className="space-y-3">
               <h2 id="saved-posts-heading" className="text-sm font-bold">
-                Postingan disimpan <span className="text-[#686B65] dark:text-[#9EACA3]">({savedPosts.length})</span>
+                Postingan disimpan <span className="text-[#4F5A52] dark:text-[#9EACA3]">({savedPosts.length})</span>
               </h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 {savedPosts.map((post) => (
-                  <article key={post.id} className="overflow-hidden rounded-2xl border border-[#E4E2DA] bg-white dark:border-[#26352E] dark:bg-[#131916]">
+                  <article key={post.id} className="overflow-hidden rounded-2xl border border-[#E3E0D6] bg-white dark:border-[#26352E] dark:bg-[#131916]">
                     <Link to={`/post/${post.id}`} className="group block">
                       {post.media[0] && (
                         <div className="aspect-video overflow-hidden bg-stone-900">
@@ -119,22 +119,22 @@ export const SavedReportsView: React.FC = () => {
                         </div>
                       )}
                       <div className="space-y-2 p-4">
-                        <div className="flex items-center gap-2 text-[11px] text-[#686B65] dark:text-[#9EACA3]">
-                          <span className="font-bold text-[#20221D] dark:text-[#F3F6F4]">@{post.author.username}</span>
+                        <div className="flex items-center gap-2 text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
+                          <span className="font-bold text-[#101913] dark:text-[#F3F6F4]">@{post.author.username}</span>
                           <span>·</span>
                           <span>{formatIndonesianTimeAgo(post.createdAt)}</span>
                         </div>
                         <p className="line-clamp-3 text-xs">{post.body}</p>
                         {post.relatedReport && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#263F35] dark:text-[#34D399]">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#1B4332] dark:text-[#34D399]">
                             <FileText className="h-3 w-3" />
                             {post.relatedReport.title}
                           </span>
                         )}
                       </div>
                     </Link>
-                    <div className="flex items-center justify-between border-t border-[#E4E2DA] px-4 py-3 dark:border-[#26352E]">
-                      <span className="inline-flex items-center gap-1 text-[10px] text-[#686B65] dark:text-[#9EACA3]">
+                    <div className="flex items-center justify-between border-t border-[#E3E0D6] px-4 py-3 dark:border-[#26352E]">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-[#4F5A52] dark:text-[#9EACA3]">
                         <MessageSquare className="h-3 w-3" />
                         {post.commentsCount} tanggapan
                       </span>
@@ -157,19 +157,19 @@ export const SavedReportsView: React.FC = () => {
           {savedReports.length > 0 && (
             <section aria-labelledby="saved-reports-heading" className="space-y-3">
               <h2 id="saved-reports-heading" className="text-sm font-bold">
-                Laporan warga disimpan <span className="text-[#686B65] dark:text-[#9EACA3]">({savedReports.length})</span>
+                Laporan warga disimpan <span className="text-[#4F5A52] dark:text-[#9EACA3]">({savedReports.length})</span>
               </h2>
               <div className="space-y-3">
                 {savedReports.map((report) => (
-                  <article key={report.id} className="flex flex-col gap-3 rounded-2xl border border-[#E4E2DA] bg-white p-4 dark:border-[#26352E] dark:bg-[#131916] sm:flex-row sm:items-center sm:justify-between">
+                  <article key={report.id} className="flex flex-col gap-3 rounded-2xl border border-[#E3E0D6] bg-white p-4 dark:border-[#26352E] dark:bg-[#131916] sm:flex-row sm:items-center sm:justify-between">
                     <Link to={`/report/${report.publicReference}`} className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2 text-[10px]">
-                        <span className="rounded-md bg-[#E7EBDD] px-2 py-0.5 font-mono font-bold text-[#263F35] dark:bg-[#1A2E24] dark:text-[#34D399]">{report.publicReference}</span>
-                        <span className="font-bold uppercase tracking-wider text-[#686B65] dark:text-[#9EACA3]">{report.category}</span>
-                        <span className="text-[#686B65] dark:text-[#9EACA3]">{formatIndonesianTimeAgo(report.createdAt)}</span>
+                        <span className="rounded-md bg-[#E7EBDD] px-2 py-0.5 font-mono font-bold text-[#1B4332] dark:bg-[#1A2E24] dark:text-[#34D399]">{report.publicReference}</span>
+                        <span className="font-bold uppercase tracking-wider text-[#4F5A52] dark:text-[#9EACA3]">{report.category}</span>
+                        <span className="text-[#4F5A52] dark:text-[#9EACA3]">{formatIndonesianTimeAgo(report.createdAt)}</span>
                       </div>
                       <h3 className="truncate text-sm font-bold">{report.title}</h3>
-                      <p className="flex items-center gap-1 truncate text-xs text-[#686B65] dark:text-[#9EACA3]">
+                      <p className="flex items-center gap-1 truncate text-xs text-[#4F5A52] dark:text-[#9EACA3]">
                         <MapPin className="h-3.5 w-3.5 shrink-0" />
                         {report.location.address}
                       </p>

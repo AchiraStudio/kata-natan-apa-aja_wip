@@ -46,12 +46,12 @@ export const ReportQueueList: React.FC<ReportQueueListProps> = ({
 }) => {
   return (
     <div
-      className={`admin-queue-card bg-white dark:bg-[#1A221E] border border-[#E4E2DA] dark:border-[#26352E] rounded-3xl p-5 shadow-xs space-y-4 ${className}`}
+      className={`admin-queue-card bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-5 shadow-xs space-y-4 ${className}`}
     >
       {/* Top Header: Title and Status Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E4E2DA] dark:border-[#26352E]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E3E0D6] dark:border-[#26352E]">
         <div className="flex items-center gap-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#20221D] dark:text-[#F3F6F4]">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#101913] dark:text-[#F3F6F4]">
             Antrean Laporan ({reports.length}
             {reports.length !== totalReportsCount ? ` / ${totalReportsCount}` : ''})
           </h3>
@@ -59,11 +59,11 @@ export const ReportQueueList: React.FC<ReportQueueListProps> = ({
 
         {/* Filter Dropdown */}
         <div className="flex items-center gap-1.5 text-xs">
-          <Filter className="w-3.5 h-3.5 text-[#686B65] dark:text-[#9EACA3] shrink-0" />
+          <Filter className="w-3.5 h-3.5 text-[#4F5A52] dark:text-[#9EACA3] shrink-0" />
           <select
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value)}
-            className="text-xs bg-[#F7F6F1] dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] rounded-full px-3 py-1.5 text-[#20221D] dark:text-[#F3F6F4] focus:outline-none focus:border-[#263F35] dark:focus:border-[#10B981] cursor-pointer"
+            className="text-xs bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-full px-3 py-1.5 text-[#101913] dark:text-[#F3F6F4] focus:outline-none focus:border-[#1B4332] dark:focus:border-[#10B981] cursor-pointer"
           >
             <option value="all">Semua Status</option>
             <option value="submitted">Baru Masuk</option>
@@ -81,19 +81,19 @@ export const ReportQueueList: React.FC<ReportQueueListProps> = ({
       {/* Search Input & Sort Selector */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         <div className="relative flex-1">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#686B65] dark:text-[#9EACA3]" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#4F5A52] dark:text-[#9EACA3]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
             placeholder="Cari ID ref (TIK-...) atau judul..."
-            className="w-full pl-8 pr-8 py-2 bg-[#F7F6F1] dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] rounded-xl text-xs text-[#20221D] dark:text-[#F3F6F4] placeholder-[#686B65] dark:placeholder-[#6C7D73] focus:outline-none focus:border-[#263F35] dark:focus:border-[#10B981]"
+            className="w-full pl-8 pr-8 py-2 bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4] placeholder-[#4F5A52] dark:placeholder-[#6C7D73] focus:outline-none focus:border-[#1B4332] dark:focus:border-[#10B981]"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => onSearchQueryChange('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#686B65] hover:text-[#20221D] dark:text-[#9EACA3] dark:hover:text-[#F3F6F4]"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#4F5A52] hover:text-[#101913] dark:text-[#9EACA3] dark:hover:text-[#F3F6F4]"
               aria-label="Bersihkan pencarian"
             >
               <X className="w-3.5 h-3.5" />
@@ -102,11 +102,11 @@ export const ReportQueueList: React.FC<ReportQueueListProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <ArrowUpDown className="w-3.5 h-3.5 text-[#686B65] dark:text-[#9EACA3]" />
+          <ArrowUpDown className="w-3.5 h-3.5 text-[#4F5A52] dark:text-[#9EACA3]" />
           <select
             value={sortBy}
             onChange={(e) => onSortByChange(e.target.value as AdminSortOption)}
-            className="text-xs bg-[#F7F6F1] dark:bg-[#131916] border border-[#E4E2DA] dark:border-[#26352E] rounded-xl px-2.5 py-2 text-[#20221D] dark:text-[#F3F6F4] focus:outline-none focus:border-[#263F35] dark:focus:border-[#10B981] cursor-pointer"
+            className="text-xs bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl px-2.5 py-2 text-[#101913] dark:text-[#F3F6F4] focus:outline-none focus:border-[#1B4332] dark:focus:border-[#10B981] cursor-pointer"
           >
             <option value="newest">Terbaru</option>
             <option value="oldest">Terlama</option>
@@ -126,8 +126,8 @@ export const ReportQueueList: React.FC<ReportQueueListProps> = ({
               onClick={() => onCategoryFilterChange(cat)}
               className={`px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610]'
-                  : 'bg-[#F7F6F1] dark:bg-[#131916] text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] border border-[#E4E2DA]/80 dark:border-[#26352E]'
+                  ? 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610]'
+                  : 'bg-[#F7F5EF] dark:bg-[#131916] text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] border border-[#E3E0D6]/80 dark:border-[#26352E]'
               }`}
             >
               {cat}
@@ -137,7 +137,7 @@ export const ReportQueueList: React.FC<ReportQueueListProps> = ({
       </div>
 
       {/* Queue Items List */}
-      <div className="divide-y divide-[#E4E2DA]/60 dark:divide-[#26352E] max-h-[520px] overflow-y-auto no-scrollbar space-y-1">
+      <div className="divide-y divide-[#E3E0D6]/60 dark:divide-[#26352E] max-h-[520px] overflow-y-auto no-scrollbar space-y-1">
         {reports.length > 0 ? (
           reports.map((report) => (
             <ReportQueueItem
@@ -148,8 +148,8 @@ export const ReportQueueList: React.FC<ReportQueueListProps> = ({
             />
           ))
         ) : (
-          <div className="py-12 text-center text-xs text-[#686B65] dark:text-[#9EACA3] space-y-2">
-            <p className="font-semibold text-[#20221D] dark:text-[#F3F6F4]">
+          <div className="py-12 text-center text-xs text-[#4F5A52] dark:text-[#9EACA3] space-y-2">
+            <p className="font-semibold text-[#101913] dark:text-[#F3F6F4]">
               Tidak ada laporan yang cocok.
             </p>
             <p>Cobalah mengganti filter status, kategori, atau kata kunci pencarian.</p>
@@ -161,7 +161,7 @@ export const ReportQueueList: React.FC<ReportQueueListProps> = ({
                   onStatusFilterChange('all');
                   onCategoryFilterChange('Semua');
                 }}
-                className="mt-2 text-xs font-bold text-[#263F35] dark:text-[#34D399] underline cursor-pointer"
+                className="mt-2 text-xs font-bold text-[#1B4332] dark:text-[#34D399] underline cursor-pointer"
               >
                 Reset Semua Filter
               </button>

@@ -106,7 +106,7 @@ describe('E2E Architectural Static Invariants & Styling Migration', () => {
     it('accurately identifies inline style={{ ... }} violations and line numbers', () => {
       const dirtyCode = `
         export const BadComponent = () => (
-          <div style={{ backgroundColor: '#263F35', width: '50%' }}>
+          <div style={{ backgroundColor: '#1B4332', width: '50%' }}>
             <span style={{ fontSize: '12px' }}>Label</span>
           </div>
         );
@@ -114,7 +114,7 @@ describe('E2E Architectural Static Invariants & Styling Migration', () => {
       const violations = scanInlineStylesInContent(dirtyCode, 'BadComponent.tsx');
       expect(violations.length).toBe(2);
       expect(violations[0].line).toBe(3);
-      expect(violations[0].content).toContain("style={{ backgroundColor: '#263F35'");
+      expect(violations[0].content).toContain("style={{ backgroundColor: '#1B4332'");
       expect(violations[1].line).toBe(4);
     });
 
@@ -122,7 +122,7 @@ describe('E2E Architectural Static Invariants & Styling Migration', () => {
       const cleanCode = `
         export const GoodComponent = () => (
           <div className="budget-bar-realized" ref={(el) => el?.style.setProperty('--pct', '50%')}>
-            <span className="text-xs font-bold text-[#20221D]">Label</span>
+            <span className="text-xs font-bold text-[#101913]">Label</span>
           </div>
         );
       `;
@@ -162,13 +162,13 @@ describe('E2E Architectural Static Invariants & Styling Migration', () => {
       const cssContent = fs.readFileSync(indexPath, 'utf-8');
 
       const expectedTokens = [
-        '--titik-canvas: #F7F6F1',
+        '--titik-canvas: #F7F5EF',
         '--titik-card: #FFFFFF',
-        '--titik-border: #E4E2DA',
-        '--titik-ink-primary: #20221D',
-        '--titik-ink-secondary: #686B65',
-        '--titik-forest: #263F35',
-        '--titik-forest-hover: #1D3129',
+        '--titik-border: #E3E0D6',
+        '--titik-ink-primary: #101913',
+        '--titik-ink-secondary: #4F5A52',
+        '--titik-forest: #1B4332',
+        '--titik-forest-hover: #14352A',
         '--titik-forest-subtle: #E7EBDD',
         '--titik-forest-subtle-hover: #D8E0CC',
         '--titik-slash-angle: -35deg',
@@ -394,7 +394,7 @@ describe('E2E Architectural Static Invariants & Styling Migration', () => {
       expect(hasAngledRibbons).toBe(true);
 
       // Checks for forest green palette and soft sage accents
-      expect(cssContent).toContain('#263F35');
+      expect(cssContent).toContain('#1B4332');
       expect(cssContent).toContain('#E7EBDD');
 
       // Milestone 6 Coverage Hardening: Verify geometric angled slashes across all 8 views

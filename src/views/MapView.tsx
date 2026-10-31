@@ -120,17 +120,17 @@ export const MapView: React.FC = () => {
   return (
     <>
       {/* Mobile Top Header */}
-      <header className="lg:hidden h-14 bg-[#F7F6F1] dark:bg-[#131916] border-b border-[#E4E2DA] dark:border-[#26352E] px-4 flex items-center justify-between shrink-0 z-20">
+      <header className="lg:hidden h-14 bg-[#F7F5EF] dark:bg-[#131916] border-b border-[#E3E0D6] dark:border-[#26352E] px-4 flex items-center justify-between shrink-0 z-20">
         <a
           href="/"
           onClick={(e) => {
             e.preventDefault();
             navigate('/');
           }}
-          className="inline-flex items-center gap-1.5 text-xl font-black tracking-tight text-[#20221D] dark:text-[#F3F6F4]"
+          className="inline-flex items-center gap-1.5 text-xl font-black tracking-tight text-[#101913] dark:text-[#F3F6F4]"
         >
           <span>TITIK</span>
-          <span className="w-2 h-2 rounded-full bg-[#263F35] dark:bg-[#10B981]"></span>
+          <span className="w-2 h-2 rounded-full bg-[#1B4332] dark:bg-[#10B981]"></span>
         </a>
         <div className="flex items-center gap-2">
           {isAuthenticated && profile.role === 'admin' && (
@@ -144,19 +144,19 @@ export const MapView: React.FC = () => {
             </Link>
           )}
           {isAuthenticated ? (
-            <Link to={'/u/' + profile.username} className="flex items-center" title={'Profil ' + profile.displayName}>
+            <Link to={'/u/' + encodeURIComponent(profile.username)} className="flex items-center" title={'Profil ' + profile.displayName}>
               <UserAvatar
                 src={profile.avatarUrl}
                 alt={profile.displayName}
                 name={profile.displayName}
                 role={profile.role}
-                className="w-7 h-7 rounded-full object-cover border border-[#E4E2DA] dark:border-[#26352E]"
+                className="w-7 h-7 rounded-full object-cover border border-[#E3E0D6] dark:border-[#26352E]"
               />
             </Link>
           ) : (
             <Link
               to="/login"
-              className="px-2.5 py-1 rounded-xl bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] text-xs font-bold"
+              className="px-2.5 py-1 rounded-xl bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] text-xs font-bold"
             >
               Masuk
             </Link>
@@ -168,7 +168,7 @@ export const MapView: React.FC = () => {
       {/* Main Full-Height Geospatial Map Viewport */}
       <main className="flex-1 h-screen overflow-hidden p-4 lg:p-6 w-full flex flex-col space-y-3.5 pb-20 lg:pb-6 min-w-0">
         {/* Compact Header Banner with Subtle Geometric Ribbons & Angled Slashes (-35deg) */}
-        <div className="map-hero-banner relative overflow-hidden rounded-2xl lg:rounded-3xl px-4 py-3.5 lg:px-6 lg:py-4 flex flex-wrap items-center justify-between gap-3 border border-[#263F35]/20 shadow-xs shrink-0">
+        <div className="map-hero-banner relative overflow-hidden rounded-2xl lg:rounded-3xl px-4 py-3.5 lg:px-6 lg:py-4 flex flex-wrap items-center justify-between gap-3 border border-[#1B4332]/20 shadow-xs shrink-0">
           {/* Geometric Angled Slashes Container */}
           <div className="map-slashes-container" aria-hidden="true">
             <div className="map-ambient-glow" />
@@ -195,7 +195,7 @@ export const MapView: React.FC = () => {
               onClick={() => setFilterType('all')}
               className={`map-filter-chip px-3.5 py-1.5 rounded-full border transition-all cursor-pointer font-medium tabular-nums ${
                 filterType === 'all'
-                  ? 'bg-white text-[#263F35] border-white font-bold shadow-xs'
+                  ? 'bg-white text-[#1B4332] border-white font-bold shadow-xs'
                   : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20'
               }`}
             >
@@ -225,7 +225,7 @@ export const MapView: React.FC = () => {
               onClick={() => setFilterType('facilities')}
               className={`map-filter-chip px-3.5 py-1.5 rounded-full border transition-all cursor-pointer font-medium tabular-nums ${
                 filterType === 'facilities'
-                  ? 'bg-[#E7EBDD] text-[#263F35] border-[#E7EBDD] font-bold shadow-xs'
+                  ? 'bg-[#E7EBDD] text-[#1B4332] border-[#E7EBDD] font-bold shadow-xs'
                   : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20'
               }`}
             >
@@ -236,20 +236,20 @@ export const MapView: React.FC = () => {
         </div>
 
         {/* Map Viewport & Overlay Inspector */}
-        <div className="map-viewport-card relative flex-1 min-h-[500px] w-full rounded-3xl overflow-hidden border border-[#E4E2DA] dark:border-[#26352E] shadow-xs">
+        <div className="map-viewport-card relative flex-1 min-h-[500px] w-full rounded-3xl overflow-hidden border border-[#E3E0D6] dark:border-[#26352E] shadow-xs">
           <div ref={mapContainerRef} className="absolute inset-0 z-0"></div>
 
           {/* Floating Entity Inspector Sheet */}
           {selectedEntity && (
             <aside
               aria-label="Inspektor Titik Peta"
-              className="map-entity-sheet absolute bottom-0 left-0 right-0 sm:bottom-4 sm:left-auto sm:right-4 sm:w-[400px] z-10 bg-white/95 dark:bg-[#1A221E]/95 backdrop-blur-md border border-[#E4E2DA] dark:border-[#26352E] rounded-t-[36px] sm:rounded-3xl p-5 shadow-xl space-y-3.5 animate-fade-in"
+              className="map-entity-sheet absolute bottom-0 left-0 right-0 sm:bottom-4 sm:left-auto sm:right-4 sm:w-[400px] z-10 bg-white/95 dark:bg-[#1A221E]/95 backdrop-blur-md border border-[#E3E0D6] dark:border-[#26352E] rounded-t-[36px] sm:rounded-3xl p-5 shadow-xl space-y-3.5 animate-fade-in"
             >
               {selectedEntity.type === 'report' ? (
                 <>
                   <div className="flex items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono tabular-nums font-bold text-[#20221D] dark:text-[#F3F6F4]">
+                      <span className="font-mono tabular-nums font-bold text-[#101913] dark:text-[#F3F6F4]">
                         {selectedEntity.data.publicReference}
                       </span>
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-950/60 text-[#92400E] dark:text-amber-300 border border-amber-200 dark:border-amber-800/80">
@@ -260,28 +260,28 @@ export const MapView: React.FC = () => {
                       type="button"
                       onClick={() => setSelectedEntity(null)}
                       aria-label="Tutup detail titik"
-                      className="p-1 rounded-full text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-colors cursor-pointer"
+                      className="p-1 rounded-full text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#131916] transition-colors cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
 
                   <div className="space-y-1.5">
-                    <h3 className="font-bold text-base text-[#20221D] dark:text-[#F3F6F4] leading-snug">
+                    <h3 className="font-bold text-base text-[#101913] dark:text-[#F3F6F4] leading-snug">
                       {selectedEntity.data.title}
                     </h3>
-                    <p className="text-xs text-[#686B65] dark:text-[#9EACA3] line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] line-clamp-2 leading-relaxed">
                       {selectedEntity.data.description}
                     </p>
                   </div>
 
-                  <div className="py-2.5 px-3 rounded-2xl bg-[#F7F6F1] dark:bg-[#131916] border border-[#E4E2DA]/70 dark:border-[#26352E] space-y-1 text-[11px]">
-                    <div className="flex items-center gap-1.5 text-[#20221D] dark:text-[#F3F6F4] font-medium truncate">
+                  <div className="py-2.5 px-3 rounded-2xl bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6]/70 dark:border-[#26352E] space-y-1 text-[11px]">
+                    <div className="flex items-center gap-1.5 text-[#101913] dark:text-[#F3F6F4] font-medium truncate">
                       <MapPin className="w-3.5 h-3.5 text-[#DC2626] shrink-0" />
                       <span className="truncate">{selectedEntity.data.location.address}, {selectedEntity.data.location.city}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[#686B65] dark:text-[#9EACA3] truncate">
-                      <Building2 className="w-3.5 h-3.5 text-[#263F35] dark:text-[#34D399] shrink-0" />
+                    <div className="flex items-center gap-1.5 text-[#4F5A52] dark:text-[#9EACA3] truncate">
+                      <Building2 className="w-3.5 h-3.5 text-[#1B4332] dark:text-[#34D399] shrink-0" />
                       <span className="truncate">{selectedEntity.data.responsibleAgency}</span>
                     </div>
                   </div>
@@ -289,7 +289,7 @@ export const MapView: React.FC = () => {
                   <div className="pt-1 flex items-center justify-between gap-3">
                     <Link
                       to={`/report/${selectedEntity.data.id}`}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#263F35] dark:bg-[#10B981] hover:bg-[#1D3129] dark:hover:bg-[#34D399] text-white dark:text-[#0A1610] text-xs font-bold transition-colors shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#1B4332] dark:bg-[#10B981] hover:bg-[#14352A] dark:hover:bg-[#34D399] text-white dark:text-[#0A1610] text-xs font-bold transition-colors shadow-xs"
                     >
                       <span>Lihat Laporan & APBD</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -297,7 +297,7 @@ export const MapView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setSelectedEntity(null)}
-                      className="px-3.5 py-1.5 rounded-full border border-[#E4E2DA] dark:border-[#26352E] text-xs font-semibold text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-colors cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-full border border-[#E3E0D6] dark:border-[#26352E] text-xs font-semibold text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#131916] transition-colors cursor-pointer"
                     >
                       Tutup
                     </button>
@@ -307,10 +307,10 @@ export const MapView: React.FC = () => {
                 <>
                   <div className="flex items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#263F35] dark:text-[#34D399] font-semibold">
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#1B4332] dark:text-[#34D399] font-semibold">
                         {selectedEntity.data.category}
                       </span>
-                      <span className="font-mono tabular-nums text-[11px] font-semibold text-[#686B65] dark:text-[#9EACA3]">
+                      <span className="font-mono tabular-nums text-[11px] font-semibold text-[#4F5A52] dark:text-[#9EACA3]">
                         {selectedEntity.data.activeReportsCount} Laporan Aktif
                       </span>
                     </div>
@@ -318,27 +318,27 @@ export const MapView: React.FC = () => {
                       type="button"
                       onClick={() => setSelectedEntity(null)}
                       aria-label="Tutup detail fasilitas"
-                      className="p-1 rounded-full text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-colors cursor-pointer"
+                      className="p-1 rounded-full text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#131916] transition-colors cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
 
                   <div className="space-y-1">
-                    <h3 className="font-bold text-base text-[#20221D] dark:text-[#F3F6F4] leading-snug">
+                    <h3 className="font-bold text-base text-[#101913] dark:text-[#F3F6F4] leading-snug">
                       {selectedEntity.data.name}
                     </h3>
-                    <p className="text-xs text-[#686B65] dark:text-[#9EACA3]">
+                    <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3]">
                       {selectedEntity.data.address}
                     </p>
                   </div>
 
-                  <div className="py-2.5 px-3 rounded-2xl bg-[#F7F6F1] dark:bg-[#131916] border border-[#E4E2DA]/70 dark:border-[#26352E] flex items-center justify-between gap-2 text-[11px]">
-                    <div className="flex items-center gap-1.5 text-[#686B65] dark:text-[#9EACA3] truncate">
-                      <Building2 className="w-3.5 h-3.5 text-[#263F35] dark:text-[#34D399] shrink-0" />
+                  <div className="py-2.5 px-3 rounded-2xl bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6]/70 dark:border-[#26352E] flex items-center justify-between gap-2 text-[11px]">
+                    <div className="flex items-center gap-1.5 text-[#4F5A52] dark:text-[#9EACA3] truncate">
+                      <Building2 className="w-3.5 h-3.5 text-[#1B4332] dark:text-[#34D399] shrink-0" />
                       <span className="truncate">{selectedEntity.data.responsibleAgency}</span>
                     </div>
-                    <span className="font-mono tabular-nums font-semibold text-[#263F35] dark:text-[#34D399] shrink-0">
+                    <span className="font-mono tabular-nums font-semibold text-[#1B4332] dark:text-[#34D399] shrink-0">
                       {selectedEntity.data.resolvedReportsCount} Tuntas
                     </span>
                   </div>
@@ -347,14 +347,14 @@ export const MapView: React.FC = () => {
                     <button
                       type="button"
                       onClick={openReportModal}
-                      className="px-4 py-2 bg-[#263F35] dark:bg-[#10B981] hover:bg-[#1D3129] dark:hover:bg-[#34D399] text-white dark:text-[#0A1610] rounded-full text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                      className="px-4 py-2 bg-[#1B4332] dark:bg-[#10B981] hover:bg-[#14352A] dark:hover:bg-[#34D399] text-white dark:text-[#0A1610] rounded-full text-xs font-bold shadow-xs transition-colors cursor-pointer"
                     >
                       + Laporkan Fasilitas Ini
                     </button>
                     <button
                       type="button"
                       onClick={() => setSelectedEntity(null)}
-                      className="px-3.5 py-1.5 rounded-full border border-[#E4E2DA] dark:border-[#26352E] text-xs font-semibold text-[#686B65] dark:text-[#9EACA3] hover:text-[#20221D] dark:hover:text-[#F3F6F4] hover:bg-[#F7F6F1] dark:hover:bg-[#131916] transition-colors cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-full border border-[#E3E0D6] dark:border-[#26352E] text-xs font-semibold text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#131916] transition-colors cursor-pointer"
                     >
                       Tutup
                     </button>

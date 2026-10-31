@@ -1,7 +1,7 @@
 /* ==========================================================================
    TITIK. HomeView Dedicated Stylesheet
-   Design Spine: Deep Forest Green (#263F35), Geometric Angled Slashes (-35deg),
-   Soft Sage (#E7EBDD), Cream Canvas (#F7F6F1), Pill Ergonomics, Elevated Cards,
+   Design Spine: Deep Forest Green (#1B4332), Geometric Angled Slashes (-35deg),
+   Soft Sage (#E7EBDD), Cream Canvas (#F7F5EF), Pill Ergonomics, Elevated Cards,
    Mobile Sliding Sheet (rounded-t-[36px] -mt-6), Widescreen Scaling (up to 1680px)
    ========================================================================== */
 
@@ -16,7 +16,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: var(--titik-canvas, #F7F6F1);
+  background-color: var(--titik-canvas, #F7F5EF);
 }
 
 @media (min-width: 1024px) {
@@ -37,7 +37,7 @@
    ========================================================================== */
 
 .home-hero-banner {
-  background-color: var(--titik-forest, #263F35);
+  background-color: var(--titik-forest, #1B4332);
   color: #FFFFFF;
   position: relative;
   overflow: hidden;
@@ -130,7 +130,7 @@
 .home-contextual-card {
   border-radius: var(--titik-radius-card-lg, 32px);
   background-color: var(--titik-card, #FFFFFF);
-  border: 1px solid var(--titik-border, #E4E2DA);
+  border: 1px solid var(--titik-border, #E3E0D6);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
   transition: all 0.25s ease;
 }
@@ -148,9 +148,9 @@
 
 .home-search-input {
   border-radius: var(--titik-radius-pill, 9999px);
-  background-color: var(--titik-canvas, #F7F6F1);
-  border: 1px solid var(--titik-border, #E4E2DA);
-  color: var(--titik-ink-primary, #20221D);
+  background-color: var(--titik-canvas, #F7F5EF);
+  border: 1px solid var(--titik-border, #E3E0D6);
+  color: var(--titik-ink-primary, #101913);
   padding-left: 2.75rem;
   padding-right: 1rem;
   padding-top: 0.75rem;
@@ -164,8 +164,8 @@
 .home-search-input:focus {
   background-color: #FFFFFF;
   outline: none;
-  border-color: var(--titik-forest, #263F35);
-  box-shadow: 0 0 0 1px var(--titik-forest, #263F35);
+  border-color: var(--titik-forest, #1B4332);
+  box-shadow: 0 0 0 1px var(--titik-forest, #1B4332);
 }
 
 .home-pill-btn {
@@ -231,7 +231,7 @@
 }
 
 /* ==========================================================================
-   Mobile Sliding Sheet (rounded-t-[36px] -mt-6 bg-[#F7F6F1])
+   Mobile Sliding Sheet (rounded-t-[36px] -mt-6 bg-[#F7F5EF])
    ========================================================================== */
 
 .home-mobile-sheet {

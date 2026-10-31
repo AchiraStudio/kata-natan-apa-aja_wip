@@ -271,11 +271,21 @@ export class SupabaseDataAdapter implements IDataAdapter {
         ]);
 
         if (reportSavesRes.error) {
-          throw mapPostgrestError(reportSavesRes.error, 'Gagal memuat status simpan laporan.');
+          if (
+            reportSavesRes.error.code === 'PGRST205' ||
+            (typeof reportSavesRes.error.message === 'string' &&
+              (reportSavesRes.error.message.includes('schema cache') ||
+                reportSavesRes.error.message.includes('report_saves')))
+          ) {
+            savedReportIds = new Set();
+          } else {
+            throw mapPostgrestError(reportSavesRes.error, 'Gagal memuat status simpan laporan.');
+          }
+        } else {
+          savedReportIds = new Set(
+            (reportSavesRes.data || []).map((r: { report_id: string }) => r.report_id)
+          );
         }
-        savedReportIds = new Set(
-          (reportSavesRes.data || []).map((r: { report_id: string }) => r.report_id)
-        );
         if (savesRes.data) {
           savedPostIds = new Set(savesRes.data.map((r: { post_id: string }) => r.post_id));
         }
@@ -323,9 +333,19 @@ export class SupabaseDataAdapter implements IDataAdapter {
           .eq('user_id', userId)
           .maybeSingle();
         if (savedError) {
-          throw mapPostgrestError(savedError, 'Gagal memuat status simpan laporan.');
+          if (
+            savedError.code === 'PGRST205' ||
+            (typeof savedError.message === 'string' &&
+              (savedError.message.includes('schema cache') ||
+                savedError.message.includes('report_saves')))
+          ) {
+            isSavedByMe = false;
+          } else {
+            throw mapPostgrestError(savedError, 'Gagal memuat status simpan laporan.');
+          }
+        } else {
+          isSavedByMe = Boolean(saved);
         }
-        isSavedByMe = Boolean(saved);
       }
       return mapReportRow(data, false, isSavedByMe);
     } catch (err) {
@@ -736,6 +756,13 @@ export class SupabaseDataAdapter implements IDataAdapter {
         .order('created_at', { ascending: false });
 
       if (error) {
+        if (
+          error.code === 'PGRST205' ||
+          (typeof error.message === 'string' &&
+            (error.message.includes('schema cache') || error.message.includes('report_saves')))
+        ) {
+          return [];
+        }
         throw mapPostgrestError(error, 'Gagal memuat laporan tersimpan.');
       }
       return (data || [])

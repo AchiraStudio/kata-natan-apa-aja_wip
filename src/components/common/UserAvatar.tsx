@@ -59,7 +59,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     const roleColors =
       role === 'admin'
         ? 'bg-[#92400E] text-[#FDE68A]'
-        : 'bg-[#263F35] text-[#34D399]';
+        : 'bg-[#1B4332] text-[#34D399]';
 
     return (
       <div

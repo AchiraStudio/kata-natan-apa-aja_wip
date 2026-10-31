@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useInRouterContext } from 'react-router-dom';
-import { X, Heart, Send, MessageSquare, Loader2, RotateCw } from 'lucide-react';
+import { X, Heart, Send, MessageSquare, Loader2, RotateCw, CheckCircle2, BadgeCheck } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
 import { FeedComment } from '../../services/adapters/types';
@@ -14,7 +14,7 @@ const getCommentAuthorTarget = (authorId?: string, authorName?: string): string 
     return authorId.replace(/^@+/, '').trim();
   }
   const name = authorName || 'warga';
-  return name.replace(/^@+/, '').trim().toLowerCase().replace(/[^a-z0-9_.]/g, '_');
+  return name.replace(/^@+/, '').trim().toLowerCase().replace(/[^a-z0-9_.#]/g, '_');
 };
 
 interface CommentsBottomSheetProps {
@@ -337,42 +337,71 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
               const currentLikes = Math.max(0, (item.likes || 0) + delta);
               const replies = sortCommentsForUser(comments.filter((comment) => comment.parentId === item.id), profile);
 
+              const isAgencyOfficial =
+                item.authorName.toLowerCase().includes('admin') ||
+                item.authorName.toLowerCase().includes('pupr') ||
+                item.authorName.toLowerCase().includes('dinas') ||
+                item.authorName.toLowerCase().includes('pemkot');
+
               return (
-                <div key={item.id} data-comment-id={item.id} className="flex items-start gap-3 group scroll-mt-2">
-                  {(() => {
-                    const authorTarget = getCommentAuthorTarget(item.authorId, item.authorName);
-                    return (
-                      <a
-                        href={`/u/${authorTarget}`}
-                        onClick={(e) => handleAuthorClick(e, authorTarget)}
-                        className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity"
-                        title={`Lihat profil ${item.authorName}`}
-                      >
-                        <UserAvatar
-                          src={item.avatarUrl}
-                          alt={item.authorName}
-                          name={item.authorName}
-                          role={item.authorName.toLowerCase().includes('admin') || item.authorName.toLowerCase().includes('pupr') ? 'admin' : 'citizen'}
-                          className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-white/15 hover:scale-105 transition-transform"
-                        />
-                      </a>
-                    );
-                  })()}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      {(() => {
-                        const authorTarget = getCommentAuthorTarget(item.authorId, item.authorName);
-                        return (
-                          <a
-                            href={`/u/${authorTarget}`}
-                            onClick={(e) => handleAuthorClick(e, authorTarget)}
-                            className="font-semibold text-xs text-white/95 hover:text-emerald-400 hover:underline transition-colors cursor-pointer truncate"
-                          >
-                            {item.authorName}
-                          </a>
-                        );
-                      })()}
-                      {isMyComment && (
+                <div
+                  key={item.id}
+                  data-comment-id={item.id}
+                  className={`flex flex-col gap-2 group scroll-mt-2 rounded-2xl transition-all ${
+                    isAgencyOfficial
+                      ? 'bg-[#1B4332]/35 border-l-[3px] border-l-[#34D399] border border-[#2D6A4F]/40 p-3 shadow-md'
+                      : ''
+                  }`}
+                >
+                  {isAgencyOfficial && (
+                    <div className="flex items-center justify-between pb-1.5 border-b border-white/10">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1B4332] text-[#34D399] border border-[#34D399]/40">
+                        <CheckCircle2 className="w-3 h-3 text-[#34D399]" />
+                        <span>Respons Resmi · Pemerintah Kota Bogor</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-white/50">
+                        Terverifikasi
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-3">
+                    {(() => {
+                      const authorTarget = getCommentAuthorTarget(item.authorId, item.authorName);
+                      return (
+                        <a
+                          href={`/u/${authorTarget}`}
+                          onClick={(e) => handleAuthorClick(e, authorTarget)}
+                          className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity"
+                          title={`Lihat profil ${item.authorName}`}
+                        >
+                          <UserAvatar
+                            src={item.avatarUrl}
+                            alt={item.authorName}
+                            name={item.authorName}
+                            role={isAgencyOfficial ? 'admin' : 'citizen'}
+                            className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-white/15 hover:scale-105 transition-transform"
+                          />
+                        </a>
+                      );
+                    })()}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        {(() => {
+                          const authorTarget = getCommentAuthorTarget(item.authorId, item.authorName);
+                          return (
+                            <a
+                              href={`/u/${authorTarget}`}
+                              onClick={(e) => handleAuthorClick(e, authorTarget)}
+                              className="font-semibold text-xs text-white/95 hover:text-emerald-400 hover:underline transition-colors cursor-pointer truncate flex items-center gap-1"
+                            >
+                              <span>{item.authorName}</span>
+                              {isAgencyOfficial && (
+                                <BadgeCheck className="w-3.5 h-3.5 text-[#34D399] shrink-0" />
+                              )}
+                            </a>
+                          );
+                        })()}
+                        {isMyComment && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
                           Anda
                         </span>
@@ -483,7 +512,8 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
                     <span className="text-[10px] font-mono">{currentLikes}</span>
                   </button>
                 </div>
-              );
+              </div>
+            );
             })
           )}
         </div>

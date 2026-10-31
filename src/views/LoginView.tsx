@@ -204,7 +204,7 @@ export const LoginView: React.FC = () => {
 
           <div className="login-hero-header">
             <div className="flex items-center gap-2">
-              <TitikLogo className="w-5 h-5 shrink-0" pinColor="#FFFFFF" innerColor="#263F35" dotColor="#34D399" />
+              <TitikLogo className="w-5 h-5 shrink-0" pinColor="#FFFFFF" innerColor="#1B4332" dotColor="#34D399" />
               <span className="login-brand-tag">Civic Social Platform</span>
             </div>
             <span className="login-env-tag">
@@ -215,7 +215,7 @@ export const LoginView: React.FC = () => {
           <div className="login-hero-body">
             <div className="login-brand-logo-frame group">
               <div className="login-brand-logo-badge">
-                <TitikLogo className="w-full h-full" pinColor="#263F35" innerColor="#FFFFFF" dotColor="#34D399" />
+                <TitikLogo className="w-full h-full" pinColor="#1B4332" innerColor="#FFFFFF" dotColor="#34D399" />
               </div>
             </div>
             <div>
@@ -242,8 +242,8 @@ export const LoginView: React.FC = () => {
             <div className="login-form-header">
               <div className="login-form-title-row">
                 <div className="flex items-center gap-2.5">
-                  <div className="lg:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-[#263F35] shadow-xs shrink-0">
-                    <TitikLogo className="w-5 h-5" pinColor="#FFFFFF" innerColor="#263F35" dotColor="#34D399" />
+                  <div className="lg:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-[#1B4332] shadow-xs shrink-0">
+                    <TitikLogo className="w-5 h-5" pinColor="#FFFFFF" innerColor="#1B4332" dotColor="#34D399" />
                   </div>
                   <h3 className="login-form-heading">Selamat Datang</h3>
                 </div>
@@ -379,10 +379,10 @@ export const LoginView: React.FC = () => {
               <span>Autentikasi terenkripsi & Row Level Security aktif.</span>
             </div>
 
-            <div className="mt-4 border-t border-[#E4E2DA] dark:border-[#26352E] pt-3 text-center text-[11px] text-[#686B65] dark:text-[#9EACA3]">
+            <div className="mt-4 border-t border-[#E3E0D6] dark:border-[#26352E] pt-3 text-center text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
               <p>
                 Belum memiliki akun warga?{' '}
-                <Link to="/daftar" className="font-bold text-[#263F35] dark:text-[#34D399] hover:underline">
+                <Link to="/daftar" className="font-bold text-[#1B4332] dark:text-[#34D399] hover:underline">
                   Daftar di sini
                 </Link>
               </p>

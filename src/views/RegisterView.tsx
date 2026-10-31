@@ -32,7 +32,6 @@ export const RegisterView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
 
   const validate = (): string | null => {
     if (displayName.trim().length < 2 || displayName.trim().length > 40) {
@@ -73,14 +72,12 @@ export const RegisterView: React.FC = () => {
       return;
     }
 
-    if (result.needsEmailConfirmation) {
-      setNeedsEmailConfirmation(true);
-      setSuccessMessage('Pendaftaran berhasil! Periksa email Anda untuk verifikasi akun.');
+    setSuccessMessage('Akun berhasil dibuat! Mengalihkan ke beranda...');
+    if (result.profile) {
+      navigate('/setup-profil');
       return;
     }
-
-    setSuccessMessage('Akun berhasil dibuat! Mengalihkan ke beranda...');
-    window.setTimeout(() => navigate('/'), 700);
+    navigate('/');
   };
 
   return (
@@ -105,7 +102,7 @@ export const RegisterView: React.FC = () => {
 
           <div className="login-hero-header">
             <div className="flex items-center gap-2">
-              <TitikLogo className="w-5 h-5 shrink-0" pinColor="#FFFFFF" innerColor="#263F35" dotColor="#34D399" />
+              <TitikLogo className="w-5 h-5 shrink-0" pinColor="#FFFFFF" innerColor="#1B4332" dotColor="#34D399" />
               <span className="login-brand-tag">Civic Social Platform</span>
             </div>
             <span className="login-env-tag">
@@ -116,7 +113,7 @@ export const RegisterView: React.FC = () => {
           <div className="login-hero-body">
             <div className="login-brand-logo-frame group">
               <div className="login-brand-logo-badge">
-                <TitikLogo className="w-full h-full" pinColor="#263F35" innerColor="#FFFFFF" dotColor="#34D399" />
+                <TitikLogo className="w-full h-full" pinColor="#1B4332" innerColor="#FFFFFF" dotColor="#34D399" />
               </div>
             </div>
             <div>
@@ -142,8 +139,8 @@ export const RegisterView: React.FC = () => {
             <div className="login-form-header">
               <div className="login-form-title-row">
                 <div className="flex items-center gap-2.5">
-                  <div className="lg:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-[#263F35] shadow-xs shrink-0">
-                    <TitikLogo className="w-5 h-5" pinColor="#FFFFFF" innerColor="#263F35" dotColor="#34D399" />
+                  <div className="lg:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-[#1B4332] shadow-xs shrink-0">
+                    <TitikLogo className="w-5 h-5" pinColor="#FFFFFF" innerColor="#1B4332" dotColor="#34D399" />
                   </div>
                   <h3 className="login-form-heading">daftar</h3>
                 </div>
@@ -175,106 +172,94 @@ export const RegisterView: React.FC = () => {
               </div>
             )}
 
-            {needsEmailConfirmation ? (
-              <div className="space-y-4 pt-2">
-                <p className="text-xs leading-relaxed text-[#475569] dark:text-[#9EACA3]">
-                  Kami mengirim tautan verifikasi ke <strong className="text-[#20221D] dark:text-[#F3F6F4]">{email.trim()}</strong>.
-                  Buka tautan tersebut untuk mengaktifkan akun, lalu masuk dengan email dan kata sandi Anda.
-                </p>
-                <Link to="/login" className="login-submit-button login-submit-button--link">
-                  <span>Sudah verifikasi? Masuk</span>
-                </Link>
+            <form onSubmit={handleRegisterSubmit} className="login-form">
+              <div className="login-input-group">
+                <div className="login-input-icon"><User className="w-4 h-4" /></div>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="Nama tampilan (mis. Rina Wijaya)"
+                  className="login-input-field"
+                  autoComplete="name"
+                  maxLength={40}
+                  required
+                />
               </div>
-            ) : (
-              <form onSubmit={handleRegisterSubmit} className="login-form">
-                <div className="login-input-group">
-                  <div className="login-input-icon"><User className="w-4 h-4" /></div>
-                  <input
-                    type="text"
-                    value={displayName}
-                    onChange={(event) => setDisplayName(event.target.value)}
-                    placeholder="Nama tampilan (mis. Rina Wijaya)"
-                    className="login-input-field"
-                    autoComplete="name"
-                    maxLength={40}
-                    required
-                  />
-                </div>
 
-                <div className="login-input-group">
-                  <div className="login-input-icon"><AtSign className="w-4 h-4" /></div>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(event) => setUsername(event.target.value.toLowerCase())}
-                    placeholder="Username (mis. rinawijaya)"
-                    className="login-input-field"
-                    autoComplete="username"
-                    maxLength={24}
-                    required
-                  />
-                </div>
+              <div className="login-input-group">
+                <div className="login-input-icon"><AtSign className="w-4 h-4" /></div>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value.toLowerCase())}
+                  placeholder="Username (mis. rinawijaya)"
+                  className="login-input-field"
+                  autoComplete="username"
+                  maxLength={24}
+                  required
+                />
+              </div>
 
-                <div className="login-input-group">
-                  <div className="login-input-icon"><Mail className="w-4 h-4" /></div>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="Email aktif"
-                    className="login-input-field"
-                    autoComplete="email"
-                    required
-                  />
-                </div>
+              <div className="login-input-group">
+                <div className="login-input-icon"><Mail className="w-4 h-4" /></div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="Email aktif"
+                  className="login-input-field"
+                  autoComplete="email"
+                  required
+                />
+              </div>
 
-                <div className="login-input-group">
-                  <div className="login-input-icon"><Lock className="w-4 h-4" /></div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Kata sandi (minimal 8 karakter)"
-                    className="login-input-field login-input-field--password"
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((visible) => !visible)}
-                    className="login-password-toggle"
-                    aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-
-                <div className="login-input-group">
-                  <div className="login-input-icon"><Lock className="w-4 h-4" /></div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
-                    placeholder="Ulangi kata sandi"
-                    className="login-input-field"
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                  />
-                </div>
-
-                <button type="submit" disabled={isSubmitting} className="login-submit-button">
-                  {isSubmitting && <RefreshCw className="w-4 h-4 animate-spin" />}
-                  <span>{isSubmitting ? 'Mendaftarkan...' : 'Buat Akun'}</span>
+              <div className="login-input-group">
+                <div className="login-input-icon"><Lock className="w-4 h-4" /></div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Kata sandi (minimal 8 karakter)"
+                  className="login-input-field login-input-field--password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  className="login-password-toggle"
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
-              </form>
-            )}
+              </div>
 
-            <div className="mt-5 border-t border-[#E4E2DA] dark:border-[#26352E] pt-4 text-center text-[11px] text-[#686B65] dark:text-[#9EACA3]">
+              <div className="login-input-group">
+                <div className="login-input-icon"><Lock className="w-4 h-4" /></div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Ulangi kata sandi"
+                  className="login-input-field"
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                />
+              </div>
+
+              <button type="submit" disabled={isSubmitting} className="login-submit-button">
+                {isSubmitting && <RefreshCw className="w-4 h-4 animate-spin" />}
+                <span>{isSubmitting ? 'Mendaftarkan...' : 'Buat Akun'}</span>
+              </button>
+            </form>
+
+            <div className="mt-5 border-t border-[#E3E0D6] dark:border-[#26352E] pt-4 text-center text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
               <p>
                 Sudah punya akun?{' '}
-                <Link to="/login" className="font-bold text-[#263F35] dark:text-[#34D399] hover:underline">
+                <Link to="/login" className="font-bold text-[#1B4332] dark:text-[#34D399] hover:underline">
                   Masuk di sini
                 </Link>
               </p>
