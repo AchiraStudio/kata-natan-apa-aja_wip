@@ -92,10 +92,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
                           <Link
                             to="/admin"
                             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-                            title={profile.verifiedAgency ? `Buka Portal Tinjauan ${profile.verifiedAgency}` : 'Buka Portal Tinjauan Administrator'}
+                            title="Buka Portal Tinjauan admin"
                           >
                             <ShieldAlert className="w-3.5 h-3.5" />
-                            <span>Portal Admin</span>
+                            <span>Portal admin</span>
                           </Link>
                         )}
                         <button
@@ -153,8 +153,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
                       </span>
                     )}
                     {profile.role === 'admin' && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
-                        {profile.verifiedAgency || 'Admin'}
+                      <span className="text-[10px] font-bold tracking-wider bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
+                        admin
                       </span>
                     )}
                     {profile.customStatus?.trim() && (
@@ -224,7 +224,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
                           </div>
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
-                              {profile.verifiedAgency ? `Portal Tinjauan ${profile.verifiedAgency}` : 'Portal Tinjauan Administrator'}
+                              Portal Tinjauan admin
                             </p>
                             <p className="text-[11px] text-amber-700 dark:text-amber-400 truncate">
                               Verifikasi bukti laporan warga dan perbarui disposisi dinas

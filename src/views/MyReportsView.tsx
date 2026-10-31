@@ -292,7 +292,7 @@ export const MyReportsView: React.FC = () => {
                         Laporan ditolak — perbaiki lalu kirim ulang
                       </h3>
                       <p className="mt-1 text-xs leading-relaxed text-rose-800 dark:text-rose-200">
-                        {rejectionEvent?.description || 'Admin belum memberikan saran. Silakan periksa kembali informasi laporan dan hubungi admin bila perlu.'}
+                        {rejectionEvent?.description || 'admin belum memberikan saran. Silakan periksa kembali informasi laporan dan hubungi admin bila perlu.'}
                       </p>
                       {!isEditing ? (
                         <button

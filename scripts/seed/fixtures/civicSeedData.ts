@@ -1,6 +1,5 @@
-import { Post, Report, Facility, BudgetSectorContext } from '../types/domain';
-import { generateSeedComments } from '../services/commentGenerator';
-import { FeedComment } from '../services/adapters/types';
+import { Post, Report, Facility, BudgetSectorContext, FeedComment } from './types';
+import { generateSeedComments } from './commentGenerator';
 
 // =============================================================================
 // SECTOR BUDGET CONTEXT (OGD - Open Government Data Simulation)

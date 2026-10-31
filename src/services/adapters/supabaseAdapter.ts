@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../supabaseClient';
+import { supabase } from '../supabaseClient';
 import {
   IDataAdapter,
   NewReportInput,
@@ -87,22 +87,7 @@ function mapReportRow(row: any, isSupportedByMe = false, isSavedByMe = false): R
     budgetContext:
       row.budget_context && Object.keys(row.budget_context).length > 0
         ? row.budget_context
-        : {
-            sectorId: 'sec-general',
-            sectorName: row.category || 'Infrastruktur',
-            subSectorName: row.responsible_agency || 'Dinas Teknis',
-            paguAllocation: 25000000000,
-            realizedSpending: 14000000000,
-            executionRatePercent: 56.0,
-            fiscalYear: 2026,
-            responsibleAgency: row.responsible_agency || 'Pemerintah Kota Bogor',
-            agencyAcronym: 'OPD',
-            responsivenessScore: 82,
-            avgResolutionDays: 14,
-            lastUpdated: row.updated_at || row.created_at || new Date().toISOString(),
-            dataSource: 'Simulasi SIKD / Portal Satu Data 2026',
-            isSampleData: Boolean(row.is_demo),
-          },
+        : undefined,
     events: Array.isArray(row.events) ? row.events : [],
     evidence_verification_status: row.evidence_verification_status || 'unverified',
     evidenceVerificationStatus: row.evidence_verification_status || 'unverified',
@@ -452,22 +437,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
         reporterType: input.reporterType,
         reporterDisplayName: input.reporterType === 'anonymous' ? undefined : input.reporterDisplayName,
         supportCount: 0,
-        budgetContext: {
-          sectorId: 'sec-auto',
-          sectorName: input.category,
-          subSectorName: 'Pelayanan Publik',
-          paguAllocation: 25000000000,
-          realizedSpending: 15000000000,
-          executionRatePercent: 60.0,
-          fiscalYear: 2026,
-          responsibleAgency: 'Pemerintah Kota Bogor',
-          agencyAcronym: 'PUPR',
-          responsivenessScore: 85,
-          avgResolutionDays: 14,
-          lastUpdated: new Date().toISOString(),
-          dataSource: 'Portal Satu Data 2026',
-          isSampleData: false,
-        },
+        budgetContext: undefined,
         events: [
           {
             id: 'ev-1',
@@ -1224,27 +1194,8 @@ export class SupabaseDataAdapter implements IDataAdapter {
         return mapProfile(tier4Data);
       }
 
-      // Tier 5 (Graceful Fallback for Simulated Commenters):
-      const fallbackDisplayName = clean
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-
-      return {
-        id: `usr-${cleanLower}`,
-        username: cleanLower,
-        displayName: fallbackDisplayName || 'Warga Titik',
-        avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-        role: 'citizen',
-        bio: undefined,
-        district: undefined,
-        isVerified: false,
-        verifiedAgency: undefined,
-        createdAt: new Date().toISOString(),
-        bannerUrl: 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=1200&q=80',
-        backgroundTheme: 'editorial_forest',
-        websiteUrl: undefined,
-        customStatus: undefined,
-      };
+      // Real live database: user not found in public.profiles
+      return null;
     } catch (err) {
       if (err instanceof DataError) throw err;
       throw mapPostgrestError(err, 'Gagal memuat profil pengguna.');
@@ -1316,6 +1267,31 @@ export class SupabaseDataAdapter implements IDataAdapter {
     } catch (err) {
       if (err instanceof DataError) throw err;
       throw mapPostgrestError(err, 'Gagal memuat postingan.');
+    }
+  }
+
+  async getPostByReportId(reportId: string): Promise<Post | null> {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          relatedReport:reports(*, supports:report_supports(count)),
+          comments:comments(count),
+          likes:post_likes(count),
+          saves:post_saves(count)
+        `)
+        .eq('related_report_id', reportId)
+        .maybeSingle();
+
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal memuat postingan terkait laporan.');
+      }
+      if (!data) return null;
+      return mapPostRow(data, false, false, false);
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal memuat postingan terkait laporan.');
     }
   }
 

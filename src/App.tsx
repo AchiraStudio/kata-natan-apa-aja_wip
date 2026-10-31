@@ -28,6 +28,19 @@ const PageFallback: React.FC = () => (
     </div>
   </div>
 );
+
+const MessagesPlaceholderView: React.FC = () => (
+  <div className="flex-1 min-h-0 flex items-center justify-center p-6 text-center text-[#4F5A52] dark:text-[#9EACA3]">
+    <div className="max-w-md w-full bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-8 shadow-xs space-y-3">
+      <h2 className="text-base font-bold text-[#101913] dark:text-[#F3F6F4]">
+        Pesan Langsung Terenkripsi
+      </h2>
+      <p className="text-xs">
+        Sistem pesan langsung Beeper-style siap dikonfigurasi.
+      </p>
+    </div>
+  </div>
+);
 import { CreateModal } from './components/composer/CreateModal';
 import { ReportDetailDrawer } from './components/reporting/ReportDetailDrawer';
 import { GlobalSearchModal } from './components/modals/GlobalSearchModal';
@@ -92,7 +105,7 @@ export const AdminOnlyRoute: React.FC<{ children: React.ReactElement }> = ({ chi
             <ShieldAlert className="w-6 h-6" />
           </div>
           <h2 className="text-lg sm:text-xl font-black text-[#101913] dark:text-[#F3F6F4]">
-            Akses Khusus Verifikator PUPR
+            Masuk Akun admin
           </h2>
           <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] leading-relaxed">
             Halaman ini khusus untuk verifikator resmi Dinas PUPR. Akun Anda saat ini terdaftar sebagai{' '}
@@ -109,7 +122,7 @@ export const AdminOnlyRoute: React.FC<{ children: React.ReactElement }> = ({ chi
               href="/login"
               className="flex-1 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors shadow-xs text-center"
             >
-              Ganti Akun Admin
+              Ganti Akun admin
             </a>
           </div>
         </div>
@@ -163,8 +176,58 @@ export const AppRoutes: React.FC = () => {
               </AuthenticatedRoute>
             }
           />
+          <Route path="/pesan" element={<MessagesPlaceholderView />} />
+          {/* Admin Portal & 5 Sub-Routes - Protected by AdminOnlyRoute */}
           <Route
             path="/admin"
+            element={
+              <AdminOnlyRoute>
+                <AdminView />
+              </AdminOnlyRoute>
+            }
+          />
+          <Route
+            path="/admin/overview"
+            element={
+              <AdminOnlyRoute>
+                <AdminView />
+              </AdminOnlyRoute>
+            }
+          />
+          <Route
+            path="/admin/validasi"
+            element={
+              <AdminOnlyRoute>
+                <AdminView />
+              </AdminOnlyRoute>
+            }
+          />
+          <Route
+            path="/admin/disposisi"
+            element={
+              <AdminOnlyRoute>
+                <AdminView />
+              </AdminOnlyRoute>
+            }
+          />
+          <Route
+            path="/admin/anggaran"
+            element={
+              <AdminOnlyRoute>
+                <AdminView />
+              </AdminOnlyRoute>
+            }
+          />
+          <Route
+            path="/admin/pengguna"
+            element={
+              <AdminOnlyRoute>
+                <AdminView />
+              </AdminOnlyRoute>
+            }
+          />
+          <Route
+            path="/admin/*"
             element={
               <AdminOnlyRoute>
                 <AdminView />

@@ -104,6 +104,7 @@ export const ReportDetailView: React.FC = () => {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   // Community Testimonies & Eyewitness Comments
+  const [linkedPostId, setLinkedPostId] = useState<string | null>(null);
   const [testimonies, setTestimonies] = useState<Testimony[]>([]);
   const [testimonyText, setTestimonyText] = useState('');
   const [authorNameInput, setAuthorNameInput] = useState('');
@@ -151,22 +152,23 @@ export const ReportDetailView: React.FC = () => {
     if (!report || isRefreshingTestimonies) return;
     setIsRefreshingTestimonies(true);
     try {
-      const matchedPostId = report.id.startsWith('rep-kn-')
-        ? report.id.replace('rep-', '')
-        : report.id === 'rep-001'
-          ? 'post-001'
-          : report.id === 'rep-002'
-            ? 'post-002'
-            : report.id === 'rep-003'
-              ? 'post-003'
-              : report.id;
-      const comments = await dataService.getComments(matchedPostId);
-      setTestimonies(
-        (comments || []).map((c) => ({
-          ...c,
-          isLiked: false,
-        }))
-      );
+      let postId = linkedPostId;
+      if (!postId) {
+        const post = await dataService.getPostByReportId(report.id);
+        postId = post?.id || null;
+        setLinkedPostId(postId);
+      }
+      if (postId) {
+        const comments = await dataService.getComments(postId);
+        setTestimonies(
+          (comments || []).map((c) => ({
+            ...c,
+            isLiked: false,
+          }))
+        );
+      } else {
+        setTestimonies([]);
+      }
     } catch (err) {
       console.error('Failed to refresh testimonies:', err);
     } finally {
@@ -186,24 +188,24 @@ export const ReportDetailView: React.FC = () => {
             setLoading(false);
 
             if (res) {
-              const matchedPostId = res.id.startsWith('rep-kn-')
-                ? res.id.replace('rep-', '')
-                : res.id === 'rep-001'
-                  ? 'post-001'
-                  : res.id === 'rep-002'
-                    ? 'post-002'
-                    : res.id === 'rep-003'
-                      ? 'post-003'
-                      : res.id;
-
-              dataService.getComments(matchedPostId).then((comments) => {
+              dataService.getPostByReportId(res.id).then((post) => {
                 if (isMounted) {
-                  setTestimonies(
-                    (comments || []).map((c) => ({
-                      ...c,
-                      isLiked: false,
-                    }))
-                  );
+                  if (post) {
+                    setLinkedPostId(post.id);
+                    dataService.getComments(post.id).then((comments) => {
+                      if (isMounted) {
+                        setTestimonies(
+                          (comments || []).map((c) => ({
+                            ...c,
+                            isLiked: false,
+                          }))
+                        );
+                      }
+                    });
+                  } else {
+                    setLinkedPostId(null);
+                    setTestimonies([]);
+                  }
                 }
               });
             }
@@ -248,9 +250,8 @@ export const ReportDetailView: React.FC = () => {
         (payload) => {
           const newComment: any = payload.new;
           if (
-            report &&
-            (newComment.post_id === report.id ||
-              newComment.post_id === report.id.replace('rep-', ''))
+            (linkedPostId && newComment?.post_id === linkedPostId) ||
+            (report && newComment?.post_id === report.id)
           ) {
             refreshTestimoniesOnly();
           }
@@ -410,18 +411,21 @@ export const ReportDetailView: React.FC = () => {
       'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
     const body = testimonyText.trim();
 
-    const matchedPostId = report.id.startsWith('rep-kn-')
-      ? report.id.replace('rep-', '')
-      : report.id === 'rep-001'
-        ? 'post-001'
-        : report.id === 'rep-002'
-          ? 'post-002'
-          : report.id === 'rep-003'
-            ? 'post-003'
-            : report.id;
+    let targetPostId = linkedPostId;
+    if (!targetPostId) {
+      const post = await dataService.getPostByReportId(report.id);
+      targetPostId = post?.id || null;
+      setLinkedPostId(targetPostId);
+    }
+
+    if (!targetPostId) {
+      alert('Kesaksian warga publik tidak tersedia untuk laporan privat ini.');
+      setIsSubmittingTestimony(false);
+      return;
+    }
 
     try {
-      const created = await dataService.addComment(matchedPostId, author, avatar, body);
+      const created = await dataService.addComment(targetPostId, author, avatar, body);
       setTestimonies((prev) => [
         {
           ...(created || {
@@ -846,7 +850,7 @@ export const ReportDetailView: React.FC = () => {
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-rose-700 dark:bg-rose-600 hover:bg-rose-800 text-white text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>{isSubmittingClarification ? 'Mengirim...' : 'Kirim Tanggapan ke Admin'}</span>
+                    <span>{isSubmittingClarification ? 'Mengirim...' : 'Kirim Tanggapan ke admin'}</span>
                   </button>
                 </div>
               </form>

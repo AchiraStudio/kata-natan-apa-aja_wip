@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Database, RefreshCw, X, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Database, RefreshCw, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { getConnectionStatus, ConnectionStatusInfo } from '../../services/dataService';
 
 export interface ConnectionStatusBannerProps {
@@ -28,7 +28,6 @@ export const ConnectionStatusBanner: React.FC<ConnectionStatusBannerProps> = ({
   }
 
   const isUnconfigured = statusInfo.status === 'unconfigured';
-  const isDemo = statusInfo.status === 'demo';
 
   return (
     <aside
@@ -55,9 +54,7 @@ export const ConnectionStatusBanner: React.FC<ConnectionStatusBannerProps> = ({
               {runtimeError ? (
                 <span>Gagal Terhubung ke Database: {runtimeError}</span>
               ) : isUnconfigured ? (
-                <span>Koneksi Supabase Belum Terkonfigurasi (Mode Live)</span>
-              ) : isDemo ? (
-                <span>Mode Demonstrasi Aktif (Data Mock Statis)</span>
+                <span>Koneksi Supabase Belum Terkonfigurasi</span>
               ) : (
                 <span>Koneksi Basis Data Aktif</span>
               )}

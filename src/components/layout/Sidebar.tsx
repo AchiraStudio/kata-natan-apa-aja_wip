@@ -11,6 +11,13 @@ import {
   Search,
   ShieldAlert,
   LogIn,
+  ChevronDown,
+  LayoutDashboard,
+  CheckCircle2,
+  Building2,
+  Landmark,
+  Users,
+  MessageSquare,
 } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
@@ -34,6 +41,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
     setActiveFeedTab,
     setSearchModalOpen,
   } = useTitik();
+
+  const isAdminRoute = currentPath.startsWith('/admin');
+  const [manualOpen, setManualOpen] = React.useState<boolean | null>(null);
+  const [lastAdminRoute, setLastAdminRoute] = React.useState(isAdminRoute);
+
+  // Synchronize state during render when entering/leaving admin routes (React 19 pattern)
+  if (lastAdminRoute !== isAdminRoute) {
+    setLastAdminRoute(isAdminRoute);
+    setManualOpen(null);
+  }
+
+  const isAdminOpen = manualOpen ?? isAdminRoute;
 
   const navItems = [
     {
@@ -67,6 +86,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
       onClick: () => {
         if (location.pathname !== '/map') {
           navigate('/map');
+        }
+      },
+    },
+    {
+      label: 'Pesan',
+      icon: MessageSquare,
+      href: '/pesan',
+      active: currentPath.startsWith('/pesan'),
+      onClick: () => {
+        if (location.pathname !== '/pesan') {
+          navigate('/pesan');
         }
       },
     },
@@ -106,6 +136,45 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
       icon: Sparkles,
       href: '/alur',
       active: currentPath === '/alur',
+    },
+  ];
+
+  const adminSubRoutes = [
+    {
+      label: 'Ringkasan & Metrik',
+      tooltip: 'Ringkasan & Metrik Performa',
+      href: '/admin',
+      aliasHref: '/admin/overview',
+      icon: LayoutDashboard,
+      active: currentPath === '/admin' || currentPath === '/admin/overview',
+    },
+    {
+      label: 'Antrean Validasi',
+      tooltip: 'Antrean Validasi & Verifikasi Bukti',
+      href: '/admin/validasi',
+      icon: CheckCircle2,
+      active: currentPath === '/admin/validasi',
+    },
+    {
+      label: 'Disposisi Dinas',
+      tooltip: 'Disposisi & Rute Dinas Instansi',
+      href: '/admin/disposisi',
+      icon: Building2,
+      active: currentPath === '/admin/disposisi',
+    },
+    {
+      label: 'Rekap APBD',
+      tooltip: 'Rekap APBD & Audit Anggaran',
+      href: '/admin/anggaran',
+      icon: Landmark,
+      active: currentPath === '/admin/anggaran',
+    },
+    {
+      label: 'Manajemen Pengguna',
+      tooltip: 'Manajemen Warga & Hak Akses',
+      href: '/admin/pengguna',
+      icon: Users,
+      active: currentPath === '/admin/pengguna',
     },
   ];
 
@@ -199,7 +268,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
           </button>
         </div>
 
-        {/* Secondary Accountability Links */}
+        {/* Secondary Accountability Links & Expandable Admin Root */}
         <div className="pt-3 border-t border-[#E3E0D6]/70 dark:border-[#222E28] space-y-0.5">
           {utilityLinks.map((link) => {
             const Icon = link.icon;
@@ -226,23 +295,98 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
           })}
 
           {isAuthenticated && profile.role === 'admin' && (
-            <a
-              href="/admin"
-              onClick={(e) => {
-                e.preventDefault();
-                if (location.pathname !== '/admin') {
-                  navigate('/admin');
-                }
-              }}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
-                currentPath === '/admin'
-                  ? 'bg-[#E7EBDD]/80 dark:bg-[#192B22] text-[#1B4332] dark:text-[#34D399] font-semibold'
-                  : 'text-[#4F5A52] dark:text-[#8FA096] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-white/50 dark:hover:bg-[#161F1B]'
-              }`}
-            >
-              <ShieldAlert className="w-3.5 h-3.5 text-[#92400E] dark:text-amber-400 shrink-0" />
-              <span className="truncate">Portal Tinjauan Admin</span>
-            </a>
+            <div className="space-y-1 pt-1">
+              {/* Root Expandable Item: Portal admin */}
+              <div
+                className={`flex items-center justify-between rounded-lg transition-colors ${
+                  isAdminRoute
+                    ? 'bg-[#E7EBDD]/80 dark:bg-[#192B22] text-[#1B4332] dark:text-[#34D399] font-semibold'
+                    : 'text-[#4F5A52] dark:text-[#8FA096] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-white/50 dark:hover:bg-[#161F1B]'
+                }`}
+              >
+                <a
+                  href="/admin"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setManualOpen(true);
+                    if (location.pathname !== '/admin') {
+                      navigate('/admin');
+                    }
+                  }}
+                  className="flex items-center gap-2.5 flex-1 min-w-0 px-3 py-2 text-xs cursor-pointer select-none"
+                  title="Portal admin Dinas PUPR"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5 text-[#92400E] dark:text-amber-400 shrink-0" />
+                  <span className="truncate">Portal admin</span>
+                </a>
+
+                <div className="flex items-center gap-1.5 shrink-0 pr-2">
+                  <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-950/60 text-[#92400E] dark:text-amber-300 rounded border border-amber-300/60 dark:border-amber-700/60">
+                    admin
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setManualOpen(!isAdminOpen)}
+                    className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 text-inherit transition-transform cursor-pointer"
+                    aria-label={isAdminOpen ? 'Tutup sub-menu admin' : 'Buka sub-menu admin'}
+                    aria-expanded={isAdminOpen}
+                    aria-controls="admin-subroutes-panel"
+                  >
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                        isAdminOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Children Sub-Routes Panel */}
+              {isAdminOpen && (
+                <div
+                  id="admin-subroutes-panel"
+                  className="pl-3.5 ml-3 border-l-2 border-[#1B4332]/20 dark:border-[#34D399]/20 space-y-0.5 mt-1 transition-all duration-200"
+                  role="group"
+                  aria-label="Sub-menu Portal admin"
+                >
+                  {adminSubRoutes.map((sub) => {
+                    const SubIcon = sub.icon;
+                    return (
+                      <a
+                        key={sub.href}
+                        href={sub.href}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (location.pathname !== sub.href) {
+                            navigate(sub.href);
+                          }
+                        }}
+                        title={sub.tooltip || sub.label}
+                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer group ${
+                          sub.active
+                            ? 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#08130E] font-semibold shadow-xs'
+                            : 'text-[#4F5A52] dark:text-[#8FA096] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-white/60 dark:hover:bg-[#161F1B]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <SubIcon
+                            className={`w-3.5 h-3.5 shrink-0 ${
+                              sub.active
+                                ? 'text-white dark:text-[#08130E]'
+                                : 'text-[#4F5A52] dark:text-[#8FA096] group-hover:text-[#101913] dark:group-hover:text-[#F3F6F4]'
+                            }`}
+                          />
+                          <span className="truncate">{sub.label}</span>
+                        </div>
+                        {sub.active && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-[#08130E] shrink-0 ml-1.5" />
+                        )}
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -280,7 +424,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
                 </div>
                 <div className="text-[10px] text-[#4F5A52] dark:text-[#8FA096] font-medium truncate">
                   {profile.role === 'admin'
-                    ? (profile.verifiedAgency || 'Administrator')
+                    ? 'admin'
                     : profile.isVerified
                     ? 'Warga Terverifikasi'
                     : (profile.district ? `Warga ${profile.district}` : 'Warga')}

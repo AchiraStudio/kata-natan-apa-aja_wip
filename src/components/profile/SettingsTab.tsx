@@ -28,7 +28,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ ctrl }) => {
                     <span className="font-semibold text-[#4F5A52] dark:text-[#9EACA3]">Peran & Akses</span>
                     <span className="font-bold text-[#1B4332] dark:text-[#34D399] flex items-center gap-1">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      {profile.role === 'admin' ? (profile.verifiedAgency ? `Administrator ${profile.verifiedAgency}` : 'Administrator') : (profile.isVerified ? 'Warga Terverifikasi' : 'Warga Terdaftar')}
+                      {profile.role === 'admin' ? 'admin' : (profile.isVerified ? 'Warga Terverifikasi' : 'Warga Terdaftar')}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">

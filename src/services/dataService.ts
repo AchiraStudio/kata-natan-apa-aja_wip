@@ -1,16 +1,14 @@
 import { SupabaseDataAdapter } from './adapters/supabaseAdapter';
-import { MockDataAdapter } from './adapters/mockAdapter';
 import { IDataAdapter } from './adapters/types';
-import { isSupabaseConfigured } from './supabaseClient';
-import { Report, ReportStatus, EvidenceStatus } from '../types/domain';
+import { isSupabaseConfigured, supabase } from './supabaseClient';
+import { Report, ReportStatus, EvidenceStatus, Facility } from '../types/domain';
 
-export const isDemoMode = import.meta.env.VITE_DATA_MODE === 'demo';
+// Zero mock data architecture: live mode is always active.
+export const isDemoMode = false;
 export const isConfigured = isSupabaseConfigured;
-// Live mode is active whenever demo mode is not explicitly requested.
-// We strictly enforce Supabase as the primary data source without silent mock fallback.
-export const isLiveMode = !isDemoMode;
+export const isLiveMode = true;
 
-export type ConnectionStatusKind = 'connected' | 'unconfigured' | 'demo';
+export type ConnectionStatusKind = 'connected' | 'unconfigured' | 'disconnected' | 'error';
 
 export interface ConnectionStatusInfo {
   status: ConnectionStatusKind;
@@ -20,17 +18,10 @@ export interface ConnectionStatusInfo {
   actionableHint?: string;
 }
 
+/**
+ * Synchronous configuration check for zero-flicker UI rendering.
+ */
 export function getConnectionStatus(): ConnectionStatusInfo {
-  if (isDemoMode) {
-    return {
-      status: 'demo',
-      isConfigured: false,
-      isLiveMode: false,
-      message: 'Aplikasi berjalan dalam mode demo simulasi (Mock Data).',
-      actionableHint: 'Untuk beralih ke database Supabase nyata, hapus VITE_DATA_MODE=demo.',
-    };
-  }
-
   if (!isSupabaseConfigured) {
     return {
       status: 'unconfigured',
@@ -49,11 +40,66 @@ export function getConnectionStatus(): ConnectionStatusInfo {
   };
 }
 
-// Global singleton data service:
-// Strictly instantiate SupabaseDataAdapter when in live mode (do NOT silently fall back to MockDataAdapter).
-export const dataService: IDataAdapter = isDemoMode
-  ? new MockDataAdapter()
-  : new SupabaseDataAdapter();
+/**
+ * Asynchronous live connection test probe.
+ * Queries a lightweight public table to verify actual network roundtrip and measure latency.
+ */
+export async function testSupabaseConnection(): Promise<{
+  ok: boolean;
+  latencyMs: number;
+  status: ConnectionStatusKind;
+  message: string;
+  error?: string;
+}> {
+  if (!isSupabaseConfigured) {
+    return {
+      ok: false,
+      latencyMs: 0,
+      status: 'unconfigured',
+      message: 'Variabel lingkungan Supabase belum terkonfigurasi.',
+    };
+  }
+
+  const start = performance.now();
+  try {
+    const { error, status } = await supabase
+      .from('budget_sectors')
+      .select('id', { count: 'exact', head: true })
+      .limit(1);
+
+    const latencyMs = Math.round(performance.now() - start);
+
+    if (error && status !== 200 && status !== 204 && status !== 206) {
+      return {
+        ok: false,
+        latencyMs,
+        status: 'error',
+        message: `Gagal menjangkau basis data Supabase: ${error.message}`,
+        error: error.message,
+      };
+    }
+
+    return {
+      ok: true,
+      latencyMs,
+      status: 'connected',
+      message: `Koneksi basis data Supabase aktif (${latencyMs}ms).`,
+    };
+  } catch (err: unknown) {
+    const latencyMs = Math.round(performance.now() - start);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      latencyMs,
+      status: 'disconnected',
+      message: 'Gagal terhubung ke jaringan Supabase.',
+      error: errMsg,
+    };
+  }
+}
+
+// Global singleton data service: strictly instantiate pure SupabaseDataAdapter.
+export const dataService: IDataAdapter = new SupabaseDataAdapter();
 
 // Administrative & Verification helper methods
 export async function transitionReportStatus(
@@ -87,8 +133,8 @@ export async function getPrivateEvidenceSignedUrl(filePath: string): Promise<str
 }
 
 export async function createFacility(
-  facility: Partial<import('../types/domain').Facility> & { name: string; category: string }
-): Promise<import('../types/domain').Facility> {
+  facility: Partial<Facility> & { name: string; category: string }
+): Promise<Facility> {
   return dataService.createFacility(facility);
 }
 

@@ -53,13 +53,12 @@ const getDrawerStageNumber = (status: string) => {
 
 export const ReportDetailDrawer: React.FC = () => {
   const { reportDetailOpen, closeReportDetail, selectedReport, toggleSupport } = useTitik();
+  const [copiedRef, setCopiedRef] = useState(false);
 
   if (!reportDetailOpen || !selectedReport) return null;
 
   const budget = selectedReport.budgetContext;
   const activeStage = getDrawerStageNumber(selectedReport.status);
-
-  const [copiedRef, setCopiedRef] = useState(false);
 
   const handleCopyRef = () => {
     navigator.clipboard.writeText(selectedReport.publicReference);

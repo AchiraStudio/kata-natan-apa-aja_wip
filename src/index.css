@@ -450,6 +450,22 @@
   animation: titik-pulse 2.4s var(--ease-out) infinite;
 }
 
+/* 8-dot Titik Radial Burst Particle Animation */
+@keyframes burstParticle {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(0.4);
+    opacity: 0;
+  }
+}
+
+.animate-burst-particle {
+  animation: burstParticle 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -457,3 +473,15 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ==========================================================================
+   TITIK Master Viewport-Locked Shell Architecture
+   Strictly locks /admin and /pesan to 100dvh with zero window-level scrollbar
+   ========================================================================== */
+
+.admin-viewport-locked {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+

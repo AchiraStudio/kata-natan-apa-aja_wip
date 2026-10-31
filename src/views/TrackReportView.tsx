@@ -108,8 +108,8 @@ export const TrackReportView: React.FC = () => {
             <Link
               to="/admin"
               className="p-1.5 rounded-full bg-amber-600/90 text-amber-100 hover:text-white transition-colors cursor-pointer"
-              title="Portal Admin PUPR"
-              aria-label="Portal Admin"
+              title="Portal admin"
+              aria-label="Portal admin"
             >
               <ShieldAlert className="w-3.5 h-3.5" />
             </Link>

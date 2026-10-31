@@ -15,9 +15,7 @@ import {
   ArrowUpRight,
   LayoutGrid,
   List,
-  Activity,
   CheckCircle2,
-  Sparkles,
 } from 'lucide-react';
 import { useTitik } from '../context/TitikContext';
 import { useAuth } from '../context/AuthContext';
@@ -112,11 +110,12 @@ function formatStatusLabel(status: Report['status']): string {
   return labels[status] || status.replace(/_/g, ' ');
 }
 
-const FACILITY_PHOTOS: Record<string, string> = {
-  'fac-01': 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=600&q=80',
-  'fac-02': 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=600&q=80',
-  'fac-03': 'https://images.unsplash.com/photo-1541888946425-d0fbb18615f3?auto=format&fit=crop&w=600&q=80',
-  'fac-04': 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=600&q=80',
+const SECTOR_DEFAULT_PHOTOS: Record<string, string> = {
+  Infrastruktur: 'https://images.unsplash.com/photo-1541888946425-d0fbb18615f3?auto=format&fit=crop&w=600&q=80',
+  Lingkungan: 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=600&q=80',
+  Pendidikan: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=600&q=80',
+  Kesehatan: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=600&q=80',
+  Lainnya: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80',
 };
 
 export const ExploreView: React.FC = () => {
@@ -198,8 +197,8 @@ export const ExploreView: React.FC = () => {
             <Link
               to="/admin"
               className="p-1.5 rounded-full bg-amber-600/90 text-amber-100 hover:text-white transition-colors cursor-pointer"
-              title="Portal Admin PUPR"
-              aria-label="Portal Admin"
+              title="Portal admin"
+              aria-label="Portal admin"
             >
               <ShieldAlert className="w-3.5 h-3.5" />
             </Link>
@@ -271,24 +270,24 @@ export const ExploreView: React.FC = () => {
                 <span>Titik Aktif</span>
               </div>
               <div className="text-base sm:text-lg font-black text-[#B45309] dark:text-amber-400 font-mono tabular-nums mt-0.5">
-                11 Titik
+                {allReports.filter((r) => r.status !== 'resolved' && r.status !== 'rejected').length} Titik
               </div>
             </div>
 
             <div className="p-3 rounded-2xl bg-[#F7F5EF] dark:bg-[#111714] border border-[#E3E0D6]/60 dark:border-[#222E28]">
-              <div className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3] font-semibold">Ditindak Hari Ini</div>
+              <div className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3] font-semibold">Ditindak / Diproses</div>
               <div className="text-base sm:text-lg font-black text-[#2E5E8C] dark:text-sky-400 font-mono tabular-nums mt-0.5">
-                3 Titik
+                {allReports.filter((r) => r.status === 'forwarded_to_institution' || r.status === 'institution_responded' || r.status === 'under_review').length} Titik
               </div>
             </div>
 
             <div className="p-3 rounded-2xl bg-[#F7F5EF] dark:bg-[#111714] border border-[#E3E0D6]/60 dark:border-[#222E28]">
               <div className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3] font-semibold flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3 text-[#2D6A4F]" />
-                <span>Tuntas Pekan Ini</span>
+                <span>Tuntas</span>
               </div>
               <div className="text-base sm:text-lg font-black text-[#2D6A4F] dark:text-emerald-400 font-mono tabular-nums mt-0.5">
-                19 Titik
+                {allReports.filter((r) => r.status === 'resolved').length} Titik
               </div>
             </div>
 
@@ -411,8 +410,9 @@ export const ExploreView: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredFacilities.map((f) => {
                 const photoUrl =
-                  FACILITY_PHOTOS[f.id] ||
-                  'https://images.unsplash.com/photo-1541888946425-d0fbb18615f3?auto=format&fit=crop&w=600&q=80';
+                  (f as any).photoUrl ||
+                  SECTOR_DEFAULT_PHOTOS[f.category] ||
+                  SECTOR_DEFAULT_PHOTOS['Infrastruktur'];
 
                 return (
                   <article

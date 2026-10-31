@@ -24,7 +24,6 @@ import { useTitik } from '../../context/TitikContext';
 import { CommentsBottomSheet } from './CommentsBottomSheet';
 import { formatEngagementMetric } from '../../utils/formatters';
 import { UserAvatar } from '../common/UserAvatar';
-import { motion, AnimatePresence } from 'motion/react';
 
 interface FeedCardProps {
   post: Post;
@@ -346,30 +345,22 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
 
         {/* "Saya terdampak juga / Dukung Laporan / Sukai" Action with 8-dot Titik Radial Burst */}
         <div className="relative flex flex-col items-center">
-          <AnimatePresence>
-            {burstActive && (
-              <div className="absolute top-5 left-5 pointer-events-none z-20 flex items-center justify-center">
-                {Array.from({ length: 8 }).map((_, i) => {
-                  const angle = (i / 8) * 2 * Math.PI;
-                  return (
-                    <motion.span
-                      key={i}
-                      className="absolute w-2 h-2 rounded-full bg-[#34D399] shadow-sm shadow-emerald-400"
-                      initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-                      animate={{
-                        x: Math.cos(angle) * 30,
-                        y: Math.sin(angle) * 30,
-                        opacity: 0,
-                        scale: 0.4,
-                      }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </AnimatePresence>
+          {burstActive && (
+            <div className="absolute top-5 left-5 pointer-events-none z-20 flex items-center justify-center">
+              {Array.from({ length: 8 }).map((_, i) => {
+                const angle = (i / 8) * 2 * Math.PI;
+                const tx = `${Math.round(Math.cos(angle) * 30)}px`;
+                const ty = `${Math.round(Math.sin(angle) * 30)}px`;
+                return (
+                  <span
+                    key={i}
+                    className="absolute w-2 h-2 rounded-full bg-[#34D399] shadow-sm shadow-emerald-400 animate-burst-particle"
+                    style={{ '--tx': tx, '--ty': ty } as React.CSSProperties}
+                  />
+                );
+              })}
+            </div>
+          )}
           <button
             type="button"
             onClick={(e) => {

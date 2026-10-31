@@ -1,6 +1,6 @@
 import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
-import { MOCK_POSTS_KN, MOCK_REPORTS_KN, MOCK_FACILITIES } from '../src/data/mockCivicData';
+import { MOCK_POSTS_KN, MOCK_REPORTS_KN, MOCK_FACILITIES } from './seed/fixtures/civicSeedData';
 
 const rawUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const rawKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;

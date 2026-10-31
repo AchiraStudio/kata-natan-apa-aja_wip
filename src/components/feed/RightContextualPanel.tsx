@@ -11,7 +11,6 @@ import {
   Loader2,
   RotateCw,
   CheckCircle2,
-  Building,
   BadgeCheck,
 } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';

@@ -1,5 +1,5 @@
 import { getSeedClient } from './seedClient';
-import { MOCK_POSTS_KN } from '../../src/data/mockCivicData';
+import { MOCK_POSTS_KN } from './fixtures/civicSeedData';
 
 export async function seedPosts(): Promise<number> {
   const client = getSeedClient();

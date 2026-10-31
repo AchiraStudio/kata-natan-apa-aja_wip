@@ -1209,6 +1209,7 @@
 .login-quick-badge--admin {
   background-color: rgba(217, 119, 6, 0.12);
   color: #92400E;
+  text-transform: lowercase;
 }
 
 .login-quick-email {

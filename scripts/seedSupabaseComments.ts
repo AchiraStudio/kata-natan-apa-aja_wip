@@ -3,8 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
-import { MOCK_COMMENTS } from '../src/data/mockCivicData';
-import { FeedComment } from '../src/services/adapters/types';
+import { MOCK_COMMENTS } from './seed/fixtures/civicSeedData';
+import type { FeedComment } from './seed/fixtures/types';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

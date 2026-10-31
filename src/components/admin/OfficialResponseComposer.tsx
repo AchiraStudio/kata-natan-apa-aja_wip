@@ -38,8 +38,10 @@ interface OfficialResponseComposerProps {
   internalNote: string;
   onChangePublicResponse: (value: string) => void;
   onChangeInternalNote: (value: string) => void;
-  activeTab: ComposerTab;
-  onTabChange: (tab: ComposerTab) => void;
+  activeTab?: ComposerTab;
+  composerTab?: ComposerTab;
+  onTabChange?: (tab: ComposerTab) => void;
+  onChangeComposerTab?: (tab: ComposerTab) => void;
   isUpdating?: boolean;
   onSaveResponse?: () => void;
 }
@@ -49,11 +51,15 @@ export const OfficialResponseComposer: React.FC<OfficialResponseComposerProps> =
   internalNote,
   onChangePublicResponse,
   onChangeInternalNote,
-  activeTab,
-  onTabChange,
+  activeTab: explicitActiveTab,
+  composerTab,
+  onTabChange: explicitOnTabChange,
+  onChangeComposerTab,
   isUpdating = false,
   onSaveResponse,
 }) => {
+  const activeTab = explicitActiveTab ?? composerTab ?? 'public';
+  const onTabChange = explicitOnTabChange ?? onChangeComposerTab ?? (() => {});
   const hasPublicDraft = Boolean(publicResponse?.trim());
   const hasInternalDraft = Boolean(internalNote?.trim());
 
@@ -100,6 +106,10 @@ export const OfficialResponseComposer: React.FC<OfficialResponseComposerProps> =
           </button>
         </div>
       </div>
+
+      {/* Hidden inputs to preserve dual-tab state across serialization */}
+      <input type="hidden" name="public_response" value={publicResponse} />
+      <input type="hidden" name="internal_note" value={internalNote} />
 
       {/* Composer Content Area */}
       {activeTab === 'public' ? (

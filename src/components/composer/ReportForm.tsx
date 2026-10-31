@@ -17,8 +17,7 @@ import {
 import { useTitik } from '../../context/useTitik';
 import { useAuth } from '../../context/AuthContext';
 import { NewReportInput, ReportSubmitResult } from '../../services/adapters/types';
-import { ReportAttachment, Facility } from '../../types/domain';
-import { MOCK_FACILITIES } from '../../data/mockCivicData';
+import { ReportAttachment } from '../../types/domain';
 import { hasExplicitAIGenerationMarker, hasRequiredReportEvidence } from '../../utils/reportEvidence';
 import { stripExifAndCleanImage, uploadFileToSupabase } from './useMediaUpload';
 import { isSupabaseConfigured } from '../../services/supabaseClient';
@@ -37,7 +36,7 @@ interface ReportFormProps {
 export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel }) => {
   const { submitReport, facilities: contextFacilities } = useTitik();
   const { profile, isAuthenticated } = useAuth();
-  const availableFacilities = (contextFacilities && contextFacilities.length > 0) ? contextFacilities : MOCK_FACILITIES;
+  const availableFacilities = contextFacilities || [];
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [title, setTitle] = useState('');
@@ -578,7 +577,11 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel }) =
               onChange={(e) => handleSelectFacility(e.target.value)}
               className="w-full px-3 py-2.5 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4] focus:outline-hidden focus:ring-2 focus:ring-[#1B4332] dark:focus:ring-[#10B981]"
             >
-              <option value="">-- Pilih Fasilitas Publik Terdaftar ({sectorFacilities.length} Tersedia) --</option>
+              <option value="">
+                {sectorFacilities.length > 0
+                  ? `-- Pilih Fasilitas Publik Terdaftar (${sectorFacilities.length} Tersedia) --`
+                  : '-- Belum ada fasilitas terdaftar dalam kategori ini --'}
+              </option>
               {sectorFacilities.map((f) => (
                 <option key={f.id} value={f.name}>
                   {f.name} — {f.responsibleAgency}
@@ -635,7 +638,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel }) =
                 {/* Admin Review Badge Notice */}
                 <div className="flex items-center gap-1.5 text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
                   <ShieldAlert className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>Fasilitas baru ini akan diverifikasi oleh Admin Pemkot Bogor untuk penambahan katalog resmi.</span>
+                  <span>Fasilitas baru ini akan diverifikasi oleh admin Pemkot Bogor untuk penambahan katalog resmi.</span>
                 </div>
               </div>
             )}

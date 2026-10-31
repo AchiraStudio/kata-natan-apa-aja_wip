@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useInRouterContext } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { X, Heart, Send, MessageSquare, Loader2, RotateCw, CheckCircle2, BadgeCheck } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
@@ -51,20 +51,7 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const inRouter = useInRouterContext();
-  const routerNavigate = inRouter ? useNavigate() : null;
-  const navigate = useCallback((path: string) => {
-    if (routerNavigate) {
-      routerNavigate(path);
-    } else if (typeof window !== 'undefined') {
-      if (window.history && typeof window.history.pushState === 'function') {
-        window.history.pushState({}, '', path);
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      } else {
-        window.location.href = path;
-      }
-    }
-  }, [routerNavigate]);
+  const navigate = useNavigate();
 
   const handleAuthorClick = (e: React.MouseEvent, target: string) => {
     e.preventDefault();

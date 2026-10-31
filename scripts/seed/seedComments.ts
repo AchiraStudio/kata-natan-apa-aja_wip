@@ -1,6 +1,6 @@
 import { getSeedClient } from './seedClient';
-import { MOCK_COMMENTS } from '../../src/data/mockCivicData';
-import { FeedComment } from '../../src/services/adapters/types';
+import { MOCK_COMMENTS } from './fixtures/civicSeedData';
+import type { FeedComment } from './fixtures/types';
 
 export async function seedComments(): Promise<number> {
   const client = getSeedClient();

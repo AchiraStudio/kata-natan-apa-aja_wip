@@ -1,4 +1,4 @@
-import { FeedComment } from './adapters/types';
+import { FeedComment } from './types';
 
 // =============================================================================
 // CITIZEN PERSONAS (Jabodetabek Authentic Archetypes)

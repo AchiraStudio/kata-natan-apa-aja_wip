@@ -3,7 +3,7 @@ const path = require('path');
 
 // Read mock data from built or source mockCivicData
 // To avoid TS compilation issues, we can extract the objects directly
-const mockPath = path.join(__dirname, '../src/data/mockCivicData.ts');
+const mockPath = path.join(__dirname, 'seed/fixtures/civicSeedData.ts');
 const mockCode = fs.readFileSync(mockPath, 'utf8');
 
 console.log('Generating supabase/SEED_RANDOMIZED_ACCOUNTS_AND_CONTENT.sql...');

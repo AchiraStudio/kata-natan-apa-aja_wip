@@ -4,12 +4,14 @@
 
 export type PostType = 'citizen_report' | 'community_discussion' | 'official_update';
 
+export type UserRole = 'citizen' | 'admin';
+
 export interface UserProfile {
   id: string;
   username: string;
   displayName: string;
   avatarUrl: string;
-  role: 'citizen' | 'admin';
+  role: UserRole;
   verifiedAgency?: string;
   bio?: string;
   email?: string;
@@ -143,7 +145,7 @@ export interface Report {
   supportCount: number; // "Saya terdampak juga" civic support count
   isSupportedByMe?: boolean;
   isSavedByMe?: boolean;
-  budgetContext: BudgetSectorContext;
+  budgetContext?: BudgetSectorContext;
   events: ReportEvent[];
   evidence_verification_status?: EvidenceVerificationStatus;
   evidenceVerificationStatus?: EvidenceVerificationStatus;
@@ -192,3 +194,5 @@ export interface Facility {
   activeReportsCount: number;
   resolvedReportsCount: number;
 }
+
+export type { NewReportInput, ReportSubmitResult } from '../services/adapters/types';

@@ -478,7 +478,7 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateReportStatus = async (reportId: string, status: ReportStatus, description: string) => {
-    const updated = await dataService.updateReportStatus(reportId, status, 'Admin TITIK', description);
+    const updated = await dataService.updateReportStatus(reportId, status, 'admin TITIK', description);
     setPosts((prev) =>
       prev.map((p) => {
         if (p.relatedReportId === reportId) {

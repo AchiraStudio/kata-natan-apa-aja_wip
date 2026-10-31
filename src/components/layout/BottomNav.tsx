@@ -135,15 +135,13 @@ export const BottomNav: React.FC = () => {
             if (location.pathname !== target) navigate(target);
           }}
           className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
-            currentPath === `/u/${encodeURIComponent(profile.username)}` || currentPath === `/u/${profile.username}` || currentPath === '/me' || (profile.role === 'admin' && currentPath === '/admin')
-              ? (currentPath === '/admin' ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold')
+            currentPath === `/u/${encodeURIComponent(profile.username)}` || currentPath === `/u/${profile.username}` || currentPath === '/me' || (profile.role === 'admin' && currentPath.startsWith('/admin'))
+              ? (currentPath.startsWith('/admin') ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold')
               : 'text-white/70 hover:text-white'
           }`}
           title={
             profile.role === 'admin'
-              ? (profile.verifiedAgency
-                ? `Profil & Admin ${profile.verifiedAgency.toLowerCase().includes('pekerjaan umum') ? 'PUPR' : profile.verifiedAgency}`
-                : 'Profil & Administrator')
+              ? 'Profil & admin'
               : 'Profil Saya'
           }
         >
@@ -160,16 +158,12 @@ export const BottomNav: React.FC = () => {
             {profile.role === 'admin' && (
               <span
                 className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-[#101913] dark:ring-[#131916]"
-                title={
-                  profile.verifiedAgency
-                    ? `Akun Admin ${profile.verifiedAgency.toLowerCase().includes('pekerjaan umum') ? 'PUPR' : profile.verifiedAgency}`
-                    : 'Akun Administrator'
-                }
+                title="Akun admin"
               />
             )}
           </div>
           <span className="truncate max-w-[50px] text-center">
-            {currentPath === '/admin' ? 'Admin' : profile.displayName.split(' ')[0]}
+            {currentPath.startsWith('/admin') ? 'admin' : profile.displayName.split(' ')[0]}
           </span>
         </a>
       ) : (
