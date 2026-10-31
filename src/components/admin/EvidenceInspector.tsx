@@ -7,11 +7,15 @@ import { Building, ZoomIn, ShieldCheck, ShieldAlert, FileText } from 'lucide-rea
 interface EvidenceInspectorProps {
   report: Report;
   onOpenZoom: (url: string, type: 'image' | 'video', title: string, address: string) => void;
+  onVerifyEvidence?: (status: 'verified' | 'rejected') => void;
+  onRegisterFacility?: (name: string, category: string, address: string, lat: number, lng: number) => void;
 }
 
 export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
   report,
   onOpenZoom,
+  onVerifyEvidence,
+  onRegisterFacility,
 }) => {
   // Resolved media URLs map: stores signed URLs for private files or public URLs
   const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({});
@@ -67,11 +71,11 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
   return (
     <div className="space-y-4">
       {/* Evidence Verification Badge Strip */}
-      <div className="flex items-center justify-between text-xs pb-1">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs pb-1">
         <span className="text-[10px] font-bold uppercase tracking-wider text-[#4F5A52] dark:text-[#9EACA3]">
           Bukti Fisik & Deskripsi
         </span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           {evidenceStatus === 'verified' ? (
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
               <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
@@ -86,6 +90,29 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700">
               Menunggu Validasi Bukti
             </span>
+          )}
+
+          {onVerifyEvidence && (
+            <div className="inline-flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onVerifyEvidence('verified')}
+                className="px-2.5 py-1 rounded-lg bg-[#1B4332] dark:bg-[#10B981] hover:bg-[#14352A] text-white dark:text-[#0A1610] text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
+                title="Tandai bukti fisik sebagai sah & valid"
+              >
+                Verifikasi Bukti Sah
+              </button>
+              {evidenceStatus !== 'rejected' && (
+                <button
+                  type="button"
+                  onClick={() => onVerifyEvidence('rejected')}
+                  className="px-2.5 py-1 rounded-lg border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-[10px] font-bold cursor-pointer transition-colors"
+                  title="Tandai bukti fisik tidak valid"
+                >
+                  Tolak Bukti
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -170,8 +197,8 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
         </div>
       </div>
 
-      {/* 3-Column Consolidated Metadata Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-[#F7F5EF]/80 dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-2xl text-xs">
+      {/* 4-Column Consolidated Metadata Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3.5 bg-[#F7F5EF]/80 dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-2xl text-xs">
         <div>
           <div className="text-[10px] uppercase font-bold text-[#4F5A52] dark:text-[#9EACA3]">
             Dinas & Pagu
@@ -194,6 +221,32 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
               ? `Rp ${report.estimatedCost.toLocaleString('id-ID')}`
               : 'Belum dicantumkan'}
           </div>
+        </div>
+
+        <div>
+          <div className="text-[10px] uppercase font-bold text-[#4F5A52] dark:text-[#9EACA3]">
+            Fasilitas Terkait
+          </div>
+          <div className="font-semibold text-[#101913] dark:text-[#F3F6F4] mt-0.5 truncate" title={report.facilityName || 'Fasilitas Umum'}>
+            {report.facilityName || 'Fasilitas Umum'}
+          </div>
+          {report.facilityName && onRegisterFacility && (
+            <button
+              type="button"
+              onClick={() =>
+                onRegisterFacility(
+                  report.facilityName!,
+                  report.category,
+                  report.location?.address || 'Kota Bogor',
+                  report.location?.latitude || -6.5971,
+                  report.location?.longitude || 106.806
+                )
+              }
+              className="text-[10px] font-bold text-[#1B4332] dark:text-[#34D399] hover:underline inline-flex items-center gap-1 mt-0.5 cursor-pointer"
+            >
+              + Daftarkan Resmi
+            </button>
+          )}
         </div>
 
         <div>

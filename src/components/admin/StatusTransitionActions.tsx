@@ -19,16 +19,64 @@ export const StatusTransitionActions: React.FC<StatusTransitionActionsProps> = (
   onApplyTransition,
   onDeleteReport,
 }) => {
+  const getStageIndex = (st: ReportStatus): number => {
+    switch (st) {
+      case 'submitted':
+        return 0;
+      case 'under_review':
+      case 'needs_info':
+      case 'accepted_for_routing':
+        return 1;
+      case 'forwarded_to_institution':
+      case 'institution_responded':
+        return 2;
+      case 'resolved':
+        return 3;
+      default:
+        return -1;
+    }
+  };
+
+  const currentStageIndex = getStageIndex(currentStatus);
+
   return (
     <div className="space-y-3 pt-2 border-t border-[#E3E0D6] dark:border-[#26352E]">
+      {/* 4-Stage Civic Tracking Pipeline Progress */}
+      <div className="p-3 rounded-2xl bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] space-y-2">
+        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#4F5A52] dark:text-[#9EACA3]">
+          <span>Siklus Pelacakan Sipil 4 Tahap</span>
+          <span className="font-mono text-emerald-700 dark:text-emerald-400">Pemerintah Kota Bogor</span>
+        </div>
+        <div className="grid grid-cols-4 gap-1.5 text-center text-[10px] font-bold">
+          <div className={`p-1.5 rounded-xl border transition-colors ${currentStageIndex >= 0 ? 'bg-[#E7EBDD] dark:bg-[#1A2E24] text-[#1B4332] dark:text-[#34D399] border-[#1B4332]/30 dark:border-[#10B981]/40 shadow-2xs' : 'bg-white dark:bg-[#1A221E] text-[#4F5A52] border-[#E3E0D6] dark:border-[#26352E]'}`}>
+            1. Baru
+          </div>
+          <div className={`p-1.5 rounded-xl border transition-colors ${currentStageIndex >= 1 ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700 shadow-2xs' : 'bg-white dark:bg-[#1A221E] text-[#4F5A52] border-[#E3E0D6] dark:border-[#26352E]'}`}>
+            2. Diverifikasi
+          </div>
+          <div className={`p-1.5 rounded-xl border transition-colors ${currentStageIndex >= 2 ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border-blue-300 dark:border-blue-700 shadow-2xs' : 'bg-white dark:bg-[#1A221E] text-[#4F5A52] border-[#E3E0D6] dark:border-[#26352E]'}`}>
+            3. Ditindak
+          </div>
+          <div className={`p-1.5 rounded-xl border transition-colors ${currentStageIndex >= 3 ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 shadow-2xs' : 'bg-white dark:bg-[#1A221E] text-[#4F5A52] border-[#E3E0D6] dark:border-[#26352E]'}`}>
+            4. Tuntas
+          </div>
+        </div>
+      </div>
       {/* Feedback Messages */}
       {actionError && (
         <div
           role="alert"
-          className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-800 dark:text-rose-200 flex items-start gap-2"
+          className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-800 dark:text-rose-200 flex flex-col gap-1"
         >
-          <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-          <span className="leading-relaxed">{actionError}</span>
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            <span className="leading-relaxed font-semibold">{actionError}</span>
+          </div>
+          {actionError.includes('Catatan klarifikasi') && (
+            <p className="text-[11px] text-rose-700 dark:text-rose-300 pl-6">
+              💡 Tuliskan pertanyaan atau foto yang diminta pada kolom <strong>Tanggapan Resmi</strong> di atas sebelum menekan tombol ini.
+            </p>
+          )}
         </div>
       )}
 
@@ -42,12 +90,35 @@ export const StatusTransitionActions: React.FC<StatusTransitionActionsProps> = (
         </div>
       )}
 
+      {currentStatus === 'needs_info' && (
+        <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-800 dark:text-rose-200 flex items-start gap-2.5">
+          <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <div className="font-bold text-rose-900 dark:text-rose-100">
+              Laporan Berstatus: Menunggu Informasi Tambahan dari Warga
+            </div>
+            <p className="text-[11px] text-rose-700 dark:text-rose-300 leading-relaxed">
+              Verifikasi ditangguhkan sementara sampai pelapor mengirimkan tanggapan atau bukti baru. Laporan otomatis kembali ke antrean setelah warga merespons.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase tracking-wider text-[#4F5A52] dark:text-[#9EACA3]">
           Aksi Transisi Status:
         </span>
         <span className="text-[10px] font-mono text-[#4F5A52] dark:text-[#9EACA3]">
-          Status aktif: <span className="font-bold uppercase">{currentStatus.replace(/_/g, ' ')}</span>
+          Status aktif:{' '}
+          <span
+            className={`font-bold uppercase ${
+              currentStatus === 'needs_info'
+                ? 'text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/80 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-800'
+                : ''
+            }`}
+          >
+            {currentStatus === 'needs_info' ? 'BUTUH INFO TAMBAHAN' : currentStatus.replace(/_/g, ' ')}
+          </span>
         </span>
       </div>
 
@@ -67,7 +138,11 @@ export const StatusTransitionActions: React.FC<StatusTransitionActionsProps> = (
           type="button"
           disabled={isUpdating}
           onClick={() => onApplyTransition('needs_info')}
-          className="admin-transition-btn px-4 py-2 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 rounded-full font-semibold hover:bg-rose-100 dark:hover:bg-rose-900/50 disabled:opacity-50 transition-all text-xs cursor-pointer"
+          className={`admin-transition-btn px-4 py-2 rounded-full font-semibold transition-all text-xs cursor-pointer ${
+            currentStatus === 'needs_info'
+              ? 'bg-rose-600 text-white border border-rose-700 shadow-xs'
+              : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 hover:bg-rose-100 dark:hover:bg-rose-900/50 disabled:opacity-50'
+          }`}
         >
           Minta Info Tambahan
         </button>

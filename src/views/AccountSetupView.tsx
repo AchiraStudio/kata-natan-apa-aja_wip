@@ -290,7 +290,7 @@ export const AccountSetupView: React.FC = () => {
   }
 
   return (
-    <div className={`min-h-screen lg:h-screen lg:overflow-hidden flex flex-col ${activeTheme.pageBg} text-[#101913] dark:text-[#F3F6F4] transition-colors duration-300`}>
+    <div className={`min-h-screen flex flex-col ${activeTheme.pageBg} text-[#101913] dark:text-[#F3F6F4] transition-colors duration-300`}>
       {/* Compact Sticky Top Bar */}
       <header className="shrink-0 z-30 border-b border-[#E3E0D6] dark:border-[#26352E] bg-white/90 dark:bg-[#131916]/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { dataService } from '../../services/dataService';
 import { useTitik } from '../../context/TitikContext';
+import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 import { Report, ReportStatus, ReportSeverity } from '../../types/domain';
 import { AdminSortOption, ReportDraft, ZoomMedia, AdminMetricsSummary } from './types';
 
@@ -55,6 +56,23 @@ export function useAdminWorkspace() {
 
   useEffect(() => {
     fetchReports();
+
+    if (!isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel('admin-reports-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reports' },
+        () => {
+          fetchReports();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchReports]);
 
   // Draft helper for selected report
@@ -155,8 +173,8 @@ export function useAdminWorkspace() {
     if (!selectedReport || isUpdating) return false;
 
     const activeDraftForReport = drafts[selectedReport.id] || {
-      publicResponse: '',
-      internalNote: '',
+      publicResponse: selectedReport.officialResponse || '',
+      internalNote: selectedReport.internalNotes || '',
       lastUpdated: 0,
     };
 
@@ -204,8 +222,26 @@ export function useAdminWorkspace() {
 
       const finalDescription = defaultDesc[targetStatus];
 
-      // Perform update via context / dataService
-      await updateReportStatus(selectedReport.id, targetStatus, finalDescription);
+      // Perform transition via dataService to persist officialResponse and internalNotes directly to Supabase
+      const updated = await dataService.transitionReportStatus(
+        selectedReport.id,
+        targetStatus,
+        internalText || finalDescription,
+        Boolean(internalText),
+        publicText || finalDescription
+      );
+
+      // Optimistically update local reports state immediately with the updated report from server
+      setReports((prev) =>
+        prev.map((r) => (r.id === selectedReport.id ? updated : r))
+      );
+
+      // Perform update via context (for feed and other views sync)
+      try {
+        await updateReportStatus(selectedReport.id, targetStatus, finalDescription);
+      } catch (ctxErr) {
+        console.warn('Context updateReportStatus warning:', ctxErr);
+      }
 
       // On successful mutation: clear draft for this report and surface success feedback
       setDrafts((prev) => {
@@ -214,7 +250,7 @@ export function useAdminWorkspace() {
         return next;
       });
 
-      setActionSuccess(`Status laporan ${selectedReport.publicReference} berhasil diperbarui.`);
+      setActionSuccess(`Status laporan ${selectedReport.publicReference} berhasil diperbarui di server Supabase.`);
       await fetchReports();
       return true;
     } catch (error) {
@@ -271,6 +307,117 @@ export function useAdminWorkspace() {
     }
   };
 
+  // Evidence Verification Handler
+  const handleVerifyEvidence = async (
+    verificationStatus: 'verified' | 'rejected',
+    notes?: string
+  ): Promise<boolean> => {
+    if (!selectedReport || isUpdating) return false;
+
+    setIsUpdating(true);
+    setActionError('');
+    setActionSuccess('');
+
+    try {
+      const updated = await dataService.verifyReportEvidence(selectedReport.id, verificationStatus, notes);
+      setReports((prev) =>
+        prev.map((r) => (r.id === selectedReport.id ? updated : r))
+      );
+      setActionSuccess(
+        verificationStatus === 'verified'
+          ? `Bukti fisik laporan ${selectedReport.publicReference} berhasil diverifikasi sah di database Supabase.`
+          : `Bukti fisik laporan ${selectedReport.publicReference} ditandai tidak memenuhi syarat di database Supabase.`
+      );
+      await fetchReports();
+      return true;
+    } catch (error) {
+      console.error('Failed to verify evidence:', error);
+      setActionError(
+        error instanceof Error ? error.message : 'Gagal memvalidasi bukti laporan.'
+      );
+      return false;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Explicitly Save Official Response & Internal Notes to Supabase
+  const handleSaveResponse = async (): Promise<boolean> => {
+    if (!selectedReport || isUpdating) return false;
+    const activeDraftForReport = drafts[selectedReport.id] || {
+      publicResponse: selectedReport.officialResponse || '',
+      internalNote: selectedReport.internalNotes || '',
+      lastUpdated: 0,
+    };
+
+    setIsUpdating(true);
+    setActionError('');
+    setActionSuccess('');
+
+    try {
+      const updated = await dataService.saveOfficialResponse(
+        selectedReport.id,
+        activeDraftForReport.publicResponse,
+        activeDraftForReport.internalNote
+      );
+
+      setReports((prev) =>
+        prev.map((r) => (r.id === selectedReport.id ? updated : r))
+      );
+
+      setActionSuccess(
+        `Tanggapan resmi laporan ${selectedReport.publicReference} berhasil disimpan ke server Supabase.`
+      );
+      await fetchReports();
+      return true;
+    } catch (err) {
+      console.error('Failed to save response to Supabase:', err);
+      setActionError(
+        err instanceof Error ? err.message : 'Gagal menyimpan tanggapan ke server Supabase.'
+      );
+      return false;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Register Citizen Proposed Facility to Official Catalog
+  const handleRegisterFacility = async (
+    facilityName: string,
+    category: string,
+    address: string,
+    latitude: number,
+    longitude: number
+  ): Promise<boolean> => {
+    if (!facilityName.trim() || isUpdating) return false;
+
+    setIsUpdating(true);
+    setActionError('');
+    setActionSuccess('');
+
+    try {
+      const created = await dataService.createFacility({
+        name: facilityName.trim(),
+        category,
+        address: address || 'Kota Bogor',
+        latitude,
+        longitude,
+        responsibleAgency: selectedReport?.responsibleAgency || 'Pemerintah Kota Bogor',
+      });
+      setActionSuccess(`Fasilitas "${created.name}" berhasil didaftarkan ke katalog resmi Kota Bogor.`);
+      await fetchReports();
+      return true;
+    } catch (error) {
+      console.error('Failed to register facility:', error);
+      setActionError(
+        error instanceof Error ? error.message : 'Gagal mendaftarkan fasilitas resmi.'
+      );
+      return false;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const openZoom = useCallback(
     (url: string, type: 'image' | 'video', title: string, address: string) => {
       setZoomMedia({ url, type, title, address });
@@ -316,6 +463,9 @@ export function useAdminWorkspace() {
     setActionSuccess,
     handleApplyTransition,
     handleDeleteReport,
+    handleVerifyEvidence,
+    handleSaveResponse,
+    handleRegisterFacility,
     metrics,
     mobileTab,
     setMobileTab,

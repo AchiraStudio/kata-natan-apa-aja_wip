@@ -85,3 +85,26 @@ export async function setCitizenVerification(
 export async function getPrivateEvidenceSignedUrl(filePath: string): Promise<string> {
   return dataService.getPrivateEvidenceSignedUrl(filePath);
 }
+
+export async function createFacility(
+  facility: Partial<import('../types/domain').Facility> & { name: string; category: string }
+): Promise<import('../types/domain').Facility> {
+  return dataService.createFacility(facility);
+}
+
+export async function saveOfficialResponse(
+  reportId: string,
+  officialResponse?: string,
+  internalNotes?: string
+): Promise<Report> {
+  return dataService.saveOfficialResponse(reportId, officialResponse, internalNotes);
+}
+
+export async function submitAdditionalInfo(
+  reportId: string,
+  reporterUserId: string,
+  additionalText: string,
+  newMediaUrl?: string
+): Promise<Report> {
+  return dataService.submitAdditionalInfo(reportId, reporterUserId, additionalText, newMediaUrl);
+}

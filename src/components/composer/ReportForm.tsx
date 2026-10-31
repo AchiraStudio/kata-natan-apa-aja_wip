@@ -20,11 +20,13 @@ import { NewReportInput, ReportSubmitResult } from '../../services/adapters/type
 import { ReportAttachment, Facility } from '../../types/domain';
 import { MOCK_FACILITIES } from '../../data/mockCivicData';
 import { hasExplicitAIGenerationMarker, hasRequiredReportEvidence } from '../../utils/reportEvidence';
-import { stripExifAndCleanImage } from './useMediaUpload';
+import { stripExifAndCleanImage, uploadFileToSupabase } from './useMediaUpload';
+import { isSupabaseConfigured } from '../../services/supabaseClient';
 
 interface SelectedEvidence {
   fileName: string;
   dataUrl: string;
+  file?: File;
 }
 
 interface ReportFormProps {
@@ -177,7 +179,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel }) =
         });
       }
 
-      const evidence = { fileName: file.name, dataUrl };
+      const evidence: SelectedEvidence = { fileName: file.name, dataUrl, file };
       if (kind === 'photo') setPhotoEvidence(evidence);
       else setVideoEvidence(evidence);
       setEvidenceError('');
@@ -283,6 +285,35 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel }) =
     setIsSubmitting(true);
     setSubmissionError('');
     try {
+      let photoUrl = photoEvidence.dataUrl;
+      let videoUrl = videoEvidence.dataUrl;
+
+      // When Supabase storage is configured, upload actual media files directly to the post-media bucket
+      if (isSupabaseConfigured) {
+        try {
+          if (photoEvidence.file) {
+            const upPhoto = await uploadFileToSupabase(
+              'post-media',
+              photoEvidence.file,
+              profile?.id,
+              photoEvidence.fileName
+            );
+            if (upPhoto) photoUrl = upPhoto;
+          }
+          if (videoEvidence.file) {
+            const upVideo = await uploadFileToSupabase(
+              'post-media',
+              videoEvidence.file,
+              profile?.id,
+              videoEvidence.fileName
+            );
+            if (upVideo) videoUrl = upVideo;
+          }
+        } catch (uploadErr) {
+          console.warn('Storage upload fallback to dataUrl:', uploadErr);
+        }
+      }
+
       const input: NewReportInput = {
         title: title.trim(),
         description: description.trim(),
@@ -297,7 +328,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel }) =
         supportingDocuments,
         reporterType,
         reporterDisplayName: reporterType === 'verified_citizen' ? reporterDisplayName : undefined,
-        mediaUrls: [photoEvidence.dataUrl, videoEvidence.dataUrl],
+        mediaUrls: [photoUrl, videoUrl],
       };
 
       const result = await submitReport(input);

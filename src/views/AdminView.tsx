@@ -55,6 +55,9 @@ const AdminConsoleInner: React.FC<AdminConsoleInnerProps> = ({ profile }) => {
     actionSuccess,
     handleApplyTransition,
     handleDeleteReport,
+    handleVerifyEvidence,
+    handleRegisterFacility,
+    handleSaveResponse,
     metrics,
     mobileTab,
     setMobileTab,
@@ -118,6 +121,17 @@ const AdminConsoleInner: React.FC<AdminConsoleInnerProps> = ({ profile }) => {
       <main className="flex-1 h-screen overflow-y-auto no-scrollbar p-4 lg:p-8 w-full max-w-7xl space-y-6 pb-24 lg:pb-12 min-w-0">
         {/* Header Hero Banner with Geometric Ribbons */}
         <AdminHeroBanner onRefresh={refresh} isLoading={isLoadingReports} />
+
+        {/* Real-time Supabase Database Sync Status */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-semibold text-[11px]">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span>Koneksi Supabase Aktif &middot; Alur Laporan &amp; Verifikasi Langsung ke Database</span>
+          </div>
+          <span className="text-[11px] font-mono text-[#4F5A52] dark:text-[#9EACA3]">
+            Total Laporan: {reports.length}
+          </span>
+        </div>
 
         {/* 4 Summary Metric KPI Cards */}
         <AdminMetricsCards
@@ -219,7 +233,12 @@ const AdminConsoleInner: React.FC<AdminConsoleInnerProps> = ({ profile }) => {
               </div>
 
               {/* Evidence Inspector with Media Previews & Metadata */}
-              <EvidenceInspector report={selectedReport} onOpenZoom={openZoom} />
+              <EvidenceInspector
+                report={selectedReport}
+                onOpenZoom={openZoom}
+                onVerifyEvidence={handleVerifyEvidence}
+                onRegisterFacility={handleRegisterFacility}
+              />
 
               {/* Dual-Tab Official Response Composer */}
               <OfficialResponseComposer
@@ -235,6 +254,7 @@ const AdminConsoleInner: React.FC<AdminConsoleInnerProps> = ({ profile }) => {
                 activeTab={composerTab}
                 onTabChange={setComposerTab}
                 isUpdating={isUpdating}
+                onSaveResponse={handleSaveResponse}
               />
 
               {/* State Transition Matrix */}

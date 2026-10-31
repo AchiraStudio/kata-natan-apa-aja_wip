@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FileText, MapPin, Plus, RefreshCw, Send } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { FileText, MapPin, Plus, RefreshCw, Send, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTitik } from '../context/TitikContext';
 import { dataService } from '../services/dataService';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { RejectedReportEdits } from '../services/adapters/types';
 import { Report, ReportStatus } from '../types/domain';
 import { getReportMediaType } from '../utils/reportEvidence';
@@ -33,23 +34,50 @@ export const MyReportsView: React.FC = () => {
   const [savingReportId, setSavingReportId] = useState('');
   const [resubmitError, setResubmitError] = useState('');
   const [resubmitSuccess, setResubmitSuccess] = useState('');
+  const [respondingReportId, setRespondingReportId] = useState('');
+  const [additionalInfoText, setAdditionalInfoText] = useState('');
+  const [isSubmittingInfo, setIsSubmittingInfo] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    dataService.getMyReports(profile.id).then((result) => {
-      if (isMounted) setLoadedReports({ userId: profile.id, reports: result });
-    }).catch((error: unknown) => {
-      console.error('Failed to load the current user reports:', error);
-      if (isMounted) {
-        setLoadedReports({
-          userId: profile.id,
-          error: 'Laporan Anda gagal dimuat. Silakan coba segarkan halaman.',
-        });
-      }
-    });
+    const load = () => {
+      dataService.getMyReports(profile.id).then((result) => {
+        if (isMounted) setLoadedReports({ userId: profile.id, reports: result });
+      }).catch((error: unknown) => {
+        console.error('Failed to load the current user reports:', error);
+        if (isMounted) {
+          setLoadedReports({
+            userId: profile.id,
+            error: 'Laporan Anda gagal dimuat. Silakan coba segarkan halaman.',
+          });
+        }
+      });
+    };
+
+    load();
+
+    let channel: any = null;
+    if (isSupabaseConfigured) {
+      channel = supabase
+        .channel(`user-reports-${profile.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'reports' },
+          (payload) => {
+            const row: any = payload.new || payload.old;
+            if (row && (row.reporter_user_id === profile.id || row.id)) {
+              load();
+            }
+          }
+        )
+        .subscribe();
+    }
 
     return () => {
       isMounted = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [profile.id]);
 
@@ -88,6 +116,29 @@ export const MyReportsView: React.FC = () => {
       setResubmitError(error instanceof Error ? error.message : 'Laporan gagal dikirim ulang. Silakan coba lagi.');
     } finally {
       setSavingReportId('');
+    }
+  };
+
+  const handleSendAdditionalInfo = async (event: React.FormEvent, reportId: string) => {
+    event.preventDefault();
+    if (!additionalInfoText.trim() || isSubmittingInfo) return;
+
+    setIsSubmittingInfo(true);
+    setResubmitError('');
+    setResubmitSuccess('');
+
+    try {
+      await dataService.submitAdditionalInfo(reportId, profile.id, additionalInfoText.trim());
+      const updatedReports = await dataService.getMyReports(profile.id);
+      setLoadedReports({ userId: profile.id, reports: updatedReports });
+      setRespondingReportId('');
+      setAdditionalInfoText('');
+      setResubmitSuccess('Informasi tambahan berhasil dikirim ke verifikator! Status laporan dikembalikan ke antrean peninjauan.');
+    } catch (err) {
+      console.error('Failed to submit additional info:', err);
+      setResubmitError(err instanceof Error ? err.message : 'Gagal mengirim informasi tambahan.');
+    } finally {
+      setIsSubmittingInfo(false);
     }
   };
 
@@ -149,6 +200,86 @@ export const MyReportsView: React.FC = () => {
                 key={report.id}
                 className="rounded-3xl border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] p-4 sm:p-5"
               >
+                {report.status === 'needs_info' && (() => {
+                  const infoEvent = [...report.events]
+                    .reverse()
+                    .find((event) => event.newStatus === 'needs_info');
+                  const adminMessage =
+                    report.officialResponse ||
+                    infoEvent?.notes ||
+                    'Verifikator meminta informasi atau foto bukti pendukung tambahan.';
+                  const isResponding = respondingReportId === report.id;
+
+                  return (
+                    <section className="mb-4 rounded-2xl border border-rose-300 dark:border-rose-900 bg-rose-50/90 dark:bg-rose-950/40 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-rose-800 dark:text-rose-200">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                        <h3 className="text-sm font-bold">Verifikator Memerlukan Informasi Tambahan</h3>
+                      </div>
+                      <div className="p-3 bg-white/90 dark:bg-[#131916]/90 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4]">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 block mb-1">
+                          Catatan dari Verifikator / Dinas:
+                        </span>
+                        <p className="italic leading-relaxed">&ldquo;{adminMessage}&rdquo;</p>
+                      </div>
+
+                      {!isResponding ? (
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRespondingReportId(report.id);
+                              setAdditionalInfoText('');
+                            }}
+                            className="px-3.5 py-2 rounded-xl bg-rose-700 dark:bg-rose-600 hover:bg-rose-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                          >
+                            <span>Beri Tanggapan / Tambah Info</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                          <Link
+                            to={`/laporan/${report.id}`}
+                            className="px-3 py-2 rounded-xl border border-rose-300 dark:border-rose-800 text-xs font-semibold text-rose-800 dark:text-rose-300 hover:bg-rose-100/60 dark:hover:bg-rose-900/30 transition-colors"
+                          >
+                            Buka Detail Tiket
+                          </Link>
+                        </div>
+                      ) : (
+                        <form
+                          onSubmit={(e) => handleSendAdditionalInfo(e, report.id)}
+                          className="space-y-3 pt-1"
+                        >
+                          <label className="block text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
+                            Tuliskan Tanggapan / Penjelasan Tambahan:
+                          </label>
+                          <textarea
+                            rows={3}
+                            required
+                            value={additionalInfoText}
+                            onChange={(e) => setAdditionalInfoText(e.target.value)}
+                            placeholder="Contoh: Lokasi tepat berada di samping tiang listrik nomor 12 dekat pos ronda RT 03..."
+                            className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-rose-300 dark:border-rose-800 bg-white dark:bg-[#131916] text-[#101913] dark:text-[#F3F6F4] focus:outline-none focus:ring-2 focus:ring-rose-500 shadow-2xs resize-none"
+                          />
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setRespondingReportId('')}
+                              className="px-3 py-1.5 rounded-xl border border-[#E3E0D6] dark:border-[#26352E] text-xs font-bold text-[#4F5A52] dark:text-[#9EACA3]"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={isSubmittingInfo || !additionalInfoText.trim()}
+                              className="px-4 py-1.5 rounded-xl bg-rose-700 dark:bg-rose-600 hover:bg-rose-800 text-white text-xs font-bold disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+                            >
+                              {isSubmittingInfo ? 'Mengirim...' : 'Kirim ke Verifikator'}
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </section>
+                  );
+                })()}
                 {report.status === 'rejected' && (() => {
                   const rejectionEvent = [...report.events]
                     .reverse()

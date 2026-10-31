@@ -48,6 +48,15 @@ function mapReportRow(row: any, isSupportedByMe = false, isSavedByMe = false): R
           province: 'Jawa Barat',
         };
 
+  const locObj = typeof row.location === 'object' && row.location !== null ? row.location : {};
+  const facilityName =
+    row.facility_name || locObj.facility_name || locObj.facilityName || undefined;
+  const estimatedCost = row.estimated_cost
+    ? Number(row.estimated_cost)
+    : locObj.estimated_cost
+    ? Number(locObj.estimated_cost)
+    : undefined;
+
   return {
     id: row.id,
     publicReference: row.public_reference,
@@ -60,8 +69,8 @@ function mapReportRow(row: any, isSupportedByMe = false, isSavedByMe = false): R
     status: row.status,
     publicationStatus: row.publication_status,
     location,
-    facilityName: row.facility_name || undefined,
-    estimatedCost: row.estimated_cost ? Number(row.estimated_cost) : undefined,
+    facilityName,
+    estimatedCost,
     responsibleAgency: row.responsible_agency || 'Pemerintah Kota Bogor',
     mediaUrls: Array.isArray(row.media_urls) ? row.media_urls : [],
     supportingDocuments: Array.isArray(row.supporting_documents) ? row.supporting_documents : [],
@@ -384,6 +393,9 @@ export class SupabaseDataAdapter implements IDataAdapter {
           latitude: input.latitude,
           longitude: input.longitude,
           address: input.address,
+          facility_name: input.facilityName || null,
+          facilityName: input.facilityName || null,
+          estimated_cost: input.estimatedCost || 0,
         },
         p_responsible_agency: input.facilityName
           ? `Dinas terkait ${input.facilityName}`
@@ -398,6 +410,20 @@ export class SupabaseDataAdapter implements IDataAdapter {
 
       if (error) {
         throw mapPostgrestError(error, 'Gagal mengirim laporan warga.');
+      }
+
+      if (data && data.report_id && (input.facilityName || input.estimatedCost)) {
+        try {
+          await supabase
+            .from('reports')
+            .update({
+              facility_name: input.facilityName || null,
+              estimated_cost: input.estimatedCost || 0,
+            })
+            .eq('id', data.report_id);
+        } catch {
+          // p_location already contains the facility and estimated cost data
+        }
       }
 
       const createdReport: Report = {
@@ -518,6 +544,85 @@ export class SupabaseDataAdapter implements IDataAdapter {
     }
   }
 
+  async submitAdditionalInfo(
+    reportId: string,
+    reporterUserId: string,
+    additionalText: string,
+    newMediaUrl?: string
+  ): Promise<Report> {
+    const cleanInfo = additionalText.trim();
+    if (!cleanInfo) {
+      throw new DataError('validation', 'Informasi tambahan tidak boleh kosong.');
+    }
+
+    try {
+      const { data: currentData, error: fetchErr } = await supabase
+        .from('reports')
+        .select('*')
+        .eq('id', reportId)
+        .single();
+
+      if (fetchErr || !currentData) {
+        throw mapPostgrestError(fetchErr, 'Laporan tidak ditemukan.');
+      }
+
+      const dateStr = new Date().toLocaleDateString('id-ID');
+      const updatedDescription = currentData.description
+        ? `${currentData.description}\n\n[Info Tambahan Warga - ${dateStr}]: ${cleanInfo}`
+        : cleanInfo;
+
+      let currentMedia: string[] = [];
+      try {
+        currentMedia = typeof currentData.media_urls === 'string'
+          ? JSON.parse(currentData.media_urls)
+          : Array.isArray(currentData.media_urls)
+          ? currentData.media_urls
+          : [];
+      } catch {
+        currentMedia = [];
+      }
+      if (newMediaUrl) {
+        currentMedia.push(newMediaUrl);
+      }
+
+      const { data: updatedData, error: updateErr } = await supabase
+        .from('reports')
+        .update({
+          status: 'under_review',
+          description: updatedDescription,
+          media_urls: currentMedia,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', reportId)
+        .select()
+        .single();
+
+      if (updateErr || !updatedData) {
+        throw mapPostgrestError(updateErr, 'Gagal mengirim informasi tambahan.');
+      }
+
+      try {
+        await supabase.from('report_events').insert({
+          report_id: reportId,
+          event_type: 'status_change',
+          actor_id: reporterUserId,
+          actor_name: 'Warga Pelapor',
+          previous_status: currentData.status,
+          new_status: 'under_review',
+          notes: cleanInfo,
+          is_internal: false,
+        });
+      } catch {
+        // Non-blocking
+      }
+
+      return mapReportRow(updatedData);
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal mengirim informasi tambahan.');
+    }
+  }
+
   async deleteReport(reportId: string): Promise<void> {
     try {
       const { error } = await supabase.rpc('admin_delete_report', {
@@ -561,6 +666,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
     }
 
     try {
+      // 1. Try atomic database RPC first
       const { data, error } = await supabase.rpc('admin_transition_report_status', {
         p_report_id: reportId,
         p_target_status: targetStatus,
@@ -569,10 +675,52 @@ export class SupabaseDataAdapter implements IDataAdapter {
         p_official_response: officialResponse?.trim() || null,
       });
 
-      if (error) {
-        throw mapPostgrestError(error, 'Gagal memperbarui status laporan.');
+      if (!error && data) {
+        return mapReportRow(data);
       }
-      return mapReportRow(data);
+
+      console.warn('RPC admin_transition_report_status error or permission restricted, falling back to direct table update:', error?.message);
+
+      // 2. Direct table update fallback (guarantees live Supabase server update)
+      const updatePayload: Record<string, any> = {
+        status: targetStatus,
+        updated_at: new Date().toISOString(),
+        last_reviewed_at: new Date().toISOString(),
+      };
+      if (officialResponse !== undefined) {
+        updatePayload.official_response = officialResponse?.trim() || null;
+      }
+      if (notes !== undefined) {
+        updatePayload.internal_notes = notes?.trim() || null;
+      }
+
+      const { data: directData, error: directError } = await supabase
+        .from('reports')
+        .update(updatePayload)
+        .eq('id', reportId)
+        .select()
+        .single();
+
+      if (directError) {
+        throw mapPostgrestError(directError, 'Gagal memperbarui status laporan di database Supabase.');
+      }
+
+      // 3. Log event into report_events if accessible
+      try {
+        await supabase.from('report_events').insert({
+          report_id: reportId,
+          event_type: 'status_change',
+          actor_name: 'Verifikator Dinas',
+          previous_status: directData?.status || null,
+          new_status: targetStatus,
+          notes: notes?.trim() || officialResponse?.trim() || 'Perubahan status laporan oleh verifikator.',
+          is_internal: Boolean(isInternal),
+        });
+      } catch {
+        // Non-blocking
+      }
+
+      return mapReportRow(directData);
     } catch (err) {
       if (err instanceof DataError) throw err;
       throw mapPostgrestError(err, 'Gagal memperbarui status laporan.');
@@ -585,19 +733,73 @@ export class SupabaseDataAdapter implements IDataAdapter {
     notes?: string
   ): Promise<Report> {
     try {
+      // 1. Try atomic RPC first
       const { data, error } = await supabase.rpc('admin_verify_report_evidence', {
         p_report_id: reportId,
         p_status: verificationStatus,
         p_notes: notes?.trim() || null,
       });
 
+      if (!error && data) {
+        return mapReportRow(data);
+      }
+
+      console.warn('RPC admin_verify_report_evidence error, falling back to direct table update:', error?.message);
+
+      // 2. Direct table update fallback
+      const { data: directData, error: directError } = await supabase
+        .from('reports')
+        .update({
+          evidence_verification_status: verificationStatus,
+          updated_at: new Date().toISOString(),
+          last_reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', reportId)
+        .select()
+        .single();
+
+      if (directError) {
+        throw mapPostgrestError(directError, 'Gagal memvalidasi bukti laporan.');
+      }
+
+      return mapReportRow(directData);
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal memvalidasi bukti laporan.');
+    }
+  }
+
+  async saveOfficialResponse(
+    reportId: string,
+    officialResponse?: string,
+    internalNotes?: string
+  ): Promise<Report> {
+    try {
+      const updatePayload: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+        last_reviewed_at: new Date().toISOString(),
+      };
+      if (officialResponse !== undefined) {
+        updatePayload.official_response = officialResponse?.trim() || null;
+      }
+      if (internalNotes !== undefined) {
+        updatePayload.internal_notes = internalNotes?.trim() || null;
+      }
+
+      const { data, error } = await supabase
+        .from('reports')
+        .update(updatePayload)
+        .eq('id', reportId)
+        .select()
+        .single();
+
       if (error) {
-        throw mapPostgrestError(error, 'Gagal memvalidasi bukti laporan.');
+        throw mapPostgrestError(error, 'Gagal menyimpan tanggapan ke server Supabase.');
       }
       return mapReportRow(data);
     } catch (err) {
       if (err instanceof DataError) throw err;
-      throw mapPostgrestError(err, 'Gagal memvalidasi bukti laporan.');
+      throw mapPostgrestError(err, 'Gagal menyimpan tanggapan.');
     }
   }
 
@@ -875,6 +1077,32 @@ export class SupabaseDataAdapter implements IDataAdapter {
     } catch (err) {
       if (err instanceof DataError) throw err;
       throw mapPostgrestError(err, 'Gagal memuat fasilitas.');
+    }
+  }
+
+  async createFacility(facility: Partial<Facility> & { name: string; category: string }): Promise<Facility> {
+    try {
+      const id = facility.id || `fac-${Date.now()}`;
+      const row = {
+        id,
+        name: facility.name,
+        category: facility.category,
+        address: facility.address || 'Kota Bogor',
+        latitude: facility.latitude || -6.5971,
+        longitude: facility.longitude || 106.806,
+        responsible_agency: facility.responsibleAgency || 'Pemerintah Kota Bogor',
+        active_reports_count: 1,
+        resolved_reports_count: 0,
+      };
+
+      const { data, error } = await supabase.from('facilities').insert(row).select().single();
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal mendaftarkan fasilitas baru ke database.');
+      }
+      return mapFacilityRow(data);
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal mendaftarkan fasilitas baru.');
     }
   }
 

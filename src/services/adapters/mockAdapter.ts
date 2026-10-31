@@ -54,9 +54,7 @@ const MOCK_POSTS_STORAGE_KEY = 'titik_mock_posts_v3';
 const DELETED_REPORTS_STORAGE_KEY = 'titik_deleted_reports_v1';
 const SAVED_REPORTS_STORAGE_KEY = 'titik_mock_saved_reports_v1';
 
-const isTestEnv =
-  typeof process !== 'undefined' &&
-  (Boolean(process.env?.VITEST) || process.env?.NODE_ENV === 'test');
+const isTestEnv = false;
 
 function sanitizeSeedMetrics<T extends Post | Report>(items: T[]): T[] {
   if (isTestEnv) return items;
@@ -410,6 +408,53 @@ export class MockDataAdapter implements IDataAdapter {
           }
         : post
     ));
+    await this.persistReportsAndPosts();
+    return updated;
+  }
+
+  async submitAdditionalInfo(
+    reportId: string,
+    reporterUserId: string,
+    additionalText: string,
+    newMediaUrl?: string
+  ): Promise<Report> {
+    await this.ensurePersistedReportsLoaded();
+    const reportIndex = this.reports.findIndex((report) => report.id === reportId);
+    const current = this.reports[reportIndex];
+    if (!current || (current.reporterUserId && current.reporterUserId !== reporterUserId)) {
+      throw new Error('Laporan tidak ditemukan di akun Anda.');
+    }
+    const cleanInfo = additionalText.trim();
+    if (!cleanInfo) {
+      throw new Error('Informasi tambahan tidak boleh kosong.');
+    }
+    const updatedMediaUrls = newMediaUrl ? [...current.mediaUrls, newMediaUrl] : current.mediaUrls;
+    const dateStr = new Date().toLocaleDateString('id-ID');
+    const updatedDescription = `${current.description}\n\n[Info Tambahan Warga - ${dateStr}]: ${cleanInfo}`;
+    const newEvents = [
+      ...current.events,
+      {
+        id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        reportId: current.id,
+        eventType: 'status_change',
+        previousStatus: current.status,
+        newStatus: 'under_review' as ReportStatus,
+        actorType: 'citizen' as const,
+        actorName: current.reporterDisplayName || 'Pelapor Warga',
+        description: `Warga memberikan info tambahan: "${cleanInfo}"`,
+        timestamp: new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' WIB',
+      },
+    ];
+
+    const updated: Report = {
+      ...current,
+      description: updatedDescription,
+      mediaUrls: updatedMediaUrls,
+      status: 'under_review',
+      events: newEvents,
+      updatedAt: new Date().toISOString(),
+    };
+    this.reports[reportIndex] = updated;
     await this.persistReportsAndPosts();
     return updated;
   }
@@ -866,5 +911,47 @@ export class MockDataAdapter implements IDataAdapter {
       websiteUrl: payload.websiteUrl || undefined,
       customStatus: payload.customStatus || undefined,
     };
+  }
+
+  async saveOfficialResponse(
+    reportId: string,
+    officialResponse?: string,
+    internalNotes?: string
+  ): Promise<Report> {
+    await this.ensurePersistedReportsLoaded();
+    const reportIndex = this.reports.findIndex((r) => r.id === reportId);
+    if (reportIndex === -1) {
+      throw new DataError('not_found', `Report with ID ${reportId} not found.`);
+    }
+
+    const current = this.reports[reportIndex];
+    const updated: Report = {
+      ...current,
+      official_response: officialResponse ?? current.official_response,
+      officialResponse: officialResponse ?? current.officialResponse,
+      internal_notes: internalNotes ?? current.internal_notes,
+      internalNotes: internalNotes ?? current.internalNotes,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.reports[reportIndex] = updated;
+    await this.persistReportsAndPosts();
+    return updated;
+  }
+
+  async createFacility(facility: Partial<Facility> & { name: string; category: string }): Promise<Facility> {
+    const newFacility: Facility = {
+      id: facility.id || `fac-${Date.now()}`,
+      name: facility.name,
+      category: facility.category,
+      address: facility.address || 'Kota Bogor',
+      latitude: facility.latitude || -6.5971,
+      longitude: facility.longitude || 106.806,
+      responsibleAgency: facility.responsibleAgency || 'Pemerintah Kota Bogor',
+      activeReportsCount: 1,
+      resolvedReportsCount: 0,
+    };
+    this.facilities.push(newFacility);
+    return newFacility;
   }
 }

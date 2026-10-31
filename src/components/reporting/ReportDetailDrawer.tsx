@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   X,
   MapPin,
@@ -7,6 +8,8 @@ import {
   Clock,
   Check,
   Copy,
+  AlertCircle,
+  ArrowRight,
 } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { SaveReportButton } from './SaveReportButton';
@@ -179,6 +182,52 @@ export const ReportDetailDrawer: React.FC = () => {
               {selectedReport.description}
             </p>
           </div>
+
+          {/* Action Required: Verification Needs Citizen Additional Info */}
+          {selectedReport.status === 'needs_info' && (
+            <div className="p-4 bg-rose-50/90 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800 rounded-2xl space-y-2.5">
+              <div className="flex items-center gap-2 text-rose-800 dark:text-rose-200 font-bold text-xs">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                <span>Verifikator Memerlukan Informasi Tambahan</span>
+              </div>
+              {selectedReport.officialResponse && (
+                <div className="p-3 bg-white/90 dark:bg-[#131916]/90 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 block mb-0.5">
+                    Permintaan Resmi Verifikator:
+                  </span>
+                  <p className="italic leading-relaxed font-medium">&ldquo;{selectedReport.officialResponse}&rdquo;</p>
+                </div>
+              )}
+              <Link
+                to={`/laporan/${selectedReport.id}`}
+                onClick={closeReportDetail}
+                className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl bg-rose-700 dark:bg-rose-600 hover:bg-rose-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+              >
+                <span>Buka Tiket & Berikan Klarifikasi</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          )}
+
+          {/* Official Public Response */}
+          {selectedReport.officialResponse && selectedReport.status !== 'needs_info' && (
+            <div className="p-4 bg-[#F7F5EF] dark:bg-[#1A221E] border border-[#1B4332]/30 dark:border-[#10B981]/40 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between pb-1.5 border-b border-[#E3E0D6] dark:border-[#26352E]">
+                <div className="flex items-center gap-1.5">
+                  <Building className="w-3.5 h-3.5 text-[#1B4332] dark:text-[#34D399]" />
+                  <span className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
+                    Tanggapan Resmi {selectedReport.responsibleAgency || 'Pemkot Bogor'}
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#1B4332]/10 dark:bg-[#10B981]/20 text-[#1B4332] dark:text-[#34D399] font-bold">
+                  Resmi
+                </span>
+              </div>
+              <p className="text-xs text-[#101913] dark:text-[#F3F6F4] leading-relaxed">
+                {selectedReport.officialResponse}
+              </p>
+            </div>
+          )}
 
           {/* Photo Evidence */}
           <div>

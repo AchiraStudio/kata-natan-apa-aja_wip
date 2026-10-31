@@ -53,6 +53,12 @@ export interface IDataAdapter {
     reporterUserId: string,
     edits: RejectedReportEdits
   ): Promise<Report>;
+  submitAdditionalInfo(
+    reportId: string,
+    reporterUserId: string,
+    additionalText: string,
+    newMediaUrl?: string
+  ): Promise<Report>;
   deleteReport(reportId: string): Promise<void>;
   updateReportStatus(
     reportId: string,
@@ -72,6 +78,11 @@ export interface IDataAdapter {
     verificationStatus: EvidenceStatus,
     notes?: string
   ): Promise<Report>;
+  saveOfficialResponse(
+    reportId: string,
+    officialResponse?: string,
+    internalNotes?: string
+  ): Promise<Report>;
   setCitizenVerification(
     userId: string,
     isVerified: boolean,
@@ -87,6 +98,7 @@ export interface IDataAdapter {
   addComment(postId: string, authorName: string, avatarUrl: string, body: string, parentId?: string): Promise<FeedComment>;
   getComments(postId: string): Promise<FeedComment[]>;
   getFacilities(query?: string, category?: string): Promise<Facility[]>;
+  createFacility(facility: Partial<Facility> & { name: string; category: string }): Promise<Facility>;
   getBudgetSectors(): Promise<BudgetSectorContext[]>;
   getAllReports(): Promise<Report[]>;
   getProfileByUsername(username: string): Promise<UserProfile | null>;

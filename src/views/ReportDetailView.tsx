@@ -30,6 +30,7 @@ import {
   RotateCw,
 } from 'lucide-react';
 import { dataService } from '../services/dataService';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { useTitik } from '../context/TitikContext';
 import { useAuth } from '../context/AuthContext';
 import { sortCommentsForUser, isCommentAuthoredByUser } from '../utils/commentSorting';
@@ -108,6 +109,35 @@ export const ReportDetailView: React.FC = () => {
   const [authorNameInput, setAuthorNameInput] = useState('');
   const [isSubmittingTestimony, setIsSubmittingTestimony] = useState(false);
   const [isRefreshingTestimonies, setIsRefreshingTestimonies] = useState(false);
+  const [detailClarificationText, setDetailClarificationText] = useState('');
+  const [isSubmittingClarification, setIsSubmittingClarification] = useState(false);
+  const [detailClarificationSuccess, setDetailClarificationSuccess] = useState('');
+  const [detailClarificationError, setDetailClarificationError] = useState('');
+
+  const handleDetailClarificationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!report || !detailClarificationText.trim() || isSubmittingClarification) return;
+
+    setIsSubmittingClarification(true);
+    setDetailClarificationError('');
+    setDetailClarificationSuccess('');
+
+    try {
+      const updated = await dataService.submitAdditionalInfo(
+        report.id,
+        profile.id || currentUserId || 'usr-citizen',
+        detailClarificationText.trim()
+      );
+      setReport(updated);
+      setDetailClarificationText('');
+      setDetailClarificationSuccess('Informasi tambahan berhasil dikirim ke admin! Status laporan dikembalikan ke tahap verifikasi.');
+    } catch (err) {
+      console.error('Failed to submit clarification:', err);
+      setDetailClarificationError(err instanceof Error ? err.message : 'Gagal mengirim informasi tambahan.');
+    } finally {
+      setIsSubmittingClarification(false);
+    }
+  };
 
   const sortedTestimonies = React.useMemo(() => {
     return sortCommentsForUser(testimonies, profile);
@@ -190,6 +220,48 @@ export const ReportDetailView: React.FC = () => {
       isMounted = false;
     };
   }, [id, currentUserId]);
+
+  // Realtime subscription for live report status, official response, and citizen testimonies
+  useEffect(() => {
+    if (!id || !isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel(`detail-report-${id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'reports' },
+        (payload) => {
+          const updatedRow: any = payload.new;
+          if (updatedRow && (updatedRow.id === id || updatedRow.public_reference === id)) {
+            dataService
+              .getReportByReference(id, currentUserId)
+              .then((res) => {
+                if (res) setReport(res);
+              })
+              .catch(() => {});
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'comments' },
+        (payload) => {
+          const newComment: any = payload.new;
+          if (
+            report &&
+            (newComment.post_id === report.id ||
+              newComment.post_id === report.id.replace('rep-', ''))
+          ) {
+            refreshTestimoniesOnly();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, report?.id, currentUserId]);
 
   // Celebrate resolved/tuntas civic report with gentle radial confetti
   useEffect(() => {
@@ -713,6 +785,93 @@ export const ReportDetailView: React.FC = () => {
               </div>
             );
           })()}
+
+          {/* Action Required: Verification Needs Citizen Additional Info */}
+          {report.status === 'needs_info' && (
+            <div className="bg-rose-50/90 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-rose-900 dark:text-rose-100">
+                    Laporan Membutuhkan Informasi Tambahan dari Pelapor
+                  </h3>
+                  <p className="text-xs text-rose-800/80 dark:text-rose-300/80 mt-0.5">
+                    Verifikator menangguhkan peninjauan sementara sampai Anda melengkapi klarifikasi atau bukti tambahan di bawah.
+                  </p>
+                </div>
+              </div>
+
+              {report.officialResponse && (
+                <div className="p-4 rounded-2xl bg-white/90 dark:bg-[#131916]/90 border border-rose-200 dark:border-rose-900/60 text-xs text-[#101913] dark:text-[#F3F6F4] space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 block">
+                    Permintaan Resmi Verifikator:
+                  </span>
+                  <p className="italic leading-relaxed font-medium">&ldquo;{report.officialResponse}&rdquo;</p>
+                </div>
+              )}
+
+              {/* Citizen Response Form */}
+              <form onSubmit={handleDetailClarificationSubmit} className="space-y-3 pt-1">
+                <label className="block text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
+                  Tuliskan Tanggapan / Keterangan Tambahan Anda:
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={detailClarificationText}
+                  onChange={(e) => setDetailClarificationText(e.target.value)}
+                  placeholder="Jelaskan patokan lokasi, nomor RT/RW, nomor tiang, atau detail fisik lainnya yang diminta verifikator..."
+                  className="w-full px-4 py-3 text-xs rounded-2xl border border-rose-300 dark:border-rose-800 bg-white dark:bg-[#131916] text-[#101913] dark:text-[#F3F6F4] placeholder-[#4F5A52] focus:outline-none focus:ring-2 focus:ring-rose-500 shadow-2xs resize-none"
+                />
+
+                {detailClarificationError && (
+                  <p className="text-xs font-semibold text-rose-700 dark:text-rose-300">
+                    {detailClarificationError}
+                  </p>
+                )}
+
+                {detailClarificationSuccess && (
+                  <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{detailClarificationSuccess}</span>
+                  </p>
+                )}
+
+                <div className="flex items-center justify-end">
+                  <button
+                    type="submit"
+                    disabled={isSubmittingClarification || !detailClarificationText.trim()}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-rose-700 dark:bg-rose-600 hover:bg-rose-800 text-white text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{isSubmittingClarification ? 'Mengirim...' : 'Kirim Tanggapan ke Admin'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Public Official Response Banner */}
+          {report.officialResponse && report.status !== 'needs_info' && (
+            <div className="bg-[#F7F5EF] dark:bg-[#1A221E] border-2 border-[#1B4332]/30 dark:border-[#10B981]/40 rounded-3xl p-5 sm:p-6 shadow-xs space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-[#E3E0D6] dark:border-[#26352E]">
+                <div className="flex items-center gap-2">
+                  <Building className="w-4 h-4 text-[#1B4332] dark:text-[#34D399]" />
+                  <span className="text-xs font-black uppercase tracking-wider text-[#101913] dark:text-[#F3F6F4]">
+                    Tanggapan Resmi {report.responsibleAgency || 'Pemerintah Kota Bogor'}
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#1B4332]/10 dark:bg-[#10B981]/20 text-[#1B4332] dark:text-[#34D399] font-bold">
+                  Verifikasi Sah
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-[#101913] dark:text-[#F3F6F4] leading-relaxed">
+                {report.officialResponse}
+              </p>
+            </div>
+          )}
 
           {/* Prominent APBD Context Banner */}
           {budget && (

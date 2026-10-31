@@ -1,6 +1,6 @@
 import React from 'react';
 import { Report, ReportStatus } from '../../types/domain';
-import { MapPin } from 'lucide-react';
+import { MapPin, BadgeCheck } from 'lucide-react';
 
 interface ReportQueueItemProps {
   report: Report;
@@ -99,6 +99,9 @@ export const ReportQueueItem: React.FC<ReportQueueItemProps> = ({
           <span className="font-mono font-bold text-[#101913] dark:text-[#F3F6F4]">
             {report.publicReference}
           </span>
+          {(report.evidence_verification_status === 'verified' || report.evidenceVerificationStatus === 'verified') && (
+            <BadgeCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          )}
         </div>
         <span
           className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}
@@ -116,10 +119,15 @@ export const ReportQueueItem: React.FC<ReportQueueItemProps> = ({
         <span className="truncate">{report.location?.address || 'Lokasi belum dicantumkan'}</span>
       </div>
 
-      <div className="flex items-center gap-1.5 mt-1.5 pt-1 border-t border-[#E3E0D6]/40 dark:border-[#26352E]/40">
+      <div className="flex flex-wrap items-center gap-1.5 mt-1.5 pt-1 border-t border-[#E3E0D6]/40 dark:border-[#26352E]/40">
         <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[#F7F5EF] dark:bg-[#131916] text-[#4F5A52] dark:text-[#9EACA3] border border-[#E3E0D6]/60 dark:border-[#26352E]/60">
           {report.category}
         </span>
+        {report.facilityName && (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 text-[#101913] dark:text-[#F3F6F4] border border-[#E3E0D6]/60 dark:border-[#26352E]/60 truncate max-w-[150px]" title={report.facilityName}>
+            🏛️ {report.facilityName}
+          </span>
+        )}
         {report.reporterDisplayName && (
           <span className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3] truncate">
             Oleh: {report.reporterDisplayName}

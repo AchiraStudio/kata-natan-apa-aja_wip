@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { Post, Report, ReportStatus, Facility, BudgetSectorContext } from '../types/domain';
 import { dataService } from '../services/dataService';
 import { FeedComment, NewReportInput, ReportSubmitResult } from '../services/adapters/types';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { useAuth } from './AuthContext';
 
 export interface TitikContextType {
@@ -122,6 +123,116 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     dataService.getFacilities().then(setFacilities).catch((err) => console.warn('Facilities load:', err));
     dataService.getBudgetSectors().then(setBudgetSectors).catch((err) => console.warn('Budget load:', err));
   }, []);
+
+  // Supabase Realtime Listener (Live Reactive Sync)
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel('titik-public-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reports' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            refreshFeed();
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedRow: any = payload.new;
+            if (updatedRow && updatedRow.id) {
+              setPosts((prev) =>
+                prev.map((p) => {
+                  if (p.relatedReportId === updatedRow.id && p.relatedReport) {
+                    return {
+                      ...p,
+                      supportCount:
+                        typeof updatedRow.support_count === 'number'
+                          ? updatedRow.support_count
+                          : p.supportCount,
+                      relatedReport: {
+                        ...p.relatedReport,
+                        status: updatedRow.status || p.relatedReport.status,
+                        officialResponse:
+                          updatedRow.official_response ?? p.relatedReport.officialResponse,
+                        internalNotes:
+                          updatedRow.internal_notes ?? p.relatedReport.internalNotes,
+                        evidence_verification_status:
+                          updatedRow.evidence_verification_status ??
+                          p.relatedReport.evidence_verification_status,
+                        supportCount:
+                          typeof updatedRow.support_count === 'number'
+                            ? updatedRow.support_count
+                            : p.relatedReport.supportCount,
+                        description: updatedRow.description || p.relatedReport.description,
+                        updatedAt: updatedRow.updated_at || p.relatedReport.updatedAt,
+                      },
+                    };
+                  }
+                  return p;
+                })
+              );
+              setSelectedReport((current) => {
+                if (current && current.id === updatedRow.id) {
+                  return {
+                    ...current,
+                    status: updatedRow.status || current.status,
+                    officialResponse:
+                      updatedRow.official_response ?? current.officialResponse,
+                    internalNotes:
+                      updatedRow.internal_notes ?? current.internalNotes,
+                    evidence_verification_status:
+                      updatedRow.evidence_verification_status ??
+                      current.evidence_verification_status,
+                    supportCount:
+                      typeof updatedRow.support_count === 'number'
+                        ? updatedRow.support_count
+                        : current.supportCount,
+                    description: updatedRow.description || current.description,
+                    updatedAt: updatedRow.updated_at || current.updatedAt,
+                  };
+                }
+                return current;
+              });
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as any)?.id;
+            if (deletedId) {
+              setPosts((prev) =>
+                prev.filter((p) => p.relatedReportId !== deletedId && p.id !== deletedId)
+              );
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'facilities' },
+        () => {
+          dataService.getFacilities().then(setFacilities).catch(() => {});
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'comments' },
+        (payload) => {
+          const newComment: any = payload.new;
+          if (newComment && newComment.post_id) {
+            setPosts((prev) =>
+              prev.map((p) => {
+                if (p.id === newComment.post_id) {
+                  return { ...p, commentsCount: (p.commentsCount || 0) + 1 };
+                }
+                return p;
+              })
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refreshFeed]);
 
   const activePost = posts.find((p) => p.id === activePostId) || posts[0] || null;
 
