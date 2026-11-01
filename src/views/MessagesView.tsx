@@ -137,7 +137,7 @@ export const MessagesView: React.FC = () => {
 
   const fallbackConversations = useMemo(
     () => getFallbackConversations(profile),
-    [profile]
+    [profile?.id, profile?.role]
   );
 
   const initialConvId = searchParams.get('conversation_id');
@@ -166,6 +166,12 @@ export const MessagesView: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Keep conversationsRef current to avoid stale closures in effects without re-triggering dependencies
+  const conversationsRef = useRef<Conversation[]>(conversations);
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   // Initial load of conversations
   useEffect(() => {
@@ -210,11 +216,11 @@ export const MessagesView: React.FC = () => {
     const repId = searchParams.get('report_id');
 
     if (convId) {
-      setActiveConversationId(convId);
-    } else if (repId && conversations.length > 0) {
-      const matched = conversations.find((c) => c.report_id === repId);
+      setActiveConversationId((prev) => (prev === convId ? prev : convId));
+    } else if (repId) {
+      const matched = conversationsRef.current.find((c) => c.report_id === repId);
       if (matched) {
-        setActiveConversationId(matched.id);
+        setActiveConversationId((prev) => (prev === matched.id ? prev : matched.id));
       } else if (profile?.id) {
         // Find report reporter
         const report = reports.find((r: Report) => r.id === repId);
@@ -229,11 +235,11 @@ export const MessagesView: React.FC = () => {
             // fallback
           });
       }
-    } else if (!activeConversationId && conversations.length > 0 && window.innerWidth >= 768) {
+    } else if (!activeConversationId && conversationsRef.current.length > 0 && typeof window !== 'undefined' && window.innerWidth >= 768) {
       // Default to first conversation on desktop
-      setActiveConversationId(conversations[0].id);
+      setActiveConversationId(conversationsRef.current[0].id);
     }
-  }, [searchParams, conversations, reports, profile?.id, activeConversationId, setSearchParams]);
+  }, [searchParams, reports, profile?.id, activeConversationId, setSearchParams]);
 
   // Load messages when active conversation changes
   useEffect(() => {
@@ -243,7 +249,7 @@ export const MessagesView: React.FC = () => {
       return;
     }
 
-    const currentConv = conversations.find((c) => c.id === activeConversationId);
+    const currentConv = conversationsRef.current.find((c) => c.id === activeConversationId);
     const participants = currentConv?.participant_ids ?? [];
 
     async function fetchThread() {
@@ -268,12 +274,18 @@ export const MessagesView: React.FC = () => {
       } finally {
         if (isMounted) {
           setIsLoadingMessages(false);
-          // Mark as read
+          // Mark as read only if unread > 0 to prevent infinite re-render loops
           if (profile?.id) {
             markConversationRead(activeConversationId, profile.id).catch(() => {});
-            setConversations((prev) =>
-              prev.map((c) => (c.id === activeConversationId ? { ...c, unread_count: 0 } : c))
-            );
+            setConversations((prev) => {
+              const target = prev.find((c) => c.id === activeConversationId);
+              if (!target || !target.unread_count || target.unread_count === 0) {
+                return prev;
+              }
+              return prev.map((c) =>
+                c.id === activeConversationId ? { ...c, unread_count: 0 } : c
+              );
+            });
           }
         }
       }
@@ -301,7 +313,7 @@ export const MessagesView: React.FC = () => {
       isMounted = false;
       sub.unsubscribe();
     };
-  }, [activeConversationId, conversations, profile?.id]);
+  }, [activeConversationId, profile?.id]);
 
   // Scroll to bottom on new messages
   useEffect(() => {

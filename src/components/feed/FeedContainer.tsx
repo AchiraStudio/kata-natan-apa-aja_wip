@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import { Search, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Sparkles, ChevronUp, ChevronDown, MessageSquare } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { FeedCard } from './FeedCard';
 import { TitikLogo } from '../common/TitikLogo';
 
 export const FeedContainer: React.FC = () => {
+  const navigate = useNavigate();
   const {
     posts,
     activeFeedTab,
@@ -297,7 +299,16 @@ export const FeedContainer: React.FC = () => {
         </div>
 
         {/* Right: Minimalist Search Action Button */}
-        <div className="pointer-events-auto lg:opacity-0 lg:pointer-events-none flex items-center">
+        <div className="pointer-events-auto lg:opacity-0 lg:pointer-events-none flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/pesan')}
+            className="w-8 h-8 rounded-full bg-black/40 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border border-white/15 lg:border-transparent text-white/90 lg:text-[#4F5A52] dark:lg:text-[#9EACA3] hover:text-white hover:bg-black/60 lg:hover:bg-white dark:lg:hover:bg-[#1A221E] transition-colors cursor-pointer flex items-center justify-center shadow-xs"
+            title="Pesan Langsung"
+            aria-label="Pesan"
+          >
+            <MessageSquare className="w-4 h-4" />
+          </button>
           <button
             type="button"
             onClick={() => setSearchModalOpen(true)}

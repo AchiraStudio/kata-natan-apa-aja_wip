@@ -26,87 +26,104 @@ async function fetchProfile(userId: string): Promise<UserProfile | undefined> {
 // getConversations
 // ---------------------------------------------------------------------------
 export async function getConversations(userId: string): Promise<Conversation[]> {
-  if (!isSupabaseConfigured) return [];
+  if (!isSupabaseConfigured || !userId) return [];
 
-  const { data, error } = await supabase
-    .from('conversations')
-    .select('*')
-    .contains('participant_ids', [userId])
-    .order('updated_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .contains('participant_ids', [userId])
+      .order('updated_at', { ascending: false });
 
-  if (error || !data) return [];
+    if (error || !data) return [];
 
-  const enriched: Conversation[] = await Promise.all(
-    data.map(async (conv) => {
-      const otherId = conv.participant_ids.find((id: string) => id !== userId);
-      const otherProfile = otherId ? await fetchProfile(otherId) : undefined;
+    const enriched: Conversation[] = await Promise.all(
+      data.map(async (conv) => {
+        const otherId = conv.participant_ids?.find((id: string) => id !== userId);
+        const otherProfile = otherId ? await fetchProfile(otherId) : undefined;
 
-      // Last message
-      const { data: msgs } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conv.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        // Last message
+        let lastMsg: Message | undefined;
+        try {
+          const { data: msgs } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('conversation_id', conv.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
 
-      let lastMsg: Message | undefined;
+          if (msgs?.[0]) {
+            let decryptedContent = msgs[0].content;
+            if (decryptedContent && Array.isArray(conv.participant_ids) && conv.participant_ids.length > 0) {
+              try {
+                decryptedContent = await decryptMessage(decryptedContent, conv.id, conv.participant_ids);
+              } catch {
+                decryptedContent = msgs[0].content;
+              }
+            }
 
-      if (msgs?.[0]) {
-        let decryptedContent = msgs[0].content;
-        if (decryptedContent && Array.isArray(conv.participant_ids) && conv.participant_ids.length > 0) {
+            lastMsg = {
+              id: msgs[0].id,
+              conversation_id: msgs[0].conversation_id,
+              sender_id: msgs[0].sender_id,
+              content: decryptedContent,
+              message_type: msgs[0].message_type,
+              attachments: msgs[0].attachments ?? [],
+              created_at: msgs[0].created_at,
+              read_at: msgs[0].read_at,
+            };
+          }
+        } catch {
+          // ignore last message query failure
+        }
+
+        // Unread count
+        let unread = 0;
+        try {
+          const { count } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('conversation_id', conv.id)
+            .neq('sender_id', userId)
+            .is('read_at', null);
+          unread = count ?? 0;
+        } catch {
+          unread = 0;
+        }
+
+        // Report reference
+        let reportRef: string | undefined;
+        if (conv.report_id) {
           try {
-            decryptedContent = await decryptMessage(decryptedContent, conv.id, conv.participant_ids);
+            const { data: rep } = await supabase
+              .from('reports')
+              .select('public_reference')
+              .eq('id', conv.report_id)
+              .single();
+            reportRef = rep?.public_reference;
           } catch {
-            decryptedContent = msgs[0].content;
+            // ignore
           }
         }
 
-        lastMsg = {
-          id: msgs[0].id,
-          conversation_id: msgs[0].conversation_id,
-          sender_id: msgs[0].sender_id,
-          content: decryptedContent,
-          message_type: msgs[0].message_type,
-          attachments: msgs[0].attachments ?? [],
-          created_at: msgs[0].created_at,
-          read_at: msgs[0].read_at,
+        return {
+          id: conv.id,
+          report_id: conv.report_id ?? null,
+          participant_ids: conv.participant_ids ?? [],
+          created_at: conv.created_at,
+          updated_at: conv.updated_at,
+          other_participant: otherProfile,
+          last_message: lastMsg,
+          unread_count: unread,
+          report_reference: reportRef,
         };
-      }
+      })
+    );
 
-      // Unread count
-      const { count: unread } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('conversation_id', conv.id)
-        .neq('sender_id', userId)
-        .is('read_at', null);
-
-      // Report reference
-      let reportRef: string | undefined;
-      if (conv.report_id) {
-        const { data: rep } = await supabase
-          .from('reports')
-          .select('public_reference')
-          .eq('id', conv.report_id)
-          .single();
-        reportRef = rep?.public_reference;
-      }
-
-      return {
-        id: conv.id,
-        report_id: conv.report_id ?? null,
-        participant_ids: conv.participant_ids,
-        created_at: conv.created_at,
-        updated_at: conv.updated_at,
-        other_participant: otherProfile,
-        last_message: lastMsg,
-        unread_count: unread ?? 0,
-        report_reference: reportRef,
-      };
-    })
-  );
-
-  return enriched;
+    return enriched;
+  } catch {
+    return [];
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -116,53 +133,66 @@ export async function getMessages(
   conversationId: string,
   participantIds?: string[]
 ): Promise<Message[]> {
-  if (!isSupabaseConfigured) return [];
+  if (!isSupabaseConfigured || !conversationId) return [];
 
-  const { data, error } = await supabase
-    .from('messages')
-    .select('*')
-    .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true });
-
-  if (error || !data) return [];
-
-  let participants = participantIds;
-  if (!participants || participants.length === 0) {
-    const { data: convData } = await supabase
-      .from('conversations')
-      .select('participant_ids')
-      .eq('id', conversationId)
-      .single();
-    participants = convData?.participant_ids ?? [];
+  // Demo conversations are local only
+  if (conversationId.startsWith('conv-demo')) {
+    return [];
   }
 
-  const withSenders: Message[] = await Promise.all(
-    data.map(async (m) => {
-      const sender = await fetchProfile(m.sender_id);
-      let decrypted = m.content;
-      if (participants && participants.length > 0) {
-        try {
-          decrypted = await decryptMessage(m.content, conversationId, participants);
-        } catch {
-          decrypted = m.content;
-        }
+  try {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+
+    if (error || !data) return [];
+
+    let participants = participantIds;
+    if (!participants || participants.length === 0) {
+      try {
+        const { data: convData } = await supabase
+          .from('conversations')
+          .select('participant_ids')
+          .eq('id', conversationId)
+          .single();
+        participants = convData?.participant_ids ?? [];
+      } catch {
+        participants = [];
       }
+    }
 
-      return {
-        id: m.id,
-        conversation_id: m.conversation_id,
-        sender_id: m.sender_id,
-        content: decrypted,
-        message_type: m.message_type as MessageType,
-        attachments: m.attachments ?? [],
-        created_at: m.created_at,
-        read_at: m.read_at,
-        sender,
-      };
-    })
-  );
+    const withSenders: Message[] = await Promise.all(
+      data.map(async (m) => {
+        const sender = await fetchProfile(m.sender_id);
+        let decrypted = m.content;
+        if (participants && participants.length > 0) {
+          try {
+            decrypted = await decryptMessage(m.content, conversationId, participants);
+          } catch {
+            decrypted = m.content;
+          }
+        }
 
-  return withSenders;
+        return {
+          id: m.id,
+          conversation_id: m.conversation_id,
+          sender_id: m.sender_id,
+          content: decrypted,
+          message_type: m.message_type as MessageType,
+          attachments: m.attachments ?? [],
+          created_at: m.created_at,
+          read_at: m.read_at,
+          sender,
+        };
+      })
+    );
+
+    return withSenders;
+  } catch {
+    return [];
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -175,22 +205,43 @@ export async function sendMessage(
   messageType: MessageType = 'text',
   participantIds?: string[]
 ): Promise<Message> {
-  if (!isSupabaseConfigured) throw new Error('Supabase tidak terkonfigurasi.');
+  const trimmed = content.trim();
+
+  // If demo conversation or Supabase unconfigured, handle locally
+  if (conversationId.startsWith('conv-demo') || !isSupabaseConfigured) {
+    return {
+      id: `msg-${Date.now()}`,
+      conversation_id: conversationId,
+      sender_id: senderId,
+      content: trimmed,
+      message_type: messageType,
+      attachments: [],
+      created_at: new Date().toISOString(),
+      read_at: null,
+    };
+  }
 
   let participants = participantIds;
   if (!participants || participants.length === 0) {
-    const { data: convData } = await supabase
-      .from('conversations')
-      .select('participant_ids')
-      .eq('id', conversationId)
-      .single();
-    participants = convData?.participant_ids ?? [];
+    try {
+      const { data: convData } = await supabase
+        .from('conversations')
+        .select('participant_ids')
+        .eq('id', conversationId)
+        .single();
+      participants = convData?.participant_ids ?? [];
+    } catch {
+      participants = [];
+    }
   }
 
-  const trimmed = content.trim();
   let cipherContent = trimmed;
   if (participants && participants.length > 0) {
-    cipherContent = await encryptMessage(trimmed, conversationId, participants);
+    try {
+      cipherContent = await encryptMessage(trimmed, conversationId, participants);
+    } catch {
+      cipherContent = trimmed;
+    }
   }
 
   const { data, error } = await supabase
@@ -208,10 +259,14 @@ export async function sendMessage(
   if (error || !data) throw new Error(error?.message ?? 'Gagal mengirim pesan.');
 
   // Touch updated_at on conversation
-  await supabase
-    .from('conversations')
-    .update({ updated_at: new Date().toISOString() })
-    .eq('id', conversationId);
+  try {
+    await supabase
+      .from('conversations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', conversationId);
+  } catch {
+    // ignore
+  }
 
   return {
     id: data.id,
@@ -239,22 +294,26 @@ export async function createConversation(
 
   // Check if conversation already exists for this report + participants
   if (reportId) {
-    const { data: existing } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('report_id', reportId)
-      .contains('participant_ids', participantIds)
-      .limit(1)
-      .single();
+    try {
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('report_id', reportId)
+        .contains('participant_ids', participantIds)
+        .limit(1)
+        .single();
 
-    if (existing) {
-      return {
-        id: existing.id,
-        report_id: existing.report_id,
-        participant_ids: existing.participant_ids,
-        created_at: existing.created_at,
-        updated_at: existing.updated_at,
-      };
+      if (existing) {
+        return {
+          id: existing.id,
+          report_id: existing.report_id,
+          participant_ids: existing.participant_ids,
+          created_at: existing.created_at,
+          updated_at: existing.updated_at,
+        };
+      }
+    } catch {
+      // ignore
     }
   }
 
@@ -271,23 +330,27 @@ export async function createConversation(
 
   // Send initial system message
   if (reportId) {
-    const { data: rep } = await supabase
-      .from('reports')
-      .select('public_reference, title')
-      .eq('id', reportId)
-      .single();
+    try {
+      const { data: rep } = await supabase
+        .from('reports')
+        .select('public_reference, title')
+        .eq('id', reportId)
+        .single();
 
-    if (rep) {
-      const initialSystemPlain = `Admin membuka percakapan terkait laporan ${rep.public_reference}: "${rep.title}".`;
-      const initialSystemCipher = await encryptMessage(initialSystemPlain, data.id, participantIds);
+      if (rep) {
+        const initialSystemPlain = `Admin membuka percakapan terkait laporan ${rep.public_reference}: "${rep.title}".`;
+        const initialSystemCipher = await encryptMessage(initialSystemPlain, data.id, participantIds);
 
-      await supabase.from('messages').insert({
-        conversation_id: data.id,
-        sender_id: adminId,
-        content: initialSystemCipher,
-        message_type: 'status_update',
-        attachments: [],
-      });
+        await supabase.from('messages').insert({
+          conversation_id: data.id,
+          sender_id: adminId,
+          content: initialSystemCipher,
+          message_type: 'status_update',
+          attachments: [],
+        });
+      }
+    } catch {
+      // ignore
     }
   }
 
@@ -304,25 +367,33 @@ export async function createConversation(
 // markAsRead
 // ---------------------------------------------------------------------------
 export async function markAsRead(messageId: string): Promise<void> {
-  if (!isSupabaseConfigured) return;
-  await supabase
-    .from('messages')
-    .update({ read_at: new Date().toISOString() })
-    .eq('id', messageId)
-    .is('read_at', null);
+  if (!isSupabaseConfigured || !messageId || messageId.startsWith('msg-') || messageId.startsWith('opt-')) return;
+  try {
+    await supabase
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', messageId)
+      .is('read_at', null);
+  } catch {
+    // ignore
+  }
 }
 
 // ---------------------------------------------------------------------------
 // markConversationRead — mark all unread messages in a conversation as read
 // ---------------------------------------------------------------------------
 export async function markConversationRead(conversationId: string, currentUserId: string): Promise<void> {
-  if (!isSupabaseConfigured) return;
-  await supabase
-    .from('messages')
-    .update({ read_at: new Date().toISOString() })
-    .eq('conversation_id', conversationId)
-    .neq('sender_id', currentUserId)
-    .is('read_at', null);
+  if (!isSupabaseConfigured || !conversationId || conversationId.startsWith('conv-demo')) return;
+  try {
+    await supabase
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('conversation_id', conversationId)
+      .neq('sender_id', currentUserId)
+      .is('read_at', null);
+  } catch {
+    // ignore
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -333,7 +404,9 @@ export function subscribeToMessages(
   callback: (msg: Message) => void,
   participantIds?: string[]
 ) {
-  if (!isSupabaseConfigured) return { unsubscribe: () => {} };
+  if (!isSupabaseConfigured || !conversationId || conversationId.startsWith('conv-demo')) {
+    return { unsubscribe: () => {} };
+  }
 
   let cachedParticipants = participantIds;
 

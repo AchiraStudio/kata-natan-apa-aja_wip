@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Compass, MapPin, Plus, LogIn } from 'lucide-react';
+import { Home, Compass, MapPin, Plus, LogIn, MessageSquare } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTitik } from '../../context/useTitik';
 import { useAuth } from '../../context/AuthContext';
@@ -16,6 +16,12 @@ export const BottomNav: React.FC = () => {
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentPath = location.pathname;
+
+  // Hide BottomNav when inside active individual chat view on mobile to avoid overlapping the input bar
+  const isChatActiveOnMobile =
+    currentPath.startsWith('/pesan') &&
+    (Boolean(location.search.includes('conversation_id')) ||
+      Boolean(location.search.includes('report_id')));
 
   // Listen to comments bottom sheet open/close to avoid overlaying input controls
   useEffect(() => {
@@ -60,8 +66,8 @@ export const BottomNav: React.FC = () => {
   return (
     <nav
       aria-label="Navigasi Utama Mobile"
-      className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom,16px))] left-1/2 -translate-x-1/2 z-40 lg:hidden grid grid-cols-5 items-center w-[92%] max-w-sm px-2 py-2 bg-[#101913]/90 dark:bg-[#131916]/95 backdrop-blur-md rounded-full shadow-2xl border border-white/10 dark:border-[#26352E] text-white transition-all duration-300 ${
-        isVisible && !isCommentsSheetOpen
+      className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom,16px))] left-1/2 -translate-x-1/2 z-40 lg:hidden grid grid-cols-6 items-center w-[95%] max-w-md px-2 py-2 bg-[#101913]/90 dark:bg-[#131916]/95 backdrop-blur-md rounded-full shadow-2xl border border-white/10 dark:border-[#26352E] text-white transition-all duration-300 ${
+        isVisible && !isCommentsSheetOpen && !isChatActiveOnMobile
           ? 'translate-y-0 opacity-100 scale-100'
           : 'translate-y-28 opacity-0 pointer-events-none scale-95'
       }`}
@@ -99,19 +105,6 @@ export const BottomNav: React.FC = () => {
         <span>Explore</span>
       </a>
 
-      {/* Center Create Action (+) - strictly centered at column 3 */}
-      <div className="flex items-center justify-center">
-        <button
-          type="button"
-          onClick={() => openComposer('post')}
-          className="flex items-center justify-center -my-1 w-11 h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-[#101913] shadow-lg shadow-emerald-500/30 transition-transform active:scale-90 cursor-pointer"
-          title="Buat Postingan atau Laporan"
-          aria-label="Buat"
-        >
-          <Plus className="w-6 h-6 stroke-[2.8]" />
-        </button>
-      </div>
-
       <a
         href="/map"
         onClick={(e) => {
@@ -124,6 +117,34 @@ export const BottomNav: React.FC = () => {
       >
         <MapPin className="w-5 h-5" />
         <span>Peta</span>
+      </a>
+
+      {/* Center Create Action (+) */}
+      <div className="flex items-center justify-center">
+        <button
+          type="button"
+          onClick={() => openComposer('post')}
+          className="flex items-center justify-center -my-1 w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-400 text-[#101913] shadow-lg shadow-emerald-500/30 transition-transform active:scale-90 cursor-pointer"
+          title="Buat Postingan atau Laporan"
+          aria-label="Buat"
+        >
+          <Plus className="w-5 h-5 stroke-[2.8]" />
+        </button>
+      </div>
+
+      <a
+        href="/pesan"
+        onClick={(e) => {
+          e.preventDefault();
+          if (location.pathname !== '/pesan') navigate('/pesan');
+        }}
+        className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
+          currentPath.startsWith('/pesan') ? 'text-emerald-400 font-bold' : 'text-white/70 hover:text-white'
+        }`}
+        title="Pesan Langsung"
+      >
+        <MessageSquare className="w-5 h-5" />
+        <span>Pesan</span>
       </a>
 
       {isAuthenticated ? (
@@ -162,7 +183,7 @@ export const BottomNav: React.FC = () => {
               />
             )}
           </div>
-          <span className="truncate max-w-[50px] text-center">
+          <span className="truncate max-w-[45px] text-center">
             {currentPath.startsWith('/admin') ? 'admin' : profile.displayName.split(' ')[0]}
           </span>
         </a>
