@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, Share2, Edit3, Camera, ShieldCheck, ShieldAlert, Settings, ChevronRight, Globe, ExternalLink, Sparkles } from 'lucide-react';
+import { Calendar, MapPin, Share2, Edit3, Camera, ShieldCheck, ShieldAlert, Settings, ChevronRight, Globe, ExternalLink, Sparkles, MessageSquare } from 'lucide-react';
 import { formatIndonesianTimeAgo } from '../../utils/timeAgo';
 import { UserAvatar } from '../common/UserAvatar';
 import type { ProfileController } from './useProfileController';
@@ -10,7 +10,7 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
-  const { profile, posts, reports, setActiveTab, avatarInputRef, bannerInputRef, isOwnProfile, handleOpenEdit, handleAvatarFileChange, handleBannerFileChange, handleShareProfile, totalSupportAndLikes, currentTheme } = ctrl;
+  const { profile, posts, reports, setActiveTab, avatarInputRef, bannerInputRef, isOwnProfile, handleOpenEdit, handleAvatarFileChange, handleBannerFileChange, handleShareProfile, handleStartChat, isStartingChat, totalSupportAndLikes, currentTheme } = ctrl;
   if (!profile) return null;
   return (
     <>
@@ -125,14 +125,27 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
                         </button>
                       </>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={handleShareProfile}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-xs font-bold text-[#101913] dark:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#26352E] transition-all shadow-xs cursor-pointer"
-                      >
-                        <Share2 className="w-3.5 h-3.5" />
-                        <span>Bagikan Profil</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleStartChat}
+                          disabled={isStartingChat}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1B4332] dark:bg-[#10B981] hover:bg-[#14352A] dark:hover:bg-[#34D399] text-white dark:text-[#0A1610] text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+                          title={`Kirim pesan langsung ke ${profile.displayName}`}
+                          aria-label="Kirim Pesan"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>{isStartingChat ? 'Menghubungkan...' : 'Kirim Pesan'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleShareProfile}
+                          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-xs font-bold text-[#101913] dark:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#26352E] transition-all shadow-xs cursor-pointer"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          <span>Bagikan Profil</span>
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

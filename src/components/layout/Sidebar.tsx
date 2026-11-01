@@ -40,6 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
     activeFeedTab,
     setActiveFeedTab,
     setSearchModalOpen,
+    unreadMessagesCount,
   } = useTitik();
 
   const isAdminRoute = currentPath.startsWith('/admin');
@@ -93,6 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
       label: 'Pesan',
       icon: MessageSquare,
       href: '/pesan',
+      unread: (unreadMessagesCount ?? 0) > 0,
       active: currentPath.startsWith('/pesan'),
       onClick: () => {
         if (location.pathname !== '/pesan') {
@@ -245,7 +247,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <Icon className={`w-4 h-4 shrink-0 ${item.active ? 'text-[#1B4332] dark:text-[#34D399]' : 'text-[#4F5A52] dark:text-[#8FA096]'}`} />
+                  <div className="relative">
+                    <Icon className={`w-4 h-4 shrink-0 ${item.active ? 'text-[#1B4332] dark:text-[#34D399]' : 'text-[#4F5A52] dark:text-[#8FA096]'}`} />
+                    {Boolean((item as any).unread) && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-[#161F1B] animate-pulse" />
+                    )}
+                  </div>
                   <span className="truncate">{item.label}</span>
                 </div>
                 {item.active && (

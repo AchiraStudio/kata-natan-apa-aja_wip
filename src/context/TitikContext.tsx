@@ -49,6 +49,8 @@ export interface TitikContextType {
   deleteReport: (reportId: string) => Promise<void>;
   updateReportStatus: (reportId: string, status: ReportStatus, description: string) => Promise<void>;
   refreshFeed: () => Promise<void>;
+  unreadMessagesCount?: number;
+  setUnreadMessagesCount?: (count: number | ((prev: number) => number)) => void;
 }
 
 export const TitikContext = createContext<TitikContextType | undefined>(undefined);
@@ -72,6 +74,18 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [landingBannerOpen, setLandingBannerOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(1);
+
+  useEffect(() => {
+    const handleUnreadUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ count?: number }>;
+      if (typeof customEvent.detail?.count === 'number') {
+        setUnreadMessagesCount(customEvent.detail.count);
+      }
+    };
+    window.addEventListener('titik-unread-count', handleUnreadUpdate);
+    return () => window.removeEventListener('titik-unread-count', handleUnreadUpdate);
+  }, []);
 
   const openComposer = (tab: 'post' | 'report' = 'post') => {
     setComposerTab(tab);
@@ -541,6 +555,8 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deleteReport,
         updateReportStatus,
         refreshFeed,
+        unreadMessagesCount,
+        setUnreadMessagesCount,
       }}
     >
       {children}

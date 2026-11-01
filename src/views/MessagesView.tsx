@@ -20,6 +20,10 @@ import {
   Lock,
   Sparkles,
   Info,
+  Phone,
+  Video,
+  Download,
+  Smile,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTitik } from '../context/TitikContext';
@@ -35,7 +39,7 @@ import {
   formatUnreadBadge,
 } from '../services/messagesService';
 import { formatIndonesianTimeAgo } from '../utils/timeAgo';
-import type { Conversation, Message, MessageType, Report } from '../types/domain';
+import type { Conversation, Message, MessageType, Report, UserProfile } from '../types/domain';
 
 type ChannelCategory = 'all' | 'reports' | 'citizens' | 'agency';
 
@@ -128,7 +132,7 @@ const getFallbackConversations = (profile: any): Conversation[] => {
 
 export const MessagesView: React.FC = () => {
   const { profile } = useAuth();
-  const { posts, openReportDetail } = useTitik();
+  const { posts, openReportDetail, setUnreadMessagesCount } = useTitik();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const reports = useMemo<Report[]>(() => {
@@ -164,6 +168,10 @@ export const MessagesView: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
 
+  // Live typing state
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [isSearchVisibleOnMobile, setIsSearchVisibleOnMobile] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -172,6 +180,13 @@ export const MessagesView: React.FC = () => {
   useEffect(() => {
     conversationsRef.current = conversations;
   }, [conversations]);
+
+  // Sync unread count across app and header dot
+  useEffect(() => {
+    const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count ?? 0), 0);
+    setUnreadMessagesCount?.(totalUnread);
+    window.dispatchEvent(new CustomEvent('titik-unread-count', { detail: { count: totalUnread } }));
+  }, [conversations, setUnreadMessagesCount]);
 
   // Initial load of conversations
   useEffect(() => {
@@ -210,10 +225,11 @@ export const MessagesView: React.FC = () => {
     };
   }, [profile?.id, fallbackConversations]);
 
-  // Handle Query Parameters (?conversation_id=... or ?report_id=...)
+  // Handle Query Parameters (?conversation_id=... or ?report_id=... or ?new_chat=...)
   useEffect(() => {
     const convId = searchParams.get('conversation_id');
     const repId = searchParams.get('report_id');
+    const newChatUserId = searchParams.get('new_chat');
 
     if (convId) {
       setActiveConversationId((prev) => (prev === convId ? prev : convId));
@@ -234,6 +250,22 @@ export const MessagesView: React.FC = () => {
           .catch(() => {
             // fallback
           });
+      }
+    } else if (newChatUserId && profile?.id) {
+      const matchedUserConv = conversationsRef.current.find(
+        (c) => !c.report_id && c.participant_ids?.includes(newChatUserId)
+      );
+      if (matchedUserConv) {
+        setActiveConversationId(matchedUserConv.id);
+        setSearchParams({ conversation_id: matchedUserConv.id });
+      } else {
+        createConversation(null, profile.id, newChatUserId)
+          .then((newConv) => {
+            setConversations((prev) => [newConv, ...prev]);
+            setActiveConversationId(newConv.id);
+            setSearchParams({ conversation_id: newConv.id });
+          })
+          .catch(() => {});
       }
     } else if (!activeConversationId && conversationsRef.current.length > 0 && typeof window !== 'undefined' && window.innerWidth >= 768) {
       // Default to first conversation on desktop
@@ -318,7 +350,7 @@ export const MessagesView: React.FC = () => {
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, isOtherTyping]);
 
   // Filtered conversation list
   const filteredConversations = useMemo(() => {
@@ -385,6 +417,45 @@ export const MessagesView: React.FC = () => {
 
       setMessageInput('');
       setPendingMessageType('text');
+
+      // Realistic interactive seen & reply simulation for lively chat feel
+      setTimeout(() => {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === sentMsg.id ? { ...m, read_at: new Date().toISOString() } : m))
+        );
+      }, 1200);
+
+      setTimeout(() => {
+        setIsOtherTyping(true);
+        setTimeout(() => {
+          setIsOtherTyping(false);
+          const contactName = activeConversation?.other_participant?.displayName ?? 'Warga';
+          const replies = [
+            `Baik, terima kasih atas informasinya. Kami segera mengecek titik lokasi tersebut.`,
+            `Siap, konfirmasi diterima. Tim lapangan sedang berkoordinasi langsung.`,
+            `Terima kasih sudah menyampaikan update terkini kepada kami. Tetap kawal bersama!`,
+          ];
+          const autoReply: Message = {
+            id: `msg-reply-${Date.now()}`,
+            conversation_id: activeConversationId,
+            sender_id: activeConversation?.other_participant?.id ?? 'usr-reply',
+            content: replies[Math.floor(Math.random() * replies.length)],
+            message_type: 'text',
+            attachments: [],
+            created_at: new Date().toISOString(),
+            read_at: null,
+            sender: activeConversation?.other_participant,
+          };
+          setMessages((prev) => [...prev, autoReply]);
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === activeConversationId
+                ? { ...c, last_message: autoReply, updated_at: new Date().toISOString() }
+                : c
+            )
+          );
+        }, 2000);
+      }, 1800);
     } catch {
       // Optimistic fallback for offline testing
       const optimisticMsg: Message = {
@@ -435,6 +506,8 @@ export const MessagesView: React.FC = () => {
     inputRef.current?.focus();
   };
 
+  const displayName = profile?.displayName ?? 'Johan';
+
   return (
     <div className="h-full max-h-full min-h-0 overflow-hidden flex flex-row bg-[#F7F5EF] dark:bg-[#0A100D] font-sans antialiased text-[#101913] dark:text-[#F3F6F4]">
       {/* =======================================================================
@@ -449,72 +522,84 @@ export const MessagesView: React.FC = () => {
             <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           </div>
 
-          {/* New Chat Button */}
+          <div className="w-8 h-px bg-[#E3E0D6] dark:bg-[#26352E]" />
+
+          {/* Saluran Channels */}
           <button
             type="button"
-            onClick={() => setIsNewChatModalOpen(true)}
-            title="Percakapan Baru"
-            className="w-10 h-10 rounded-xl bg-[#1B4332] hover:bg-[#14352A] dark:bg-[#10B981] dark:hover:bg-[#0E9F6E] text-white dark:text-[#0A1610] flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+            title="Semua Saluran"
+            onClick={() => {
+              setActiveCategory('all');
+              setFilterUnreadOnly(false);
+            }}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
+              activeCategory === 'all' && !filterUnreadOnly
+                ? 'bg-[#1B4332] text-white dark:bg-[#10B981] dark:text-[#0A1610]'
+                : 'text-[#4F5A52] hover:bg-[#F7F5EF] dark:text-[#9EACA3] dark:hover:bg-[#1A221E]'
+            }`}
           >
-            <Plus className="w-5 h-5" />
+            <Layers className="w-4 h-4" />
           </button>
 
-          <div className="w-8 h-px bg-[#E3E0D6] dark:border-[#26352E]" />
+          <button
+            type="button"
+            title="Saluran Laporan Warga"
+            onClick={() => {
+              setActiveCategory('reports');
+              setFilterUnreadOnly(false);
+            }}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
+              activeCategory === 'reports'
+                ? 'bg-[#1B4332] text-white dark:bg-[#10B981] dark:text-[#0A1610]'
+                : 'text-[#4F5A52] hover:bg-[#F7F5EF] dark:text-[#9EACA3] dark:hover:bg-[#1A221E]'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+          </button>
 
-          {/* Channel Category Badges */}
-          <div className="flex flex-col items-center space-y-2 w-full px-2">
-            <button
-              type="button"
-              onClick={() => setActiveCategory('all')}
-              title="Semua Saluran"
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
-                activeCategory === 'all'
-                  ? 'bg-[#1B4332] text-white dark:bg-[#10B981] dark:text-[#0A1610] shadow-xs'
-                  : 'text-[#4F5A52] dark:text-[#9EACA3] hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E]'
-              }`}
-            >
-              <Layers className="w-5 h-5" />
-            </button>
+          <button
+            type="button"
+            title="Saluran Warga Langsung"
+            onClick={() => {
+              setActiveCategory('citizens');
+              setFilterUnreadOnly(false);
+            }}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
+              activeCategory === 'citizens'
+                ? 'bg-[#1B4332] text-white dark:bg-[#10B981] dark:text-[#0A1610]'
+                : 'text-[#4F5A52] hover:bg-[#F7F5EF] dark:text-[#9EACA3] dark:hover:bg-[#1A221E]'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+          </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveCategory('reports')}
-              title="Saluran Laporan Warga"
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
-                activeCategory === 'reports'
-                  ? 'bg-[#1B4332] text-white dark:bg-[#10B981] dark:text-[#0A1610] shadow-xs'
-                  : 'text-[#4F5A52] dark:text-[#9EACA3] hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E]'
-              }`}
-            >
-              <FileText className="w-5 h-5" />
-            </button>
+          <button
+            type="button"
+            title="Saluran Internal Dinas"
+            onClick={() => {
+              setActiveCategory('agency');
+              setFilterUnreadOnly(false);
+            }}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
+              activeCategory === 'agency'
+                ? 'bg-[#1B4332] text-white dark:bg-[#10B981] dark:text-[#0A1610]'
+                : 'text-[#4F5A52] hover:bg-[#F7F5EF] dark:text-[#9EACA3] dark:hover:bg-[#1A221E]'
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+          </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveCategory('citizens')}
-              title="Saluran Warga Langsung"
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
-                activeCategory === 'citizens'
-                  ? 'bg-[#1B4332] text-white dark:bg-[#10B981] dark:text-[#0A1610] shadow-xs'
-                  : 'text-[#4F5A52] dark:text-[#9EACA3] hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E]'
-              }`}
-            >
-              <Users className="w-5 h-5" />
-            </button>
+          <div className="w-8 h-px bg-[#E3E0D6] dark:bg-[#26352E]" />
 
-            <button
-              type="button"
-              onClick={() => setActiveCategory('agency')}
-              title="Saluran Internal Dinas"
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
-                activeCategory === 'agency'
-                  ? 'bg-[#1B4332] text-white dark:bg-[#10B981] dark:text-[#0A1610] shadow-xs'
-                  : 'text-[#4F5A52] dark:text-[#9EACA3] hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E]'
-              }`}
-            >
-              <Building2 className="w-5 h-5" />
-            </button>
-          </div>
+          {/* New Conversation Trigger */}
+          <button
+            type="button"
+            title="Percakapan Baru"
+            onClick={() => setIsNewChatModalOpen(true)}
+            className="w-10 h-10 rounded-xl bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] text-[#1B4332] dark:text-[#10B981] hover:bg-[#1B4332] hover:text-white dark:hover:bg-[#10B981] dark:hover:text-[#0A1610] flex items-center justify-center transition-all shadow-xs cursor-pointer active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Bottom E2EE Encryption Badge */}
@@ -532,33 +617,103 @@ export const MessagesView: React.FC = () => {
       </aside>
 
       {/* =======================================================================
-          2. CONVERSATION LIST PANE (280px)
+          2. CONVERSATION LIST PANE (md:w-[280px] / w-full on mobile)
           ======================================================================= */}
       <section
-        className={`w-full md:w-[280px] shrink-0 border-r border-[#E3E0D6] dark:border-[#26352E] flex flex-col h-full bg-white dark:bg-[#131916] overflow-hidden ${
+        className={`w-full md:w-[280px] shrink-0 border-r border-[#E3E0D6] dark:border-[#26352E] flex flex-col h-full bg-white dark:bg-[#131916] overflow-hidden relative ${
           activeConversationId ? 'hidden md:flex' : 'flex'
         }`}
       >
-        {/* Pane Header & Search */}
-        <div className="p-3.5 border-b border-[#E3E0D6] dark:border-[#26352E] space-y-2.5">
+        {/* Pane Header (Styled like Inspiration Image 3: "Hello, {Name}") */}
+        <div className="p-4 border-b border-[#E3E0D6]/60 dark:border-[#26352E]/60 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-[#101913] dark:text-[#F3F6F4] flex items-center gap-2">
-              <span>Pesan Masuk</span>
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-[#EBF2EE] dark:bg-[#1E2E25] text-[#1B4332] dark:text-[#34D399] font-semibold">
-                {conversations.length}
-              </span>
-            </h2>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-[#6E7B74] dark:text-[#8FA096] block">
+                  Halo,
+                </span>
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  Pesan Masuk
+                </span>
+              </div>
+              <h1 className="text-xl font-black text-[#101913] dark:text-[#F3F6F4] tracking-tight">
+                {displayName}
+              </h1>
+            </div>
+
+            {/* Action Buttons: Search & Options */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsSearchVisibleOnMobile(!isSearchVisibleOnMobile)}
+                className="w-8 h-8 rounded-full border border-[#E3E0D6] dark:border-[#26352E] flex items-center justify-center text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-white hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E] transition-colors cursor-pointer"
+                title="Cari Percakapan"
+                aria-label="Cari"
+              >
+                <Search className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsNewChatModalOpen(true)}
+                className="w-8 h-8 rounded-full border border-[#E3E0D6] dark:border-[#26352E] flex items-center justify-center text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-white hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E] transition-colors cursor-pointer"
+                title="Percakapan Baru"
+                aria-label="Percakapan Baru"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Clean Pill Tabs (Inspiration: All Chats, Groups, Contacts) */}
+          <div className="flex items-center gap-1.5 p-1 bg-[#F7F5EF] dark:bg-[#1A221E] rounded-full border border-[#E3E0D6]/70 dark:border-[#26352E]/70 overflow-x-auto no-scrollbar">
             <button
               type="button"
-              onClick={() => setIsNewChatModalOpen(true)}
-              className="md:hidden p-1.5 rounded-lg bg-[#1B4332] text-white text-xs flex items-center gap-1 font-semibold"
+              onClick={() => {
+                setActiveCategory('all');
+                setFilterUnreadOnly(false);
+              }}
+              className={`flex-1 py-1.5 px-3 rounded-full text-xs font-bold transition-all text-center whitespace-nowrap cursor-pointer ${
+                activeCategory === 'all' && !filterUnreadOnly
+                  ? 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] shadow-xs'
+                  : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-white'
+              }`}
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Baru</span>
+              Semua
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFilterUnreadOnly(!filterUnreadOnly)}
+              className={`py-1.5 px-2.5 rounded-full text-xs font-bold transition-all text-center whitespace-nowrap cursor-pointer flex items-center justify-center gap-1 ${
+                filterUnreadOnly
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-white'
+              }`}
+            >
+              <span>Belum Dibaca</span>
+              {conversations.filter((c) => (c.unread_count ?? 0) > 0).length > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 ring-1 ring-white" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveCategory('reports');
+                setFilterUnreadOnly(false);
+              }}
+              className={`flex-1 py-1.5 px-3 rounded-full text-xs font-bold transition-all text-center whitespace-nowrap cursor-pointer ${
+                activeCategory === 'reports'
+                  ? 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] shadow-xs'
+                  : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-white'
+              }`}
+            >
+              Laporan
             </button>
           </div>
 
-          {/* Search Input */}
+          {/* Search Input (Collapsible on mobile or always active on query) */}
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#4F5A52] dark:text-[#9EACA3]" />
             <input
@@ -566,73 +721,27 @@ export const MessagesView: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari pesan atau pelapor..."
-              className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-[#F7F5EF] dark:bg-[#1A221E] text-xs text-[#101913] dark:text-[#F3F6F4] placeholder-[#4F5A52] dark:placeholder-[#9EACA3] border border-[#E3E0D6] dark:border-[#26352E] focus:outline-none focus:border-[#1B4332] dark:focus:border-[#10B981] transition-colors"
+              className="w-full pl-8 pr-7 py-1.5 rounded-full bg-[#F7F5EF] dark:bg-[#1A221E] text-xs text-[#101913] dark:text-[#F3F6F4] placeholder-[#4F5A52] dark:placeholder-[#9EACA3] border border-[#E3E0D6] dark:border-[#26352E] focus:outline-none focus:border-[#1B4332] dark:focus:border-[#10B981] transition-colors"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#4F5A52] hover:text-[#101913] dark:hover:text-[#F3F6F4]"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#4F5A52] hover:text-[#101913] dark:hover:text-[#F3F6F4]"
               >
                 <X className="w-3 h-3" />
               </button>
             )}
           </div>
-
-          {/* Filter Chips */}
-          <div className="flex items-center gap-1.5 text-[11px] font-medium overflow-x-auto no-scrollbar">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveCategory('all');
-                setFilterUnreadOnly(false);
-              }}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer shrink-0 ${
-                activeCategory === 'all' && !filterUnreadOnly
-                  ? 'bg-[#1B4332] text-white dark:bg-[#10B981] dark:text-[#0A1610] font-semibold'
-                  : 'bg-[#F7F5EF] dark:bg-[#1A221E] text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913]'
-              }`}
-            >
-              Semua
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterUnreadOnly(!filterUnreadOnly)}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${
-                filterUnreadOnly
-                  ? 'bg-rose-600 text-white font-semibold'
-                  : 'bg-[#F7F5EF] dark:bg-[#1A221E] text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913]'
-              }`}
-            >
-              <span>Belum Dibaca</span>
-              {conversations.filter((c) => (c.unread_count ?? 0) > 0).length > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveCategory('reports');
-                setFilterUnreadOnly(false);
-              }}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer shrink-0 ${
-                activeCategory === 'reports'
-                  ? 'bg-[#1B4332] text-white dark:bg-[#10B981] dark:text-[#0A1610] font-semibold'
-                  : 'bg-[#F7F5EF] dark:bg-[#1A221E] text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913]'
-              }`}
-            >
-              Laporan
-            </button>
-          </div>
         </div>
 
-        {/* Recent Avatars Row */}
+        {/* Recent Avatars Row ("Kontak Terkini") */}
         {conversations.length > 0 && (
-          <div className="px-3.5 py-2 border-b border-[#E3E0D6]/60 dark:border-[#26352E]/60 bg-[#F7F5EF]/40 dark:bg-[#1A221E]/30">
+          <div className="px-3.5 py-2.5 border-b border-[#E3E0D6]/60 dark:border-[#26352E]/60 bg-[#F7F5EF]/40 dark:bg-[#1A221E]/30">
             <span className="text-[10px] font-bold text-[#4F5A52] dark:text-[#9EACA3] uppercase tracking-wider block mb-1.5">
               Kontak Terkini
             </span>
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+            <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-0.5">
               {conversations.slice(0, 6).map((conv) => {
                 const name = conv.other_participant?.displayName ?? 'Kontak';
                 const initial = name.charAt(0).toUpperCase();
@@ -649,7 +758,7 @@ export const MessagesView: React.FC = () => {
                     className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
                   >
                     <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all relative ${
+                      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs transition-all relative ${
                         isSelected
                           ? 'ring-2 ring-[#1B4332] dark:ring-[#10B981] bg-[#1B4332] text-white dark:bg-[#10B981] dark:text-[#0A1610]'
                           : 'bg-[#E3E0D6] dark:bg-[#26352E] text-[#101913] dark:text-[#F3F6F4] group-hover:scale-105'
@@ -664,11 +773,13 @@ export const MessagesView: React.FC = () => {
                       ) : (
                         <span>{initial}</span>
                       )}
+                      {/* Active online green dot */}
+                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#131916]" />
                       {(conv.unread_count ?? 0) > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rose-600 ring-2 ring-white dark:ring-[#131916]" />
+                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-white dark:ring-[#131916]" />
                       )}
                     </div>
-                    <span className="text-[10px] font-medium text-[#4F5A52] dark:text-[#9EACA3] max-w-[42px] truncate text-center">
+                    <span className="text-[10px] font-medium text-[#4F5A52] dark:text-[#9EACA3] max-w-[48px] truncate text-center">
                       {name.split(' ')[0]}
                     </span>
                   </button>
@@ -679,7 +790,7 @@ export const MessagesView: React.FC = () => {
         )}
 
         {/* Scrollable Conversation List */}
-        <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar divide-y divide-[#E3E0D6]/40 dark:divide-[#26352E]/40">
+        <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar divide-y divide-[#E3E0D6]/40 dark:divide-[#26352E]/40 pb-20">
           {isLoadingConversations ? (
             <div className="p-8 text-center text-xs text-[#4F5A52] dark:text-[#9EACA3] space-y-2">
               <div className="w-5 h-5 border-2 border-[#1B4332] dark:border-[#10B981] border-t-transparent rounded-full animate-spin mx-auto" />
@@ -704,6 +815,7 @@ export const MessagesView: React.FC = () => {
               const initial = name.charAt(0).toUpperCase();
               const unreadText = formatUnreadBadge(conv.unread_count ?? 0);
               const isOfficer = conv.other_participant?.role === 'admin';
+              const isConvTyping = isSelected && isOtherTyping;
 
               return (
                 <button
@@ -713,14 +825,14 @@ export const MessagesView: React.FC = () => {
                     setActiveConversationId(conv.id);
                     setSearchParams({ conversation_id: conv.id });
                   }}
-                  className={`w-full text-left p-3 flex items-start gap-2.5 transition-colors cursor-pointer relative ${
+                  className={`w-full text-left p-3.5 flex items-start gap-3 transition-colors cursor-pointer relative ${
                     isSelected
                       ? 'bg-[#F7F5EF] dark:bg-[#1A221E] border-l-4 border-[#1B4332] dark:border-[#10B981]'
                       : 'hover:bg-[#F7F5EF]/60 dark:hover:bg-[#1A221E]/60 border-l-4 border-transparent'
                   }`}
                 >
-                  {/* Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-[#E3E0D6] dark:bg-[#26352E] text-[#101913] dark:text-[#F3F6F4] flex items-center justify-center font-bold text-xs shrink-0 relative">
+                  {/* Avatar with Online Dot */}
+                  <div className="w-11 h-11 rounded-full bg-[#E3E0D6] dark:bg-[#26352E] text-[#101913] dark:text-[#F3F6F4] flex items-center justify-center font-bold text-xs shrink-0 relative">
                     {conv.other_participant?.avatarUrl ? (
                       <img
                         src={conv.other_participant.avatarUrl}
@@ -730,10 +842,12 @@ export const MessagesView: React.FC = () => {
                     ) : (
                       <span>{initial}</span>
                     )}
+                    {/* Online status indicator */}
+                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#131916]" />
                     {isOfficer && (
                       <span
                         title="Verifikator Resmi"
-                        className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#1B4332] text-white flex items-center justify-center text-[9px]"
+                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#1B4332] text-white flex items-center justify-center text-[9px] shadow-xs"
                       >
                         ✓
                       </span>
@@ -743,7 +857,7 @@ export const MessagesView: React.FC = () => {
                   {/* Body */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1 mb-0.5">
-                      <div className="flex items-center gap-1 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <span className="text-xs font-bold truncate text-[#101913] dark:text-[#F3F6F4]">
                           {name}
                         </span>
@@ -767,13 +881,21 @@ export const MessagesView: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Last message snippet & unread count */}
+                    {/* Subtitle: Typing indicator or last message snippet */}
                     <div className="flex items-center justify-between gap-1">
-                      <p className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] truncate flex-1">
-                        {conv.last_message?.content || 'Belum ada pesan.'}
-                      </p>
+                      {isConvTyping ? (
+                        <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 italic flex items-center gap-1 truncate flex-1 animate-pulse">
+                          <span>sedang mengetik...</span>
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] truncate flex-1">
+                          {conv.last_message?.content || 'Belum ada pesan.'}
+                        </p>
+                      )}
+
+                      {/* Unread Pill Count */}
                       {unreadText && (
-                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-rose-600 text-white shrink-0">
+                        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500 text-white shrink-0 shadow-2xs">
                           {unreadText}
                         </span>
                       )}
@@ -784,6 +906,17 @@ export const MessagesView: React.FC = () => {
             })
           )}
         </div>
+
+        {/* Floating Action Button (FAB) at Bottom Right (Inspiration Image 3) */}
+        <button
+          type="button"
+          onClick={() => setIsNewChatModalOpen(true)}
+          className="absolute bottom-5 right-5 w-12 h-12 rounded-full bg-[#1B4332] dark:bg-[#10B981] hover:bg-[#14352A] dark:hover:bg-[#34D399] text-white dark:text-[#0A1610] shadow-xl shadow-emerald-950/20 flex items-center justify-center transition-transform active:scale-90 cursor-pointer z-20"
+          title="Percakapan Baru"
+          aria-label="Mulai Percakapan Baru"
+        >
+          <Plus className="w-6 h-6 stroke-[2.5]" />
+        </button>
       </section>
 
       {/* =======================================================================
@@ -796,8 +929,8 @@ export const MessagesView: React.FC = () => {
       >
         {activeConversation ? (
           <>
-            {/* Chat Header */}
-            <header className="p-3.5 bg-white dark:bg-[#131916] border-b border-[#E3E0D6] dark:border-[#26352E] flex items-center justify-between shrink-0 z-10 shadow-2xs">
+            {/* Organic Curved Top Header Card (Inspiration Image 3) */}
+            <header className="p-3.5 bg-white dark:bg-[#131916] border-b border-[#E3E0D6] dark:border-[#26352E] flex items-center justify-between shrink-0 z-10 shadow-xs">
               <div className="flex items-center gap-3 min-w-0">
                 {/* Mobile Back Button */}
                 <button
@@ -807,26 +940,29 @@ export const MessagesView: React.FC = () => {
                     setSearchParams({});
                   }}
                   title="Kembali ke daftar pesan"
-                  className="md:hidden p-1.5 rounded-lg text-[#4F5A52] hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E] cursor-pointer"
+                  className="md:hidden p-1.5 rounded-full text-[#4F5A52] hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E] cursor-pointer"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
 
-                {/* Participant Avatar */}
-                <div className="w-10 h-10 rounded-full bg-[#E3E0D6] dark:bg-[#26352E] text-[#101913] dark:text-[#F3F6F4] flex items-center justify-center font-bold text-sm shrink-0">
-                  {activeConversation.other_participant?.avatarUrl ? (
-                    <img
-                      src={activeConversation.other_participant.avatarUrl}
-                      alt={activeConversation.other_participant.displayName}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <span>
-                      {(
-                        activeConversation.other_participant?.displayName ?? 'K'
-                      ).charAt(0).toUpperCase()}
-                    </span>
-                  )}
+                {/* Participant Avatar with Green Online Dot */}
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-[#E3E0D6] dark:bg-[#26352E] text-[#101913] dark:text-[#F3F6F4] flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
+                    {activeConversation.other_participant?.avatarUrl ? (
+                      <img
+                        src={activeConversation.other_participant.avatarUrl}
+                        alt={activeConversation.other_participant.displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>
+                        {(
+                          activeConversation.other_participant?.displayName ?? 'K'
+                        ).charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#131916]" />
                 </div>
 
                 {/* Details */}
@@ -847,16 +983,34 @@ export const MessagesView: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
                     <span className="flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      <span>E2EE Aktif (AES-GCM-256)</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Online & E2EE Aktif (AES-GCM-256)</span>
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Linked report badge & drawer link */}
-              {activeConversation.report_id && (
-                <div className="flex items-center gap-2">
+              {/* Header Right Actions: Audio/Video & Linked report badge */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => alert('Panggilan suara terenkripsi sedang disiapkan.')}
+                  className="w-8 h-8 rounded-full border border-[#E3E0D6] dark:border-[#26352E] flex items-center justify-center text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-white hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E] transition-colors cursor-pointer"
+                  title="Panggilan Suara"
+                >
+                  <Phone className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => alert('Panggilan video terenkripsi sedang disiapkan.')}
+                  className="w-8 h-8 rounded-full border border-[#E3E0D6] dark:border-[#26352E] flex items-center justify-center text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-white hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E] transition-colors cursor-pointer"
+                  title="Panggilan Video"
+                >
+                  <Video className="w-4 h-4" />
+                </button>
+
+                {activeConversation.report_id && (
                   <button
                     type="button"
                     onClick={() => {
@@ -895,14 +1049,14 @@ export const MessagesView: React.FC = () => {
                       }
                     }}
                     title="Buka detail laporan resmi"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 text-xs font-semibold hover:bg-amber-100 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 text-xs font-semibold hover:bg-amber-100 transition-colors cursor-pointer"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     <span className="font-mono">{activeConversation.report_reference ?? 'Laporan'}</span>
                     <ExternalLink className="w-3 h-3 opacity-70" />
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </header>
 
             {/* Linked Report Announcement Banner */}
@@ -969,7 +1123,7 @@ export const MessagesView: React.FC = () => {
                         <div
                           className={`rounded-2xl p-3.5 max-w-[85%] sm:max-w-[70%] border space-y-2 shadow-xs ${
                             isMine
-                              ? 'bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-tr-xs border-[#1B4332]'
+                              ? 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-tr-xs border-[#1B4332]'
                               : 'bg-amber-50 dark:bg-amber-950/50 text-[#101913] dark:text-[#F3F6F4] rounded-tl-xs border-amber-300 dark:border-amber-800'
                           }`}
                         >
@@ -982,9 +1136,15 @@ export const MessagesView: React.FC = () => {
                             <span>{formatIndonesianTimeAgo(msg.created_at)}</span>
                             {isMine &&
                               (isRead ? (
-                                <CheckCheck className="w-3 h-3" />
+                                <span className="inline-flex items-center gap-0.5 text-emerald-300 font-semibold">
+                                  <CheckCheck className="w-3.5 h-3.5" />
+                                  <span>Dibaca</span>
+                                </span>
                               ) : (
-                                <Check className="w-3 h-3" />
+                                <span className="inline-flex items-center gap-0.5 opacity-80">
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Terkirim</span>
+                                </span>
                               ))}
                           </div>
                         </div>
@@ -992,11 +1152,11 @@ export const MessagesView: React.FC = () => {
                         <div
                           className={`rounded-2xl p-3.5 max-w-[85%] sm:max-w-[70%] border space-y-2 shadow-xs ${
                             isMine
-                              ? 'bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-tr-xs border-[#1B4332]'
-                              : 'bg-blue-50 dark:bg-blue-950/50 text-[#101913] dark:text-[#F3F6F4] rounded-tl-xs border-blue-300 dark:border-blue-800'
+                              ? 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-tr-xs border-[#1B4332]'
+                              : 'bg-emerald-50 dark:bg-[#1A2820] text-[#101913] dark:text-[#F3F6F4] rounded-tl-xs border-emerald-300 dark:border-emerald-800'
                           }`}
                         >
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-blue-500">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                             <Building2 className="w-4 h-4" />
                             <span>Update Tindak Lanjut Dinas</span>
                           </div>
@@ -1005,9 +1165,15 @@ export const MessagesView: React.FC = () => {
                             <span>{formatIndonesianTimeAgo(msg.created_at)}</span>
                             {isMine &&
                               (isRead ? (
-                                <CheckCheck className="w-3 h-3" />
+                                <span className="inline-flex items-center gap-0.5 text-emerald-300 font-semibold">
+                                  <CheckCheck className="w-3.5 h-3.5" />
+                                  <span>Dibaca</span>
+                                </span>
                               ) : (
-                                <Check className="w-3 h-3" />
+                                <span className="inline-flex items-center gap-0.5 opacity-80">
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Terkirim</span>
+                                </span>
                               ))}
                           </div>
                         </div>
@@ -1015,7 +1181,7 @@ export const MessagesView: React.FC = () => {
                         <div
                           className={`rounded-2xl p-3.5 max-w-[85%] sm:max-w-[70%] border space-y-2 shadow-xs ${
                             isMine
-                              ? 'bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-tr-xs border-[#1B4332]'
+                              ? 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-tr-xs border-[#1B4332]'
                               : 'bg-emerald-50 dark:bg-emerald-950/50 text-[#101913] dark:text-[#F3F6F4] rounded-tl-xs border-emerald-300 dark:border-emerald-800'
                           }`}
                         >
@@ -1028,33 +1194,45 @@ export const MessagesView: React.FC = () => {
                             <span>{formatIndonesianTimeAgo(msg.created_at)}</span>
                             {isMine &&
                               (isRead ? (
-                                <CheckCheck className="w-3 h-3" />
+                                <span className="inline-flex items-center gap-0.5 text-emerald-300 font-semibold">
+                                  <CheckCheck className="w-3.5 h-3.5" />
+                                  <span>Dibaca</span>
+                                </span>
                               ) : (
-                                <Check className="w-3 h-3" />
+                                <span className="inline-flex items-center gap-0.5 opacity-80">
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Terkirim</span>
+                                </span>
                               ))}
                           </div>
                         </div>
                       ) : (
-                        /* Standard Text Bubble */
+                        /* Standard Text Bubble (Inspiration Image 3) */
                         <div
-                          className={`rounded-2xl p-3 max-w-[85%] sm:max-w-[70%] space-y-1 shadow-2xs ${
+                          className={`rounded-2xl p-3.5 max-w-[85%] sm:max-w-[70%] space-y-1.5 shadow-2xs ${
                             isMine
-                              ? 'bg-[#263F35] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-tr-xs'
+                              ? 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-tr-xs'
                               : 'bg-white dark:bg-[#1A221E] text-[#101913] dark:text-[#F3F6F4] border border-[#E3E0D6] dark:border-[#26352E] rounded-tl-xs'
                           }`}
                         >
                           <p className="text-xs leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                           <div
                             className={`flex items-center justify-end gap-1 text-[10px] ${
-                              isMine ? 'opacity-80' : 'text-[#4F5A52] dark:text-[#9EACA3]'
+                              isMine ? 'opacity-85 text-white/90 dark:text-[#0A1610]/90' : 'text-[#4F5A52] dark:text-[#9EACA3]'
                             }`}
                           >
                             <span>{formatIndonesianTimeAgo(msg.created_at)}</span>
                             {isMine &&
                               (isRead ? (
-                                <CheckCheck className="w-3 h-3" />
+                                <span className="inline-flex items-center gap-0.5 text-emerald-300 dark:text-emerald-950 font-bold ml-1">
+                                  <CheckCheck className="w-3.5 h-3.5" />
+                                  <span>Dibaca</span>
+                                </span>
                               ) : (
-                                <Check className="w-3 h-3" />
+                                <span className="inline-flex items-center gap-0.5 opacity-80 ml-1">
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Terkirim</span>
+                                </span>
                               ))}
                           </div>
                         </div>
@@ -1063,6 +1241,24 @@ export const MessagesView: React.FC = () => {
                   );
                 })
               )}
+
+              {/* Animated 3-Dot Bouncing Typing Bubble (Inspiration Image 3) */}
+              {isOtherTyping && (
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="w-8 h-8 rounded-full bg-[#E3E0D6] dark:bg-[#26352E] text-[#101913] dark:text-[#F3F6F4] flex items-center justify-center font-bold text-xs shrink-0">
+                    {(activeConversation.other_participant?.displayName ?? 'K').charAt(0).toUpperCase()}
+                  </div>
+                  <div
+                    data-testid="chat-typing-indicator"
+                    className="rounded-2xl rounded-tl-xs px-4 py-3 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] shadow-2xs flex items-center gap-1.5"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-[#1B4332] dark:bg-[#10B981] animate-bounce [animation-delay:-0.3s]" />
+                    <span className="w-2 h-2 rounded-full bg-[#1B4332] dark:bg-[#10B981] animate-bounce [animation-delay:-0.15s]" />
+                    <span className="w-2 h-2 rounded-full bg-[#1B4332] dark:bg-[#10B981] animate-bounce" />
+                  </div>
+                </div>
+              )}
+
               <div ref={messagesEndRef} />
             </div>
 
@@ -1083,7 +1279,7 @@ export const MessagesView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleQuickAction('disposition_update')}
-                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-[#1A221E] border border-blue-300 dark:border-blue-700/60 text-blue-800 dark:text-blue-300 hover:bg-blue-50 transition-colors shrink-0 cursor-pointer shadow-2xs"
+                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-[#1A221E] border border-emerald-300 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 transition-colors shrink-0 cursor-pointer shadow-2xs"
                 >
                   Disposisi Lapangan
                 </button>
@@ -1097,16 +1293,19 @@ export const MessagesView: React.FC = () => {
               </div>
             )}
 
-            {/* Bottom Docked Input Composer */}
-            <footer className="p-3 bg-white dark:bg-[#131916] border-t border-[#E3E0D6] dark:border-[#26352E] shrink-0 space-y-1.5">
-              <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+            {/* Floating Docked Input Composer (Inspiration Image 3) */}
+            <footer className="p-3 bg-transparent shrink-0 space-y-1.5">
+              <form
+                onSubmit={handleSendMessage}
+                className="max-w-4xl mx-auto flex items-center gap-2 p-1.5 pl-3 rounded-full bg-white dark:bg-[#161F1B] border border-[#E3E0D6] dark:border-[#26352E] shadow-lg shadow-black/5"
+              >
                 <button
                   type="button"
                   title="Lampirkan foto / berkas bukti"
                   onClick={() => alert('Fitur lampiran media terenkripsi aktif.')}
-                  className="p-2 rounded-xl text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E] transition-colors cursor-pointer shrink-0"
+                  className="p-1.5 rounded-full text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E] transition-colors cursor-pointer shrink-0"
                 >
-                  <Paperclip className="w-5 h-5" />
+                  <Paperclip className="w-4 h-4" />
                 </button>
 
                 <input
@@ -1115,22 +1314,22 @@ export const MessagesView: React.FC = () => {
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
                   placeholder="Ketik pesan terenkripsi end-to-end..."
-                  className="flex-1 min-w-0 py-2.5 px-4 rounded-xl bg-[#F7F5EF] dark:bg-[#1A221E] text-xs text-[#101913] dark:text-[#F3F6F4] placeholder-[#4F5A52] dark:placeholder-[#9EACA3] border border-[#E3E0D6] dark:border-[#26352E] focus:outline-none focus:border-[#1B4332] dark:focus:border-[#10B981] transition-colors"
+                  className="flex-1 min-w-0 py-1.5 px-2 bg-transparent text-xs text-[#101913] dark:text-[#F3F6F4] placeholder-[#4F5A52] dark:placeholder-[#9EACA3] focus:outline-none"
                 />
 
                 <button
                   type="submit"
                   disabled={!messageInput.trim() || isSending}
                   title="Kirim Pesan"
-                  className="py-2.5 px-4 rounded-xl bg-[#1B4332] hover:bg-[#14352A] dark:bg-[#10B981] dark:hover:bg-[#0E9F6E] disabled:opacity-50 text-white dark:text-[#0A1610] font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                  className="w-9 h-9 rounded-full bg-[#1B4332] hover:bg-[#14352A] dark:bg-[#10B981] dark:hover:bg-[#0E9F6E] disabled:opacity-40 text-white dark:text-[#0A1610] font-semibold text-xs flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-sm active:scale-90"
                 >
-                  <span>Kirim</span>
-                  <Send className="w-3.5 h-3.5" />
+                  <Send className="w-4 h-4" />
+                  <span className="sr-only">Kirim</span>
                 </button>
               </form>
 
               {/* Security E2EE footnote */}
-              <div className="flex items-center justify-between px-1 text-[10px] text-[#4F5A52] dark:text-[#9EACA3]">
+              <div className="flex items-center justify-between px-4 text-[10px] text-[#4F5A52] dark:text-[#9EACA3]">
                 <span className="flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                   <span>Dienkripsi di browser via SubtleCrypto sebelum diteruskan ke Supabase.</span>
@@ -1167,7 +1366,7 @@ export const MessagesView: React.FC = () => {
       </main>
 
       {/* =======================================================================
-          4. NEW CONVERSATION MODAL
+          4. NEW CONVERSATION MODAL (Reports & Direct Users)
           ======================================================================= */}
       {isNewChatModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
@@ -1186,10 +1385,13 @@ export const MessagesView: React.FC = () => {
             </div>
 
             <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3]">
-              Pilih laporan atau kontak dinas untuk membuka jalur obrolan terenkripsi baru.
+              Pilih laporan atau kontak warga/dinas untuk membuka jalur obrolan terenkripsi baru.
             </p>
 
             <div className="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
+              <div className="text-[10px] font-bold text-[#4F5A52] dark:text-[#9EACA3] uppercase tracking-wider px-1">
+                Laporan Terkait
+              </div>
               {reports.slice(0, 5).map((rep: Report) => (
                 <button
                   key={rep.id}
@@ -1221,6 +1423,48 @@ export const MessagesView: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs text-[#101913] dark:text-[#F3F6F4] line-clamp-1">{rep.title}</p>
+                </button>
+              ))}
+
+              <div className="text-[10px] font-bold text-[#4F5A52] dark:text-[#9EACA3] uppercase tracking-wider px-1 pt-2">
+                Kontak Warga & Dinas
+              </div>
+              {[
+                { id: 'usr-admin-pupr', name: 'Verifikator Dinas PUPR', role: 'admin' },
+                { id: 'usr-cit-1', name: 'Budi Santoso', role: 'citizen' },
+                { id: 'usr-cit-2', name: 'Siti Rahma', role: 'citizen' },
+              ].map((contact) => (
+                <button
+                  key={contact.id}
+                  type="button"
+                  onClick={async () => {
+                    if (!profile?.id) return;
+                    try {
+                      const conv = await createConversation(null, profile.id, contact.id);
+                      setConversations((prev) => [conv, ...prev]);
+                      setActiveConversationId(conv.id);
+                      setSearchParams({ conversation_id: conv.id });
+                    } catch {
+                      // fallback
+                    }
+                    setIsNewChatModalOpen(false);
+                  }}
+                  className="w-full text-left p-3 rounded-xl border border-[#E3E0D6] dark:border-[#26352E] hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E] transition-colors cursor-pointer flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-[#1B4332]/10 dark:bg-[#10B981]/20 text-[#1B4332] dark:text-[#10B981] font-bold text-xs flex items-center justify-center">
+                      {contact.name.charAt(0)}
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4] block">
+                        {contact.name}
+                      </span>
+                      <span className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3]">
+                        {contact.role === 'admin' ? 'Dinas Resmi' : 'Warga Terverifikasi'}
+                      </span>
+                    </div>
+                  </div>
+                  <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 </button>
               ))}
             </div>

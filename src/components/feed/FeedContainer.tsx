@@ -14,6 +14,7 @@ export const FeedContainer: React.FC = () => {
     activePost,
     setActivePostId,
     setSearchModalOpen,
+    unreadMessagesCount,
   } = useTitik();
 
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -303,11 +304,18 @@ export const FeedContainer: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/pesan')}
-            className="w-8 h-8 rounded-full bg-black/40 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border border-white/15 lg:border-transparent text-white/90 lg:text-[#4F5A52] dark:lg:text-[#9EACA3] hover:text-white hover:bg-black/60 lg:hover:bg-white dark:lg:hover:bg-[#1A221E] transition-colors cursor-pointer flex items-center justify-center shadow-xs"
+            className="relative w-8 h-8 rounded-full bg-black/40 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border border-white/15 lg:border-transparent text-white/90 lg:text-[#4F5A52] dark:lg:text-[#9EACA3] hover:text-white hover:bg-black/60 lg:hover:bg-white dark:lg:hover:bg-[#1A221E] transition-colors cursor-pointer flex items-center justify-center shadow-xs"
             title="Pesan Langsung"
             aria-label="Pesan"
           >
             <MessageSquare className="w-4 h-4" />
+            {(unreadMessagesCount ?? 0) > 0 && (
+              <span
+                data-testid="messages-unread-dot"
+                className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-[#101913] dark:ring-[#131916] animate-pulse"
+                title="Pesan belum dibaca"
+              />
+            )}
           </button>
           <button
             type="button"

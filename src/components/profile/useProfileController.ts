@@ -6,6 +6,7 @@ import { dataService } from '../../services/dataService';
 import { UserProfile, Post, Report } from '../../types/domain';
 import { stripExifAndCleanImage, uploadFileToSupabase } from '../../components/composer/useMediaUpload';
 import { THEME_OPTIONS } from './profileThemes';
+import { createConversation } from '../../services/messagesService';
 
 export function useProfileController() {
   const { username } = useParams<{ username?: string }>();
@@ -317,6 +318,25 @@ export function useProfileController() {
     }
   };
 
+  const [isStartingChat, setIsStartingChat] = useState(false);
+
+  const handleStartChat = async () => {
+    if (!profile) return;
+    if (!isAuthenticated || !currentAuthProfile?.id) {
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    setIsStartingChat(true);
+    try {
+      const conv = await createConversation(null, currentAuthProfile.id, profile.id);
+      navigate(`/pesan?conversation_id=${conv.id}`);
+    } catch {
+      navigate(`/pesan?new_chat=${profile.id}`);
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
+
   const handleShareProfile = async () => {
     const url = window.location.href;
     const shareData = {
@@ -410,6 +430,8 @@ export function useProfileController() {
     handleModalBannerFileChange,
     handleSaveProfile,
     handleShareProfile,
+    handleStartChat,
+    isStartingChat,
     totalSupportAndLikes,
     currentTheme,
   };

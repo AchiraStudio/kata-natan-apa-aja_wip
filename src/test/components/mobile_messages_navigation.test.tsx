@@ -3,6 +3,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { BottomNav } from '../../components/layout/BottomNav';
+import { FeedContainer } from '../../components/feed/FeedContainer';
+import { ProfileHeader } from '../../components/profile/ProfileHeader';
+import { MessagesView } from '../../views/MessagesView';
 import * as AuthContextModule from '../../context/AuthContext';
 import * as TitikContextModule from '../../context/TitikContext';
 import { ThemeProvider } from '../../context/ThemeContext';
@@ -16,8 +19,16 @@ const mockCitizen = {
   role: 'citizen' as const,
 };
 
+const otherCitizen = {
+  id: 'usr-cit-20',
+  username: 'wargabaru',
+  displayName: 'Budi Santoso',
+  avatarUrl: 'https://example.com/budi.jpg',
+  role: 'citizen' as const,
+};
+
 describe('Mobile Messages Navigation & E2EE Safety Invariants', () => {
-  it('BottomNav renders the "Pesan" tab linking to "/pesan"', () => {
+  it('BottomNav renders 5-column layout with centered "+" button and removes redundant Pesan button', () => {
     vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
       profile: mockCitizen,
       isAuthenticated: true,
@@ -38,13 +49,19 @@ describe('Mobile Messages Navigation & E2EE Safety Invariants', () => {
       </ThemeProvider>
     );
 
-    expect(html).toContain('href="/pesan"');
-    expect(html).toContain('Pesan');
+    // Strict 5-column grid for symmetry & centering
+    expect(html).toContain('grid-cols-5');
+    expect(html).toContain('aria-label="Buat"');
     expect(html).toContain('href="/map"');
     expect(html).toContain('Peta');
+    expect(html).toContain('href="/explore"');
+    expect(html).toContain('Explore');
+
+    // Message button has been cleanly removed from BottomNav to avoid redundancy
+    expect(html).not.toContain('href="/pesan"');
   });
 
-  it('BottomNav highlights the "Pesan" tab when route is "/pesan"', () => {
+  it('FeedContainer header displays the top-right Messages button with unread notification dot', () => {
     vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
       profile: mockCitizen,
       isAuthenticated: true,
@@ -58,15 +75,16 @@ describe('Mobile Messages Navigation & E2EE Safety Invariants', () => {
     const html = renderToStaticMarkup(
       <ThemeProvider>
         <TitikContextModule.TitikProvider>
-          <MemoryRouter initialEntries={['/pesan']}>
-            <BottomNav />
+          <MemoryRouter initialEntries={['/']}>
+            <FeedContainer />
           </MemoryRouter>
         </TitikContextModule.TitikProvider>
       </ThemeProvider>
     );
 
-    expect(html).toContain('text-emerald-400 font-bold');
-    expect(html).toContain('translate-y-0 opacity-100');
+    expect(html).toContain('title="Pesan Langsung"');
+    expect(html).toContain('data-testid="messages-unread-dot"');
+    expect(html).toContain('bg-amber-500');
   });
 
   it('BottomNav translates down when inside active mobile chat on "/pesan?conversation_id=conv-demo-01"', () => {
@@ -93,6 +111,68 @@ describe('Mobile Messages Navigation & E2EE Safety Invariants', () => {
     expect(html).toContain('translate-y-28 opacity-0 pointer-events-none');
   });
 
+  it('ProfileHeader renders "Kirim Pesan" button when viewing another citizen profile', () => {
+    const mockCtrl: any = {
+      profile: otherCitizen,
+      posts: [],
+      reports: [],
+      setActiveTab: vi.fn(),
+      avatarInputRef: { current: null },
+      bannerInputRef: { current: null },
+      isOwnProfile: false,
+      handleOpenEdit: vi.fn(),
+      handleAvatarFileChange: vi.fn(),
+      handleBannerFileChange: vi.fn(),
+      handleShareProfile: vi.fn(),
+      handleStartChat: vi.fn(),
+      isStartingChat: false,
+      totalSupportAndLikes: 10,
+      currentTheme: {
+        cardBg: 'bg-white',
+        cardBorder: 'border-slate-200',
+        bannerGradient: 'from-emerald-900 to-slate-900',
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <ProfileHeader ctrl={mockCtrl} />
+      </MemoryRouter>
+    );
+
+    expect(html).toContain('Kirim Pesan');
+    expect(html).toContain('Bagikan Profil');
+  });
+
+  it('MessagesView renders "Halo," greeting, filter pills, FAB button, and E2EE active status', () => {
+    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+      profile: mockCitizen,
+      isAuthenticated: true,
+      isLoading: false,
+      loginWithPassword: vi.fn(),
+      registerCitizen: vi.fn(),
+      logout: vi.fn(),
+      updateProfile: vi.fn(),
+    } as any);
+
+    const html = renderToStaticMarkup(
+      <ThemeProvider>
+        <TitikContextModule.TitikProvider>
+          <MemoryRouter initialEntries={['/pesan?conversation_id=conv-demo-01']}>
+            <MessagesView />
+          </MemoryRouter>
+        </TitikContextModule.TitikProvider>
+      </ThemeProvider>
+    );
+
+    // Inspiration styling elements
+    expect(html).toContain('Halo,');
+    expect(html).toContain('Online &amp; E2EE Aktif (AES-GCM-256)');
+    expect(html).toContain('Semua');
+    expect(html).toContain('Belum Dibaca');
+    expect(html).toContain('aria-label="Mulai Percakapan Baru"');
+  });
+
   it('demo conversations return cleanly without throwing or spamming Supabase', async () => {
     const msgs = await getMessages('conv-demo-01');
     expect(Array.isArray(msgs)).toBe(true);
@@ -107,4 +187,3 @@ describe('Mobile Messages Navigation & E2EE Safety Invariants', () => {
     expect(sent.conversation_id).toBe('conv-demo-01');
   });
 });
-
