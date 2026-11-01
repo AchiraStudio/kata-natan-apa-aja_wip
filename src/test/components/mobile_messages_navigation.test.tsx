@@ -107,3 +107,4 @@ describe('Mobile Messages Navigation & E2EE Safety Invariants', () => {
     expect(sent.conversation_id).toBe('conv-demo-01');
   });
 });
+
