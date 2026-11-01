@@ -186,11 +186,15 @@ export const MessagesView: React.FC = () => {
     conversationsRef.current = conversations;
   }, [conversations]);
 
-  // Sync unread count across app and header dot
+  // Sync unread count across app and header dot (only if count changes to avoid re-render churn)
+  const lastReportedUnreadRef = useRef<number | null>(null);
   useEffect(() => {
     const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count ?? 0), 0);
-    setUnreadMessagesCount?.(totalUnread);
-    window.dispatchEvent(new CustomEvent('titik-unread-count', { detail: { count: totalUnread } }));
+    if (lastReportedUnreadRef.current !== totalUnread) {
+      lastReportedUnreadRef.current = totalUnread;
+      setUnreadMessagesCount?.(totalUnread);
+      window.dispatchEvent(new CustomEvent('titik-unread-count', { detail: { count: totalUnread } }));
+    }
   }, [conversations, setUnreadMessagesCount]);
 
   // Initial load of conversations
@@ -1061,28 +1065,22 @@ export const MessagesView: React.FC = () => {
               </div>
             </header>
 
-            {/* Linked Report Announcement Banner */}
-            {activeConversation.report_id && (
-              <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between text-xs text-amber-900 dark:text-amber-300">
-                <div className="flex items-center gap-2">
-                  <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>
-                    Percakapan ini terkait laporan resmi{' '}
-                    <strong className="font-mono">{activeConversation.report_reference}</strong>.
-                    Pesan terlindungi oleh enkripsi kunci deterministik.
-                  </span>
-                </div>
-              </div>
-            )}
-
             {/* Message Thread Scroll View */}
-            <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-4 space-y-3">
-              {/* E2EE notice pill */}
-              <div className="flex justify-center my-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E3E0D6]/60 dark:bg-[#26352E]/60 text-[10px] font-medium text-[#4F5A52] dark:text-[#9EACA3]">
+            <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3.5 sm:p-4 space-y-3.5">
+              {/* Clean Cryptographic & Report Context Pill */}
+              <div className="flex flex-col items-center gap-1.5 my-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/20 text-[10px] font-medium text-emerald-800 dark:text-emerald-300">
                   <Lock className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                   <span>Pesan terenkripsi end-to-end. Hanya Anda dan lawan bicara yang dapat membaca.</span>
                 </div>
+                {activeConversation.report_reference && (
+                  <div className="inline-flex items-center gap-1 text-[11px] text-[#6E7B74] dark:text-[#8FA096]">
+                    <span>Terkait laporan resmi</span>
+                    <strong className="font-mono text-amber-700 dark:text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                      {activeConversation.report_reference}
+                    </strong>
+                  </div>
+                )}
               </div>
 
               {isLoadingMessages ? (
@@ -1111,12 +1109,12 @@ export const MessagesView: React.FC = () => {
                       key={msg.id}
                       className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} space-y-1`}
                     >
-                      {/* Sender name for non-mine messages in group/admin context */}
-                      {!isMine && (
-                        <span className="text-[10px] font-bold text-[#4F5A52] dark:text-[#9EACA3] px-1">
+                      {/* Sender name for non-mine messages in admin/official context */}
+                      {!isMine && activeConversation.other_participant?.role === 'admin' && (
+                        <span className="text-[10px] font-bold text-[#6E7B74] dark:text-[#8FA096] px-1">
                           {msg.sender?.displayName ??
                             activeConversation.other_participant?.displayName ??
-                            'Lawan Bicara'}
+                            'Dinas Resmi'}
                         </span>
                       )}
 
@@ -1266,46 +1264,46 @@ export const MessagesView: React.FC = () => {
 
             {/* Quick Status Action Bar for Admin Engagement */}
             {profile?.role === 'admin' && activeConversation.report_id && (
-              <div className="px-3.5 py-2 bg-[#F7F5EF] dark:bg-[#131916] border-t border-[#E3E0D6]/80 dark:border-[#26352E]/80 flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
-                <span className="text-[10px] font-bold text-[#4F5A52] dark:text-[#9EACA3] uppercase tracking-wider shrink-0 flex items-center gap-1">
+              <div className="px-3.5 py-1.5 bg-white/95 dark:bg-[#131916]/95 backdrop-blur-md border-t border-[#E3E0D6]/70 dark:border-[#26352E]/70 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+                <span className="text-[10px] font-bold text-[#6E7B74] dark:text-[#8FA096] uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
                   <Sparkles className="w-3 h-3 text-amber-500" />
                   <span>Aksi Cepat:</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => handleQuickAction('request_info')}
-                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-[#1A221E] border border-amber-300 dark:border-amber-700/60 text-amber-800 dark:text-amber-300 hover:bg-amber-50 transition-colors shrink-0 cursor-pointer shadow-2xs"
+                  className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-300 hover:bg-amber-100 transition-colors shrink-0 cursor-pointer shadow-2xs active:scale-95"
                 >
                   Minta Info Tambahan
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickAction('disposition_update')}
-                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-[#1A221E] border border-emerald-300 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 transition-colors shrink-0 cursor-pointer shadow-2xs"
+                  className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-[#1A2820] border border-emerald-300 dark:border-emerald-700/60 text-emerald-900 dark:text-emerald-300 hover:bg-emerald-100 transition-colors shrink-0 cursor-pointer shadow-2xs active:scale-95"
                 >
                   Disposisi Lapangan
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickAction('resolution_notice')}
-                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-[#1A221E] border border-emerald-300 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 transition-colors shrink-0 cursor-pointer shadow-2xs"
+                  className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-[#1A2820] border border-emerald-300 dark:border-emerald-700/60 text-emerald-900 dark:text-emerald-300 hover:bg-emerald-100 transition-colors shrink-0 cursor-pointer shadow-2xs active:scale-95"
                 >
                   Laporan Tuntas
                 </button>
               </div>
             )}
 
-            {/* Floating Docked Input Composer (Inspiration Image 3) */}
-            <footer className="p-3 bg-transparent shrink-0 space-y-1.5">
+            {/* Docked Input Composer */}
+            <footer className="p-2.5 sm:p-3 bg-white/95 dark:bg-[#131916]/95 backdrop-blur-md border-t border-[#E3E0D6] dark:border-[#26352E] shrink-0 space-y-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom,12px))]">
               <form
                 onSubmit={handleSendMessage}
-                className="max-w-4xl mx-auto flex items-center gap-2 p-1.5 pl-3 rounded-full bg-white dark:bg-[#161F1B] border border-[#E3E0D6] dark:border-[#26352E] shadow-lg shadow-black/5"
+                className="max-w-4xl mx-auto flex items-center gap-2 p-1.5 pl-3.5 rounded-full bg-[#F7F5EF] dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] shadow-xs focus-within:border-[#1B4332] dark:focus-within:border-[#10B981] transition-all"
               >
                 <button
                   type="button"
                   title="Lampirkan foto / berkas bukti"
                   onClick={() => alert('Fitur lampiran media terenkripsi aktif.')}
-                  className="p-1.5 rounded-full text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#1A221E] transition-colors cursor-pointer shrink-0"
+                  className="p-1.5 rounded-full text-[#6E7B74] dark:text-[#8FA096] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-white dark:hover:bg-[#26352E] transition-colors cursor-pointer shrink-0"
                 >
                   <Paperclip className="w-4 h-4" />
                 </button>
@@ -1316,7 +1314,7 @@ export const MessagesView: React.FC = () => {
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
                   placeholder="Ketik pesan terenkripsi end-to-end..."
-                  className="flex-1 min-w-0 py-1.5 px-2 bg-transparent text-xs text-[#101913] dark:text-[#F3F6F4] placeholder-[#4F5A52] dark:placeholder-[#9EACA3] focus:outline-none"
+                  className="flex-1 min-w-0 py-1.5 px-2 bg-transparent text-xs sm:text-sm text-[#101913] dark:text-[#F3F6F4] placeholder-[#8FA096] dark:placeholder-[#6E7B74] focus:outline-none"
                 />
 
                 <button
@@ -1331,12 +1329,12 @@ export const MessagesView: React.FC = () => {
               </form>
 
               {/* Security E2EE footnote */}
-              <div className="flex items-center justify-between px-4 text-[10px] text-[#4F5A52] dark:text-[#9EACA3]">
+              <div className="flex items-center justify-between px-3 text-[10px] text-[#6E7B74] dark:text-[#8FA096]">
                 <span className="flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>Dienkripsi di browser via SubtleCrypto sebelum diteruskan ke Supabase.</span>
                 </span>
-                <span className="font-mono text-[9px]">AES-GCM-256</span>
+                <span className="font-mono text-[9px] font-semibold">AES-GCM-256</span>
               </div>
             </footer>
           </>

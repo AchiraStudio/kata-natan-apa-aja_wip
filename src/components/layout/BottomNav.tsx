@@ -17,11 +17,8 @@ export const BottomNav: React.FC = () => {
 
   const currentPath = location.pathname;
 
-  // Hide BottomNav when inside active individual chat view on mobile to avoid overlapping the input bar
-  const isChatActiveOnMobile =
-    currentPath.startsWith('/pesan') &&
-    (Boolean(location.search.includes('conversation_id')) ||
-      Boolean(location.search.includes('report_id')));
+  // Hide BottomNav on mobile when inside /pesan to prevent overlapping the chat interface and input composer
+  const isMessagesOnMobile = currentPath.startsWith('/pesan');
 
   // Listen to comments bottom sheet open/close to avoid overlaying input controls
   useEffect(() => {
@@ -67,7 +64,7 @@ export const BottomNav: React.FC = () => {
     <nav
       aria-label="Navigasi Utama Mobile"
       className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom,16px))] left-1/2 -translate-x-1/2 z-40 lg:hidden grid grid-cols-5 items-center w-[95%] max-w-md px-2 py-2 bg-[#101913]/90 dark:bg-[#131916]/95 backdrop-blur-md rounded-full shadow-2xl border border-white/10 dark:border-[#26352E] text-white transition-all duration-300 ${
-        isVisible && !isCommentsSheetOpen && !isChatActiveOnMobile
+        isVisible && !isCommentsSheetOpen && !isMessagesOnMobile
           ? 'translate-y-0 opacity-100 scale-100'
           : 'translate-y-28 opacity-0 pointer-events-none scale-95'
       }`}

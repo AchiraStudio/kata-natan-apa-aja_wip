@@ -3,6 +3,31 @@ import type { Conversation, Message, MessageType, UserProfile } from '../types/d
 import { encryptMessage, decryptMessage } from '../utils/crypto';
 
 // ---------------------------------------------------------------------------
+// Table availability circuit-breaker (prevents repeated 404 console flooding if SQL migration hasn't been run)
+// ---------------------------------------------------------------------------
+let isMessagesTableAvailable: boolean | null = null;
+let isConversationsTableAvailable: boolean | null = null;
+
+function isTableMissingError(error: any): boolean {
+  if (!error) return false;
+  const status = error.status || error.statusCode;
+  const code = error.code;
+  const message = (error.message || '').toLowerCase();
+  return (
+    status === 404 ||
+    code === 'PGRST204' ||
+    code === 'PGRST205' ||
+    code === '42P01' ||
+    (message.includes('relation') && message.includes('does not exist')) ||
+    message.includes('could not find the table') ||
+    message.includes('not found')
+  );
+}
+
+// In-memory / session store for local/fallback conversation messages
+const localMessagesStore = new Map<string, Message[]>();
+
+// ---------------------------------------------------------------------------
 // Profile helper — fetch a single profile by user id
 // ---------------------------------------------------------------------------
 async function fetchProfile(userId: string): Promise<UserProfile | undefined> {
@@ -26,7 +51,7 @@ async function fetchProfile(userId: string): Promise<UserProfile | undefined> {
 // getConversations
 // ---------------------------------------------------------------------------
 export async function getConversations(userId: string): Promise<Conversation[]> {
-  if (!isSupabaseConfigured || !userId) return [];
+  if (!isSupabaseConfigured || !userId || isConversationsTableAvailable === false) return [];
 
   try {
     const { data, error } = await supabase
@@ -35,7 +60,14 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
       .contains('participant_ids', [userId])
       .order('updated_at', { ascending: false });
 
-    if (error || !data) return [];
+    if (error) {
+      if (isTableMissingError(error)) {
+        isConversationsTableAvailable = false;
+      }
+      return [];
+    }
+    if (!data) return [];
+    isConversationsTableAvailable = true;
 
     const enriched: Conversation[] = await Promise.all(
       data.map(async (conv) => {
@@ -44,51 +76,62 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
 
         // Last message
         let lastMsg: Message | undefined;
-        try {
-          const { data: msgs } = await supabase
-            .from('messages')
-            .select('*')
-            .eq('conversation_id', conv.id)
-            .order('created_at', { ascending: false })
-            .limit(1);
+        if (isMessagesTableAvailable !== false) {
+          try {
+            const { data: msgs, error: msgError } = await supabase
+              .from('messages')
+              .select('*')
+              .eq('conversation_id', conv.id)
+              .order('created_at', { ascending: false })
+              .limit(1);
 
-          if (msgs?.[0]) {
-            let decryptedContent = msgs[0].content;
-            if (decryptedContent && Array.isArray(conv.participant_ids) && conv.participant_ids.length > 0) {
-              try {
-                decryptedContent = await decryptMessage(decryptedContent, conv.id, conv.participant_ids);
-              } catch {
-                decryptedContent = msgs[0].content;
+            if (msgError && isTableMissingError(msgError)) {
+              isMessagesTableAvailable = false;
+            } else if (msgs?.[0]) {
+              isMessagesTableAvailable = true;
+              let decryptedContent = msgs[0].content;
+              if (decryptedContent && Array.isArray(conv.participant_ids) && conv.participant_ids.length > 0) {
+                try {
+                  decryptedContent = await decryptMessage(decryptedContent, conv.id, conv.participant_ids);
+                } catch {
+                  decryptedContent = msgs[0].content;
+                }
               }
-            }
 
-            lastMsg = {
-              id: msgs[0].id,
-              conversation_id: msgs[0].conversation_id,
-              sender_id: msgs[0].sender_id,
-              content: decryptedContent,
-              message_type: msgs[0].message_type,
-              attachments: msgs[0].attachments ?? [],
-              created_at: msgs[0].created_at,
-              read_at: msgs[0].read_at,
-            };
+              lastMsg = {
+                id: msgs[0].id,
+                conversation_id: msgs[0].conversation_id,
+                sender_id: msgs[0].sender_id,
+                content: decryptedContent,
+                message_type: msgs[0].message_type,
+                attachments: msgs[0].attachments ?? [],
+                created_at: msgs[0].created_at,
+                read_at: msgs[0].read_at,
+              };
+            }
+          } catch {
+            // ignore last message query failure
           }
-        } catch {
-          // ignore last message query failure
         }
 
         // Unread count
         let unread = 0;
-        try {
-          const { count } = await supabase
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('conversation_id', conv.id)
-            .neq('sender_id', userId)
-            .is('read_at', null);
-          unread = count ?? 0;
-        } catch {
-          unread = 0;
+        if (isMessagesTableAvailable !== false) {
+          try {
+            const { count, error: countError } = await supabase
+              .from('messages')
+              .select('*', { count: 'exact', head: true })
+              .eq('conversation_id', conv.id)
+              .neq('sender_id', userId)
+              .is('read_at', null);
+            if (countError && isTableMissingError(countError)) {
+              isMessagesTableAvailable = false;
+            } else {
+              unread = count ?? 0;
+            }
+          } catch {
+            unread = 0;
+          }
         }
 
         // Report reference
@@ -135,9 +178,9 @@ export async function getMessages(
 ): Promise<Message[]> {
   if (!isSupabaseConfigured || !conversationId) return [];
 
-  // Demo conversations are local only
-  if (conversationId.startsWith('conv-demo')) {
-    return [];
+  // Demo conversations or when messages table is unavailable return local messages
+  if (conversationId.startsWith('conv-demo') || isMessagesTableAvailable === false) {
+    return localMessagesStore.get(conversationId) ?? [];
   }
 
   try {
@@ -147,7 +190,14 @@ export async function getMessages(
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
-    if (error || !data) return [];
+    if (error) {
+      if (isTableMissingError(error)) {
+        isMessagesTableAvailable = false;
+      }
+      return localMessagesStore.get(conversationId) ?? [];
+    }
+    if (!data) return [];
+    isMessagesTableAvailable = true;
 
     let participants = participantIds;
     if (!participants || participants.length === 0) {
@@ -207,9 +257,9 @@ export async function sendMessage(
 ): Promise<Message> {
   const trimmed = content.trim();
 
-  // If demo conversation or Supabase unconfigured, handle locally
-  if (conversationId.startsWith('conv-demo') || !isSupabaseConfigured) {
-    return {
+  // If demo conversation, Supabase unconfigured, or messages table unavailable, handle locally
+  if (conversationId.startsWith('conv-demo') || !isSupabaseConfigured || isMessagesTableAvailable === false) {
+    const localMsg: Message = {
       id: `msg-${Date.now()}`,
       conversation_id: conversationId,
       sender_id: senderId,
@@ -219,6 +269,9 @@ export async function sendMessage(
       created_at: new Date().toISOString(),
       read_at: null,
     };
+    const existing = localMessagesStore.get(conversationId) ?? [];
+    localMessagesStore.set(conversationId, [...existing, localMsg]);
+    return localMsg;
   }
 
   let participants = participantIds;
@@ -244,40 +297,81 @@ export async function sendMessage(
     }
   }
 
-  const { data, error } = await supabase
-    .from('messages')
-    .insert({
-      conversation_id: conversationId,
-      sender_id: senderId,
-      content: cipherContent,
-      message_type: messageType,
-      attachments: [],
-    })
-    .select()
-    .single();
-
-  if (error || !data) throw new Error(error?.message ?? 'Gagal mengirim pesan.');
-
-  // Touch updated_at on conversation
   try {
-    await supabase
-      .from('conversations')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', conversationId);
-  } catch {
-    // ignore
-  }
+    const { data, error } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        sender_id: senderId,
+        content: cipherContent,
+        message_type: messageType,
+        attachments: [],
+      })
+      .select()
+      .single();
 
-  return {
-    id: data.id,
-    conversation_id: data.conversation_id,
-    sender_id: data.sender_id,
-    content: trimmed,
-    message_type: data.message_type,
-    attachments: data.attachments ?? [],
-    created_at: data.created_at,
-    read_at: data.read_at,
-  };
+    if (error) {
+      if (isTableMissingError(error)) {
+        isMessagesTableAvailable = false;
+        const localMsg: Message = {
+          id: `msg-${Date.now()}`,
+          conversation_id: conversationId,
+          sender_id: senderId,
+          content: trimmed,
+          message_type: messageType,
+          attachments: [],
+          created_at: new Date().toISOString(),
+          read_at: null,
+        };
+        const existing = localMessagesStore.get(conversationId) ?? [];
+        localMessagesStore.set(conversationId, [...existing, localMsg]);
+        return localMsg;
+      }
+      throw new Error(error.message ?? 'Gagal mengirim pesan.');
+    }
+
+    if (!data) throw new Error('Gagal mengirim pesan.');
+    isMessagesTableAvailable = true;
+
+    // Touch updated_at on conversation
+    try {
+      await supabase
+        .from('conversations')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', conversationId);
+    } catch {
+      // ignore
+    }
+
+    return {
+      id: data.id,
+      conversation_id: data.conversation_id,
+      sender_id: data.sender_id,
+      content: trimmed,
+      message_type: data.message_type,
+      attachments: data.attachments ?? [],
+      created_at: data.created_at,
+      read_at: data.read_at,
+    };
+  } catch (err: any) {
+    if (isTableMissingError(err)) {
+      isMessagesTableAvailable = false;
+      const localMsg: Message = {
+        id: `msg-${Date.now()}`,
+        conversation_id: conversationId,
+        sender_id: senderId,
+        content: trimmed,
+        message_type: messageType,
+        attachments: [],
+        created_at: new Date().toISOString(),
+        read_at: null,
+      };
+      const existing = localMessagesStore.get(conversationId) ?? [];
+      localMessagesStore.set(conversationId, [...existing, localMsg]);
+      return localMsg;
+    }
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -406,13 +500,16 @@ export async function createConversation(
 // markAsRead
 // ---------------------------------------------------------------------------
 export async function markAsRead(messageId: string): Promise<void> {
-  if (!isSupabaseConfigured || !messageId || messageId.startsWith('msg-') || messageId.startsWith('opt-')) return;
+  if (!isSupabaseConfigured || !messageId || messageId.startsWith('msg-') || messageId.startsWith('opt-') || isMessagesTableAvailable === false) return;
   try {
-    await supabase
+    const { error } = await supabase
       .from('messages')
       .update({ read_at: new Date().toISOString() })
       .eq('id', messageId)
       .is('read_at', null);
+    if (error && isTableMissingError(error)) {
+      isMessagesTableAvailable = false;
+    }
   } catch {
     // ignore
   }
@@ -422,14 +519,17 @@ export async function markAsRead(messageId: string): Promise<void> {
 // markConversationRead — mark all unread messages in a conversation as read
 // ---------------------------------------------------------------------------
 export async function markConversationRead(conversationId: string, currentUserId: string): Promise<void> {
-  if (!isSupabaseConfigured || !conversationId || conversationId.startsWith('conv-demo')) return;
+  if (!isSupabaseConfigured || !conversationId || conversationId.startsWith('conv-demo') || isMessagesTableAvailable === false) return;
   try {
-    await supabase
+    const { error } = await supabase
       .from('messages')
       .update({ read_at: new Date().toISOString() })
       .eq('conversation_id', conversationId)
       .neq('sender_id', currentUserId)
       .is('read_at', null);
+    if (error && isTableMissingError(error)) {
+      isMessagesTableAvailable = false;
+    }
   } catch {
     // ignore
   }
@@ -443,7 +543,7 @@ export function subscribeToMessages(
   callback: (msg: Message) => void,
   participantIds?: string[]
 ) {
-  if (!isSupabaseConfigured || !conversationId || conversationId.startsWith('conv-demo')) {
+  if (!isSupabaseConfigured || !conversationId || conversationId.startsWith('conv-demo') || isMessagesTableAvailable === false) {
     return { unsubscribe: () => {} };
   }
 
@@ -509,7 +609,7 @@ export function subscribeToConversations(
   userId: string,
   callback: () => void
 ) {
-  if (!isSupabaseConfigured) return { unsubscribe: () => {} };
+  if (!isSupabaseConfigured || isConversationsTableAvailable === false) return { unsubscribe: () => {} };
 
   const channel = supabase
     .channel(`conversations-${userId}`)
