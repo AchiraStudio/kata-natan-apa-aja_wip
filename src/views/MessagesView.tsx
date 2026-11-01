@@ -146,13 +146,13 @@ export const MessagesView: React.FC = () => {
 
   const initialConvId = searchParams.get('conversation_id');
   const initialRepId = searchParams.get('report_id');
-  const initialNewChat = searchParams.get('new_chat');
-  const hasDeepLink = Boolean(initialConvId || initialRepId || initialNewChat);
 
-  const matchedInitial = hasDeepLink
-    ? fallbackConversations.find(
-        (c) => c.id === initialConvId || (initialRepId && c.report_id === initialRepId)
-      ) ?? fallbackConversations[0]
+  // Match initial conversation only if an explicit deep link param is provided.
+  // Direct navigation to /pesan without params MUST start with null to show the inbox list on mobile.
+  const matchedInitial = initialConvId
+    ? fallbackConversations.find((c) => c.id === initialConvId) ?? fallbackConversations[0]
+    : initialRepId
+    ? fallbackConversations.find((c) => c.report_id === initialRepId) ?? null
     : null;
 
   // State
@@ -238,7 +238,7 @@ export const MessagesView: React.FC = () => {
   useEffect(() => {
     const convId = searchParams.get('conversation_id');
     const repId = searchParams.get('report_id');
-    const newChatUserId = searchParams.get('new_chat');
+    const newChatUserId = searchParams.get('new_chat') || searchParams.get('user_id');
 
     if (convId) {
       setActiveConversationId((prev) => (prev === convId ? prev : convId));
@@ -276,6 +276,9 @@ export const MessagesView: React.FC = () => {
           })
           .catch(() => {});
       }
+    } else {
+      // Direct navigation to /pesan without params: ALWAYS show conversation list (inbox)
+      setActiveConversationId((prev) => (prev === null ? prev : null));
     }
   }, [searchParams, reports, profile?.id, setSearchParams]);
 
