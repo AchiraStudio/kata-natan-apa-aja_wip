@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   X,
   MapPin,
@@ -10,8 +10,11 @@ import {
   Copy,
   AlertCircle,
   ArrowRight,
+  MessageSquare,
 } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
+import { useAuth } from '../../context/AuthContext';
+import { createConversation } from '../../services/messagesService';
 import { SaveReportButton } from './SaveReportButton';
 import '../../views/ReportDetailView.css';
 
@@ -53,7 +56,10 @@ const getDrawerStageNumber = (status: string) => {
 
 export const ReportDetailDrawer: React.FC = () => {
   const { reportDetailOpen, closeReportDetail, selectedReport, toggleSupport } = useTitik();
+  const { profile } = useAuth();
+  const navigate = useNavigate();
   const [copiedRef, setCopiedRef] = useState(false);
+  const [isMessaging, setIsMessaging] = useState(false);
 
   if (!reportDetailOpen || !selectedReport) return null;
 
@@ -64,6 +70,30 @@ export const ReportDetailDrawer: React.FC = () => {
     navigator.clipboard.writeText(selectedReport.publicReference);
     setCopiedRef(true);
     setTimeout(() => setCopiedRef(false), 2000);
+  };
+
+  const handleMessageReporter = async () => {
+    if (!selectedReport) return;
+    setIsMessaging(true);
+    try {
+      if (selectedReport.reporterUserId && profile?.id) {
+        const conv = await createConversation(
+          selectedReport.id,
+          profile.id,
+          selectedReport.reporterUserId
+        );
+        closeReportDetail();
+        navigate(`/pesan?conversation_id=${conv.id}`);
+      } else {
+        closeReportDetail();
+        navigate(`/pesan?report_id=${selectedReport.id}`);
+      }
+    } catch {
+      closeReportDetail();
+      navigate(`/pesan?report_id=${selectedReport.id}`);
+    } finally {
+      setIsMessaging(false);
+    }
   };
 
   const getStatusColor = (st: string) => {
@@ -334,11 +364,23 @@ export const ReportDetailDrawer: React.FC = () => {
         </div>
 
         {/* Drawer Bottom Actions */}
-        <div className="p-4 border-t border-[#E3E0D6] dark:border-[#26352E] bg-[#F7F5EF] dark:bg-[#131916] flex items-center justify-between gap-3 sticky bottom-0">
+        <div className="p-4 border-t border-[#E3E0D6] dark:border-[#26352E] bg-[#F7F5EF] dark:bg-[#131916] flex flex-col sm:flex-row items-center justify-between gap-2.5 sticky bottom-0">
+          {profile?.role === 'admin' && (
+            <button
+              type="button"
+              onClick={handleMessageReporter}
+              disabled={isMessaging}
+              className="w-full sm:w-auto py-2.5 px-4 bg-[#1B4332] dark:bg-[#10B981] hover:bg-[#14352A] dark:hover:bg-[#0E9F6E] disabled:opacity-50 text-white dark:text-[#0A1610] rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>{isMessaging ? 'Membuka...' : 'Kirim Pesan ke Pelapor'}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => toggleSupport(selectedReport.id)}
-            className={`flex-1 py-2.5 px-4 rounded-full text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer ${
+            className={`flex-1 w-full py-2.5 px-4 rounded-full text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer ${
               selectedReport.isSupportedByMe
                 ? 'bg-red-600 text-white'
                 : 'bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] text-[#101913] dark:text-[#F3F6F4] hover:border-[#1B4332] dark:hover:border-[#10B981]'
@@ -353,7 +395,7 @@ export const ReportDetailDrawer: React.FC = () => {
           <a
             href="/track"
             onClick={closeReportDetail}
-            className="py-2.5 px-4 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-full text-xs font-semibold hover:bg-[#14352A] dark:hover:bg-[#34D399] transition-colors cursor-pointer"
+            className="w-full sm:w-auto py-2.5 px-4 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-full text-xs font-semibold hover:bg-[#14352A] dark:hover:bg-[#34D399] transition-colors cursor-pointer text-center"
           >
             Lacak Mandiri
           </a>

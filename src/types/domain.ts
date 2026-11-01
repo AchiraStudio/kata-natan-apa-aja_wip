@@ -196,3 +196,39 @@ export interface Facility {
 }
 
 export type { NewReportInput, ReportSubmitResult } from '../services/adapters/types';
+
+// =============================================================================
+// Messaging Domain Types
+// =============================================================================
+
+export type MessageType = 'text' | 'status_update' | 'info_request' | 'resolution';
+
+export interface MessageAttachment {
+  url: string;
+  name: string;
+  type: string;
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  message_type: MessageType;
+  attachments: MessageAttachment[];
+  created_at: string;
+  read_at: string | null;
+  sender?: UserProfile;
+}
+
+export interface Conversation {
+  id: string;
+  report_id: string | null;
+  participant_ids: string[];
+  created_at: string;
+  updated_at: string;
+  other_participant?: UserProfile;
+  last_message?: Message;
+  unread_count?: number;
+  report_reference?: string;
+}

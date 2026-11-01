@@ -19,25 +19,13 @@ const SavedReportsView = React.lazy(() => import('./views/SavedReportsView').the
 const ProfileView = React.lazy(() => import('./views/ProfileView').then((m) => ({ default: m.ProfileView })));
 const PostDetailView = React.lazy(() => import('./views/PostDetailView').then((m) => ({ default: m.PostDetailView })));
 const AccountSetupView = React.lazy(() => import('./views/AccountSetupView').then((m) => ({ default: m.AccountSetupView })));
+const MessagesView = React.lazy(() => import('./views/MessagesView'));
 
 const PageFallback: React.FC = () => (
   <div className="min-h-screen bg-[#F7F5EF] dark:bg-[#0A100D] flex items-center justify-center text-xs font-semibold text-[#4F5A52] dark:text-[#9EACA3]">
     <div className="flex items-center gap-2">
       <div className="w-2 h-2 rounded-full bg-[#1B4332] dark:bg-[#34D399] animate-pulse" />
       <span>Memuat halaman...</span>
-    </div>
-  </div>
-);
-
-const MessagesPlaceholderView: React.FC = () => (
-  <div className="flex-1 min-h-0 flex items-center justify-center p-6 text-center text-[#4F5A52] dark:text-[#9EACA3]">
-    <div className="max-w-md w-full bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-8 shadow-xs space-y-3">
-      <h2 className="text-base font-bold text-[#101913] dark:text-[#F3F6F4]">
-        Pesan Langsung Terenkripsi
-      </h2>
-      <p className="text-xs">
-        Sistem pesan langsung Beeper-style siap dikonfigurasi.
-      </p>
     </div>
   </div>
 );
@@ -176,7 +164,14 @@ export const AppRoutes: React.FC = () => {
               </AuthenticatedRoute>
             }
           />
-          <Route path="/pesan" element={<MessagesPlaceholderView />} />
+          <Route
+            path="/pesan"
+            element={
+              <AuthenticatedRoute>
+                <MessagesView />
+              </AuthenticatedRoute>
+            }
+          />
           {/* Admin Portal & 5 Sub-Routes - Protected by AdminOnlyRoute */}
           <Route
             path="/admin"
