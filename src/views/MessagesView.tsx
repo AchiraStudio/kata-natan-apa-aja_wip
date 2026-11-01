@@ -146,9 +146,14 @@ export const MessagesView: React.FC = () => {
 
   const initialConvId = searchParams.get('conversation_id');
   const initialRepId = searchParams.get('report_id');
-  const matchedInitial = fallbackConversations.find(
-    (c) => c.id === initialConvId || (initialRepId && c.report_id === initialRepId)
-  ) ?? fallbackConversations[0];
+  const initialNewChat = searchParams.get('new_chat');
+  const hasDeepLink = Boolean(initialConvId || initialRepId || initialNewChat);
+
+  const matchedInitial = hasDeepLink
+    ? fallbackConversations.find(
+        (c) => c.id === initialConvId || (initialRepId && c.report_id === initialRepId)
+      ) ?? fallbackConversations[0]
+    : null;
 
   // State
   const [conversations, setConversations] = useState<Conversation[]>(() => fallbackConversations);
@@ -267,11 +272,8 @@ export const MessagesView: React.FC = () => {
           })
           .catch(() => {});
       }
-    } else if (!activeConversationId && conversationsRef.current.length > 0 && typeof window !== 'undefined' && window.innerWidth >= 768) {
-      // Default to first conversation on desktop
-      setActiveConversationId(conversationsRef.current[0].id);
     }
-  }, [searchParams, reports, profile?.id, activeConversationId, setSearchParams]);
+  }, [searchParams, reports, profile?.id, setSearchParams]);
 
   // Load messages when active conversation changes
   useEffect(() => {

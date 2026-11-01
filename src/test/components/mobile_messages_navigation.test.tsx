@@ -173,6 +173,35 @@ describe('Mobile Messages Navigation & E2EE Safety Invariants', () => {
     expect(html).toContain('aria-label="Mulai Percakapan Baru"');
   });
 
+  it('MessagesView on direct navigation to "/pesan" shows the conversation list first without auto-opening Budi Santoso', () => {
+    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+      profile: mockCitizen,
+      isAuthenticated: true,
+      isLoading: false,
+      loginWithPassword: vi.fn(),
+      registerCitizen: vi.fn(),
+      logout: vi.fn(),
+      updateProfile: vi.fn(),
+    } as any);
+
+    const html = renderToStaticMarkup(
+      <ThemeProvider>
+        <TitikContextModule.TitikProvider>
+          <MemoryRouter initialEntries={['/pesan']}>
+            <MessagesView />
+          </MemoryRouter>
+        </TitikContextModule.TitikProvider>
+      </ThemeProvider>
+    );
+
+    // Conversation list must remain visible (flex, not hidden on mobile)
+    expect(html).toContain('w-full md:w-[280px]');
+    expect(html).toContain('Halo,');
+    expect(html).toContain('Pesan Masuk');
+    expect(html).toContain('Kontak Terkini');
+    expect(html).toContain('Pilih percakapan di bilah kiri');
+  });
+
   it('demo conversations return cleanly without throwing or spamming Supabase', async () => {
     const msgs = await getMessages('conv-demo-01');
     expect(Array.isArray(msgs)).toBe(true);
