@@ -1,31 +1,36 @@
 # TITIK.
 
-Platform warga untuk melaporkan masalah fasilitas publik di Kota Bogor, lalu melacak laporannya sampai ada tindak lanjut. Feed-nya vertikal seperti TikTok, tapi setiap laporan punya bukti, lokasi, nomor referensi, dan konteks anggaran APBD.
+Platform warga untuk melaporkan masalah fasilitas publik di Kota Bogor dan memantau penanganannya secara transparan. Dilengkapi feed vertikal, penandaan lokasi geospasial, pelacakan anggaran APBD, dan pesan langsung terenkripsi end-to-end (E2EE).
 
 Dibuat untuk **Multimedia In Action 2026 (Web In Action)**, subtema Civic.
 
 **Demo:** https://kata-natan-apa-aja-wip.pages.dev/
 
-## Yang bisa dilakukan
+## Fitur Utama
 
-- **Feed** vertikal: lihat postingan dan laporan warga, dukung ("saya terdampak juga"), suka, simpan, komentar berulir.
-- **Buat**: satu tombol, dua tab.
-  - *Postingan*: tulisan, media, lokasi, opsional tautkan ke fasilitas.
-  - *Laporan*: form 4 langkah dengan bukti wajib (1 foto + 1 video). Hasilnya nomor referensi `TIK-2026-XXXXXX` dan token rahasia untuk melacak.
-- **Lacak** laporan lewat `/track` pakai nomor referensi dan token, tanpa perlu login.
-- **Peta** fasilitas dan laporan (Leaflet + OpenStreetMap).
-- **Profil** di `/u/:username` berisi postingan dan laporan publik. Postingan tersimpan hanya terlihat oleh pemiliknya.
-- **Admin** untuk mengubah status laporan.
+- **Feed Vertikal**: Laporan & postingan warga, dukungan dampak publik ("saya terdampak juga"), suka, simpan, dan komentar berulir.
+- **Buat Konten**:
+  - *Postingan*: Opini warga, foto/video, lokasi, dan tautan fasilitas publik.
+  - *Laporan*: Formulir 4 langkah dengan bukti visual wajib. Menghasilkan ID referensi unik `TIK-2026-XXXXXX` dan token pelacak privat.
+- **Pesan Terenkripsi (E2EE)** di `/pesan`: Obrolan dua arah warga dan verifikator dengan enkripsi Web Crypto API (AES-GCM-256). Supabase hanya bertindak sebagai perantara ciphertext.
+- **Portal admin** di `/admin`: Antarmuka 100vh dengan 5 sub-halaman:
+  - `/admin/overview`: Ringkasan metrik dan KPI laporan masuk.
+  - `/admin/validasi`: Meja kerja verifikasi bukti fisik & respons resmi.
+  - `/admin/disposisi`: Distribusi rute dinas teknis (PUPR, Dishub, DLH) dan SLA.
+  - `/admin/anggaran`: Rekap APBD live per sektor dan audit serapan dana.
+  - `/admin/pengguna`: Manajemen warga dan pengaturan peran admin.
+- **Peta & Eksplorasi** (`/map`, `/explore`): Pemetaan geospasial fasilitas dan sektor terdampak.
+- **Pelacakan Tanpa Akun** (`/track`): Cek status laporan langsung via kode referensi & token rahasia.
 
-Metadata EXIF/GPS dihapus dari foto sebelum diunggah. Laporan anonim tidak menyimpan ID akun pelapor.
+Privasi: Metadata EXIF/GPS dibersihkan otomatis dari foto sebelum diunggah. Laporan anonim tidak mengikat identitas akun.
 
 ## Teknologi
 
-React 19, TypeScript, Tailwind v4, React Router 7, Leaflet, Recharts, Supabase (Postgres, Auth, Storage), Vite, Vitest, Oxlint. Hosting di Cloudflare Pages.
+React 19, TypeScript, Tailwind CSS v4, React Router 7, Leaflet, Web Crypto API (SubtleCrypto), Supabase (Postgres, Auth, Storage, Realtime), Vite, Vitest, Oxlint.
 
-## Menjalankan lokal
+## Menjalankan Lokal
 
-Butuh Node 18+.
+Persyaratan: Node.js 18+.
 
 ```bash
 git clone https://github.com/AchiraStudio/kata-natan-apa-aja_wip.git
@@ -37,61 +42,40 @@ npm run dev
 
 Buka http://localhost:5173.
 
-### Environment
+### Konfigurasi Environment (`.env`)
 
 ```env
-VITE_DATA_MODE=live        # 'live' = Supabase, 'demo' = data lokal tanpa backend
 VITE_SUPABASE_URL=https://<ref-proyek>.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon key>
-VITE_MAP_PROVIDER=osm      # opsional: CARTO butuh VITE_CARTO_API_KEY
+VITE_SUPABASE_ANON_KEY=<anon-key>
+VITE_MAP_PROVIDER=osm      # Default: OpenStreetMap (gratis). Opsi lain: CARTO
 ```
 
-Jangan pernah menaruh `service_role` key di variabel `VITE_`.
+### Database & Migrasi
 
-### Database
+Skrip database mandiri dan idempoten tersedia di:
+- **`supabase/ALL_IN_ONE_SETUP.sql`**: Skrip master lengkap (tabel, RLS, index, realtime publication, trigger, dan RPC).
+- Atau jalankan migrasi bertahap di `supabase/migrations/` via Supabase SQL Editor.
 
-Jalankan isi `supabase/migrations/` secara berurutan di SQL Editor (atau `supabase db push`). `supabase/schema.sql` adalah versi gabungannya.
+Peran admin dikelola melalui tabel `public.user_roles` (bukan metadata akun di client).
 
-Admin pertama ditentukan lewat tabel `public.user_roles`, bukan metadata akun. Tambahkan lewat SQL Editor.
-
-### Data contoh (opsional)
-
-Skrip seed memakai `service_role` key, jadi simpan di environment lokal atau `.env.seed`, bukan di `.env` frontend.
+## Perintah Pengembangan
 
 ```bash
-npm run seed:all
-npx vite-node scripts/seed/seedAll.ts --reset-demo   # hapus data demo lalu isi ulang
+npm run dev      # Menjalankan development server
+npm run test     # Menjalankan unit & integration test (Vitest)
+npm run lint     # Linting cepat menggunakan Oxlint
+npm run build    # Type-check (tsc) dan bundle produksi (Vite)
 ```
 
-Data demo ditandai `is_demo` dan hanya itu yang dihapus saat reset.
+## Daftar Rute
 
-## Perintah
-
-```bash
-npm run dev      # dev server
-npm run test     # Vitest
-npm run lint     # Oxlint
-npm run build    # type-check + build produksi
-```
-
-## Rute
-
-| Rute | Isi | Akses |
-|------|-----|-------|
-| `/` | Feed | Publik |
-| `/post/:id` | Detail postingan | Publik |
-| `/report/:id` | Detail laporan dan riwayat status | Publik |
-| `/u/:username` | Profil warga | Publik |
-| `/explore`, `/map` | Fasilitas, sektor, peta | Publik |
-| `/track` | Lacak laporan | Publik |
-| `/alur` | Panduan alur pelaporan | Publik |
-| `/login` | Masuk dan daftar | Publik |
-| `/me` | Profil sendiri | Login |
-| `/laporan-saya` | Laporan milik sendiri | Login |
-| `/admin` | Konsol admin | Admin |
-
-Pengecekan akses di frontend hanya untuk kenyamanan. Yang sebenarnya menjaga data adalah RLS di Supabase.
-
-## Catatan
-
-Data anggaran dan sebagian laporan di mode demo adalah contoh, bukan data resmi pemerintah.
+| Rute | Halaman / Fungsi | Akses |
+| :--- | :--- | :--- |
+| `/` | Feed vertikal utama | Publik |
+| `/explore`, `/map` | Eksplorasi sektor & peta geospasial | Publik |
+| `/track` | Pelacakan status laporan publik | Publik |
+| `/alur` | Panduan alur akuntabilitas pelaporan | Publik |
+| `/pesan` | Kotak masuk & chat terenkripsi (E2EE) | Login |
+| `/u/:username` | Profil publik warga | Publik |
+| `/laporan-saya`, `/tersimpan` | Arsip laporan & simpanan pribadi | Login |
+| `/admin/*` | Portal verifikasi & konsol admin (5 modul) | admin |
