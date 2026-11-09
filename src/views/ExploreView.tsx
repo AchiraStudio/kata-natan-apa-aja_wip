@@ -118,6 +118,17 @@ const SECTOR_DEFAULT_PHOTOS: Record<string, string> = {
   Lainnya: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80',
 };
 
+const REPORT_STATUS_COLORS: Record<Report['status'], string> = {
+  submitted: '#B45309',
+  under_review: '#2563EB',
+  needs_info: '#7C3AED',
+  accepted_for_routing: '#0E7490',
+  forwarded_to_institution: '#2E5E8C',
+  institution_responded: '#0F766E',
+  resolved: '#2D6A4F',
+  rejected: '#B3261E',
+};
+
 export const ExploreView: React.FC = () => {
   const navigate = useNavigate();
   const { profile, isAuthenticated } = useAuth();
@@ -176,6 +187,51 @@ export const ExploreView: React.FC = () => {
       }),
     [posts, selectedCategory, normalizedQuery]
   );
+
+  const reportCharts = useMemo(() => {
+    const uniqueReports = new Map<string, Report>();
+    for (const post of filteredReportPosts) {
+      if (post.relatedReport) uniqueReports.set(post.relatedReport.id, post.relatedReport);
+    }
+
+    const reports = [...uniqueReports.values()];
+    const statusCounts = new Map<Report['status'], number>();
+    const categoryCounts = new Map<string, number>();
+    for (const report of reports) {
+      statusCounts.set(report.status, (statusCounts.get(report.status) ?? 0) + 1);
+      categoryCounts.set(report.category, (categoryCounts.get(report.category) ?? 0) + 1);
+    }
+
+    const statuses = [...statusCounts.entries()].map(([status, value]) => ({
+      status,
+      name: formatStatusLabel(status),
+      value,
+      fill: REPORT_STATUS_COLORS[status],
+    }));
+    const categories = [...categoryCounts.entries()]
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name, 'id'));
+    const topCategories = categories.slice(0, 5);
+    const remainingCount = categories.slice(5).reduce((sum, category) => sum + category.value, 0);
+    if (remainingCount > 0) topCategories.push({ name: 'Kategori lainnya', value: remainingCount });
+
+    let accumulatedPercent = 0;
+    const donutBackground = `conic-gradient(${statuses
+      .map((entry) => {
+        const startPercent = accumulatedPercent;
+        accumulatedPercent += (entry.value / reports.length) * 100;
+        return `${entry.fill} ${startPercent}% ${accumulatedPercent}%`;
+      })
+      .join(', ')})`;
+
+    return {
+      reports,
+      statuses,
+      categories: topCategories,
+      donutBackground,
+      maxCategoryCount: topCategories[0]?.value ?? 0,
+    };
+  }, [filteredReportPosts]);
 
   return (
     <>
@@ -347,6 +403,95 @@ export const ExploreView: React.FC = () => {
             })}
           </div>
         </div>
+
+        <section className="space-y-3" aria-labelledby="explore-charts-heading">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2
+                id="explore-charts-heading"
+                className="text-sm font-bold text-[#101913] dark:text-[#F3F6F4]"
+              >
+                Visualisasi Laporan Publik
+              </h2>
+              <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3]">
+                Ringkasan {reportCharts.reports.length} laporan yang sesuai dengan pencarian dan sektor terpilih.
+              </p>
+            </div>
+          </div>
+
+          {reportCharts.reports.length === 0 ? (
+            <div className="explore-chart-card rounded-3xl border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] p-5 text-xs text-[#4F5A52] dark:text-[#9EACA3]">
+              Belum ada laporan yang cocok untuk ditampilkan pada grafik.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <article className="explore-chart-card rounded-3xl border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] p-4 sm:p-5">
+                <h3 className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
+                  Laporan menurut status
+                </h3>
+                <p className="mt-1 text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
+                  Proporsi progres penanganan laporan.
+                </p>
+                <div className="explore-donut-wrap mt-3">
+                  <div
+                    className="explore-donut"
+                    style={{ background: reportCharts.donutBackground }}
+                    role="img"
+                    aria-label={`Diagram lingkaran proporsi status dari ${reportCharts.reports.length} laporan`}
+                  >
+                    <div className="explore-donut-center" aria-hidden="true">
+                      <strong>{reportCharts.reports.length}</strong>
+                      <span>laporan</span>
+                    </div>
+                  </div>
+                </div>
+                <ul className="explore-chart-legend" aria-label="Legenda status laporan">
+                  {reportCharts.statuses.map((entry) => (
+                    <li key={entry.status}>
+                      <span className="explore-chart-legend-dot" style={{ backgroundColor: entry.fill }} />
+                      <span>{entry.name}</span>
+                      <strong>{entry.value}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+
+              <article className="explore-chart-card rounded-3xl border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] p-4 sm:p-5">
+                <h3 className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
+                  Laporan menurut kategori
+                </h3>
+                <p className="mt-1 text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
+                  Kategori dengan laporan terbanyak ditampilkan lebih dahulu.
+                </p>
+                <div
+                  className="explore-category-chart mt-5"
+                  role="img"
+                  aria-label={`Diagram batang kategori dari ${reportCharts.reports.length} laporan`}
+                >
+                  {reportCharts.categories.map((entry) => (
+                    <div className="explore-category-row" key={entry.name}>
+                      <span className="explore-category-label">{entry.name}</span>
+                      <div className="explore-category-track" aria-hidden="true">
+                        <span
+                          className="explore-category-bar"
+                          style={{
+                            width: `${(entry.value / reportCharts.maxCategoryCount) * 100}%`,
+                          }}
+                        />
+                      </div>
+                      <strong>{entry.value}</strong>
+                    </div>
+                  ))}
+                </div>
+                <ul className="sr-only" aria-label="Rincian jumlah laporan per kategori">
+                  {reportCharts.categories.map((entry) => (
+                    <li key={entry.name}>{entry.name}: {entry.value} laporan</li>
+                  ))}
+                </ul>
+              </article>
+            </div>
+          )}
+        </section>
 
         {/* Registered Public Facilities Grid with Photos & Vitals */}
         <section aria-labelledby="explore-facilities-heading">

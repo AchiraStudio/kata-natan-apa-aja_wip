@@ -134,6 +134,72 @@
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
 }
 
+/* Improvement Notes Section */
+.workflow-improvement-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.workflow-improvement-panel {
+  border: 1px solid #d32f2f;
+  background: #f5f3ef;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+.workflow-improvement-header {
+  background: #d32f2f;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  padding: 0.85rem 1rem;
+}
+
+.workflow-improvement-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 1rem 1.1rem 1.2rem;
+  color: #101913;
+}
+
+.workflow-improvement-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.workflow-improvement-item h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.35;
+  color: #101913;
+}
+
+.workflow-improvement-item p,
+.workflow-improvement-panel--secondary p {
+  margin: 0;
+  font-size: 0.96rem;
+  line-height: 1.7;
+  color: #101913;
+}
+
+.workflow-improvement-panel--secondary {
+  border-color: #d32f2f;
+  background: #fefefe;
+}
+
+.workflow-improvement-divider {
+  width: 100%;
+  height: 0.4rem;
+  background: #171717;
+  border-radius: 0.2rem;
+}
+
 /* Action Banner Pill Buttons */
 .workflow-pill-btn {
   display: inline-flex;

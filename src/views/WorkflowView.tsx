@@ -225,6 +225,44 @@ export const WorkflowView: React.FC = () => {
           </div>
         </div>
 
+        <div className="workflow-improvement-wrapper">
+          <div className="workflow-improvement-panel">
+            <div className="workflow-improvement-header">Bagian 4 - Catatan &amp; Saran Perbaikan</div>
+            <div className="workflow-improvement-body">
+              <div className="workflow-improvement-item">
+                <h3>Saran Pengembangan ke Depan</h3>
+                <p>
+                  Optimalisasi Interaktivitas Data Publik: Tambahkan fitur filter lanjutan,
+                  pencarian instan (real-time search), atau visualisasi data dinamis (seperti grafik
+                  interaktif) agar pengguna dapat mengeksplorasi data publik secara lebih mendalam.
+                </p>
+              </div>
+              <div className="workflow-improvement-item">
+                <h3>Peningkatan Aksesibilitas &amp; Performa</h3>
+                <p>
+                  Pastikan seluruh aset grafis dan waktu muat halaman (load time) tetap optimal.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="workflow-improvement-divider" aria-hidden="true" />
+
+          <div className="workflow-improvement-panel workflow-improvement-panel--secondary">
+            <div className="workflow-improvement-body">
+              <p>
+                serta perhatikan standar aksesibilitas web (web accessibility) untuk menjaga ragam
+                pengguna yang lebih luas.
+              </p>
+              <p>
+                Skalabilitas Fitur Kolaborasi/Umpan Balik: Pertimbangkan penambahan modul
+                partisipasi publik—seperti kolom aspirasi, pelaporan, atau integrasi pengaduan—untuk
+                memperkuat fungsi akuntabilitas dan partisipasi masyarakat secara langsung.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Action Banners */}
         <div className="workflow-action-banner p-6 bg-[#E7EBDD] dark:bg-[#1A2E24] border border-[#1B4332]/20 dark:border-[#10B981]/30 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
