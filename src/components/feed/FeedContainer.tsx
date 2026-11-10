@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronUp, ChevronDown, MessageSquare, Plus } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, MessageSquare, Plus, Palette } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { FeedCard } from './FeedCard';
 import { TitikLogo } from '../common/TitikLogo';
+import { useCustomBackground } from '../../hooks/useCustomBackground';
 
 const FEED_TABS = [
   { key: 'following', label: 'Mengikuti' },
@@ -209,12 +210,32 @@ export const FeedContainer: React.FC = () => {
 
   const currentActiveIndex = posts.findIndex((p) => p.id === activePost?.id);
   const unread = (unreadMessagesCount ?? 0) > 0;
+  const { config: berandaBg, inlineStyle: berandaBgStyle } = useCustomBackground('beranda');
 
   const iconBtn =
     'relative w-10 h-10 rounded-xl glass-media flex items-center justify-center text-white/90 hover:bg-black/60 transition-colors cursor-pointer';
 
   return (
     <div className="relative w-full h-[100dvh] lg:h-screen flex flex-col items-center overflow-hidden">
+      {/* Custom Beranda Background Layer */}
+      {berandaBg && berandaBg.mode !== 'default' && (
+        <div
+          className="absolute inset-0 pointer-events-none z-0 transition-all duration-500"
+          style={{
+            ...berandaBgStyle,
+            filter: berandaBg.blurAmount > 0 ? `blur(${berandaBg.blurAmount}px)` : undefined,
+            transform: berandaBg.blurAmount > 0 ? 'scale(1.03)' : undefined,
+          }}
+        >
+          {berandaBg.overlayDim > 0 && (
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: `rgba(0, 0, 0, ${berandaBg.overlayDim})` }}
+            />
+          )}
+        </div>
+      )}
+
       {/* Header: floats over the video on phones, sits on the canvas on desktop.
           Phone layout: logo left, one segmented tab control centred, search above messages in the right corner. */}
       <header className="absolute top-0 inset-x-0 z-30 pt-[max(0.75rem,env(safe-area-inset-top))] px-3 pb-16 flex items-start justify-between gap-2 pointer-events-none bg-gradient-to-b from-black/60 via-black/25 to-transparent lg:static lg:h-14 lg:shrink-0 lg:bg-none lg:p-0 lg:items-center lg:justify-center">
@@ -262,6 +283,15 @@ export const FeedContainer: React.FC = () => {
 
         {/* Search above messages, stacked in the corner so the tab control keeps the whole row */}
         <div className="lg:hidden pointer-events-auto shrink-0 flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('titik-open-custom-bg', { detail: { target: 'beranda' } }))}
+            className={iconBtn}
+            title="Kustomisasi Latar Beranda"
+            aria-label="Kustomisasi Latar"
+          >
+            <Palette className="w-[18px] h-[18px]" />
+          </button>
           <button type="button" onClick={() => setSearchModalOpen(true)} className={iconBtn} title="Cari laporan atau fasilitas" aria-label="Cari">
             <Search className="w-[18px] h-[18px]" />
           </button>

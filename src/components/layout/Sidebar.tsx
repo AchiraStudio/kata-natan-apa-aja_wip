@@ -19,6 +19,7 @@ import {
   MessageSquare,
   Route as RouteIcon,
   ScanSearch,
+  Palette,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
@@ -385,6 +386,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
             <span className="hidden xl:inline truncate">Masuk atau Daftar</span>
           </a>
         )}
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('titik-open-custom-bg', { detail: { target: 'global' } }))}
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-side-ink-2 hover:text-side-ink hover:bg-side-2 transition-colors cursor-pointer shrink-0"
+          title="Kustomisasi Latar Belakang"
+          aria-label="Kustomisasi Latar Belakang"
+        >
+          <Palette className="w-[18px] h-[18px]" />
+        </button>
         <ThemeToggle variant="side" className="shrink-0" />
       </div>
       {sidebarTooltip && (

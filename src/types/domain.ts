@@ -207,6 +207,15 @@ export interface MessageAttachment {
   url: string;
   name: string;
   type: string;
+  size?: number;
+}
+
+export interface ConversationMember {
+  conversation_id: string;
+  user_id: string;
+  role: 'owner' | 'admin' | 'member';
+  joined_at: string;
+  profile?: UserProfile;
 }
 
 export interface Message {
@@ -231,4 +240,12 @@ export interface Conversation {
   last_message?: Message;
   unread_count?: number;
   report_reference?: string;
+  // Group / Community extensions
+  is_group?: boolean;
+  title?: string;
+  avatar_url?: string;
+  description?: string;
+  created_by?: string;
+  member_count?: number;
+  members?: ConversationMember[];
 }

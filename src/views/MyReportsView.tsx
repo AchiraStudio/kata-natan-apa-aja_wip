@@ -310,7 +310,7 @@ export const MyReportsView: React.FC = () => {
                             <ArrowRight className="w-3.5 h-3.5" />
                           </button>
                           <Link
-                            to={`/laporan/${report.id}`}
+                            to={`/laporan/${encodeURIComponent(report.publicReference || report.id)}`}
                             className="px-3 py-2 rounded-xl border border-rose-300 dark:border-rose-800 text-xs font-semibold text-rose-800 dark:text-rose-300 hover:bg-rose-100/60 dark:hover:bg-rose-900/30 transition-colors"
                           >
                             Buka Detail Tiket
@@ -519,7 +519,7 @@ export const MyReportsView: React.FC = () => {
                   </span>
                   <button
                     type="button"
-                    onClick={() => navigate(`/report/${encodeURIComponent(report.publicReference)}`)}
+                    onClick={() => navigate(`/laporan/${encodeURIComponent(report.publicReference || report.id)}`)}
                     className="text-xs font-bold text-brand hover:underline"
                   >
                     Lihat detail

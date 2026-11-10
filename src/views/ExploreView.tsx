@@ -241,7 +241,7 @@ export const ExploreView: React.FC = () => {
 const ReportRow: React.FC<{ report: Report }> = ({ report }) => (
   <li>
     <Link
-      to={`/laporan/${encodeURIComponent(report.id)}`}
+      to={`/laporan/${encodeURIComponent(report.publicReference || report.id)}`}
       className="flex items-start gap-4 p-4 sm:p-5 hover:bg-surface-2/60 transition-colors"
     >
       {report.mediaUrls?.[0] && getReportMediaType(report.mediaUrls[0]) !== 'video' ? (

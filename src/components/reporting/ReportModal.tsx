@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   X,
   MapPin,
@@ -25,6 +26,7 @@ interface SelectedEvidence {
 }
 
 export const ReportModal: React.FC = () => {
+  const navigate = useNavigate();
   const { reportModalOpen, closeReportModal, submitReport, facilities } = useTitik();
   const { profile, isAuthenticated } = useAuth();
 
@@ -764,22 +766,36 @@ export const ReportModal: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-center gap-3">
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-6 py-2.5 bg-brand text-on-brand rounded-xl text-xs font-semibold hover:bg-brand-hover transition-colors cursor-pointer"
+                className="px-4 py-2.5 bg-surface border border-line text-ink rounded-xl text-xs font-semibold hover:bg-surface-2 transition-colors cursor-pointer"
               >
                 Kembali ke Beranda
               </button>
-              {profile.role === 'admin' && (
-                <a
-                  href="/track"
-                  className="px-4 py-2.5 bg-surface border border-line text-ink rounded-xl text-xs font-semibold hover:bg-canvas transition-colors"
-                >
-                  Buka Pelacakan
-                </a>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  const targetRef = submissionResult.publicReference || submissionResult.report.id;
+                  resetForm();
+                  navigate(`/laporan/${encodeURIComponent(targetRef)}`);
+                }}
+                className="px-5 py-2.5 bg-brand text-on-brand rounded-xl text-xs font-semibold hover:bg-brand-hover transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+              >
+                <span>Lihat Detail Laporan</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  resetForm();
+                  navigate(`/track?ref=${encodeURIComponent(submissionResult.publicReference)}`);
+                }}
+                className="px-4 py-2.5 bg-canvas border border-line text-ink rounded-xl text-xs font-semibold hover:bg-surface transition-colors cursor-pointer"
+              >
+                Lacak Status
+              </button>
             </div>
           </div>
         )}

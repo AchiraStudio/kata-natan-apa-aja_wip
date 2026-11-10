@@ -327,7 +327,7 @@ export const TrackReportView: React.FC = () => {
                 </div>
               )}
               <Link
-                to={`/laporan/${encodeURIComponent(report.id)}`}
+                to={`/laporan/${encodeURIComponent(report.publicReference || report.id)}`}
                 className="mt-1 inline-flex items-center justify-center gap-1.5 w-full h-10 rounded-lg bg-brand text-on-brand text-sm font-semibold hover:bg-brand-hover transition-colors"
               >
                 Buka halaman laporan <ArrowUpRight className="w-4 h-4" aria-hidden="true" />

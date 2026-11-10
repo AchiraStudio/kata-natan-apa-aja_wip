@@ -349,18 +349,34 @@ export class SupabaseDataAdapter implements IDataAdapter {
   async getReportByReference(reference: string, userId?: string): Promise<Report | null> {
     try {
       const normalizedReference = reference.trim();
-      const referenceResult = await supabase
+      if (!normalizedReference) return null;
+
+      // 1. Check by public_reference (case-insensitive via uppercase, e.g. TIK-2026-000101)
+      let { data, error } = await supabase
         .from('reports')
         .select('*')
-        .eq('public_reference', normalizedReference)
+        .eq('public_reference', normalizedReference.toUpperCase())
         .maybeSingle();
 
-      if (referenceResult.error) {
-        throw mapPostgrestError(referenceResult.error, 'Gagal mencari laporan.');
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal mencari laporan.');
       }
-      let data = referenceResult.data;
 
-      if (!data && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalizedReference)) {
+      // 2. If not found and reference was not already uppercase, try exact public_reference
+      if (!data && normalizedReference !== normalizedReference.toUpperCase()) {
+        const exactResult = await supabase
+          .from('reports')
+          .select('*')
+          .eq('public_reference', normalizedReference)
+          .maybeSingle();
+        if (exactResult.error) {
+          throw mapPostgrestError(exactResult.error, 'Gagal mencari laporan.');
+        }
+        data = exactResult.data;
+      }
+
+      // 3. If still not found, check by id directly (supports rep-*, uuid, or any custom text id)
+      if (!data) {
         const idResult = await supabase
           .from('reports')
           .select('*')
@@ -371,6 +387,19 @@ export class SupabaseDataAdapter implements IDataAdapter {
           throw mapPostgrestError(idResult.error, 'Gagal mencari laporan.');
         }
         data = idResult.data;
+      }
+
+      // 4. Case-insensitive id fallback (e.g. REP-KN-001 vs rep-kn-001)
+      if (!data) {
+        const lowerIdResult = await supabase
+          .from('reports')
+          .select('*')
+          .eq('id', normalizedReference.toLowerCase())
+          .maybeSingle();
+
+        if (!lowerIdResult.error && lowerIdResult.data) {
+          data = lowerIdResult.data;
+        }
       }
 
       if (!data) return null;

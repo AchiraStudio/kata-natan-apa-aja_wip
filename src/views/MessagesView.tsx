@@ -16,10 +16,13 @@ import {
   formatAdminReportMessage,
   isMessagingLocalOnly,
 } from '../services/messagesService';
+import { uploadChatAttachment } from '../services/chatMediaService';
 import { ConversationList, type ListFilter } from '../components/messages/ConversationList';
 import { ChatThread, type QuickAction } from '../components/messages/ChatThread';
 import { NewChatDialog } from '../components/messages/NewChatDialog';
-import type { Conversation, Message, MessageType, Report, UserProfile } from '../types/domain';
+import { CreateGroupModal } from '../components/messages/CreateGroupModal';
+import { useCustomBackground } from '../hooks/useCustomBackground';
+import type { Conversation, Message, MessageAttachment, MessageType, Report, UserProfile } from '../types/domain';
 
 const TYPING_VISIBLE_MS = 3000;
 const TYPING_SEND_INTERVAL_MS = 1500;
@@ -50,8 +53,13 @@ export const MessagesView: React.FC = () => {
   const [sendError, setSendError] = useState<string | null>(null);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<MessageAttachment[]>([]);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [localOnly, setLocalOnly] = useState(false);
+
+  const { config: pesanBg, inlineStyle: pesanBgStyle } = useCustomBackground('pesan');
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const conversationsRef = useRef<Conversation[]>([]);
@@ -228,16 +236,24 @@ export const MessagesView: React.FC = () => {
 
   const handleSend = async () => {
     const content = draft.trim();
-    if (!content || !activeId || !me || isSending) return;
+    if ((!content && pendingAttachments.length === 0) || !activeId || !me || isSending) return;
     setIsSending(true);
     setSendError(null);
     try {
-      const sent = await sendMessage(activeId, me, content, pendingType, activeConversation?.participant_ids);
+      const sent = await sendMessage(
+        activeId,
+        me,
+        content,
+        pendingType,
+        activeConversation?.participant_ids,
+        pendingAttachments
+      );
       setMessages((prev) => (prev.some((m) => m.id === sent.id) ? prev : [...prev, sent]));
       setConversations((prev) =>
         prev.map((c) => (c.id === activeId ? { ...c, last_message: sent, updated_at: sent.created_at } : c))
       );
       setDraft('');
+      setPendingAttachments([]);
       setPendingType('text');
     } catch {
       setSendError('Pesan belum terkirim. Periksa koneksi, lalu coba lagi.');
@@ -245,6 +261,28 @@ export const MessagesView: React.FC = () => {
       setIsSending(false);
       inputRef.current?.focus();
     }
+  };
+
+  const handleAddAttachment = async (file: File) => {
+    if (!me) return;
+    setIsUploadingAttachment(true);
+    try {
+      const att = await uploadChatAttachment(file, me);
+      setPendingAttachments((prev) => [...prev, att]);
+    } catch {
+      setSendError('Gagal mengunggah berkas. Coba lagi.');
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setPendingAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleGroupCreated = (group: Conversation) => {
+    setConversations((prev) => [group, ...prev]);
+    openConversation(group.id);
   };
 
   const handleQuickAction = (action: QuickAction) => {
@@ -290,24 +328,49 @@ export const MessagesView: React.FC = () => {
     return conversations.filter((c) => {
       if (filter === 'unread' && !(c.unread_count && c.unread_count > 0)) return false;
       if (filter === 'reports' && !c.report_id) return false;
+      if (filter === 'direct' && c.is_group) return false;
+      if (filter === 'groups' && !c.is_group) return false;
       if (!q) return true;
-      return [c.other_participant?.displayName, c.other_participant?.username, c.report_reference, c.last_message?.content].some((v) =>
-        v?.toLowerCase().includes(q)
-      );
+      const targetName = c.is_group ? c.title : c.other_participant?.displayName;
+      return [
+        targetName,
+        c.other_participant?.username,
+        c.report_reference,
+        c.last_message?.content,
+      ].some((v) => v?.toLowerCase().includes(q));
     });
   }, [conversations, filter, query]);
 
   const hasThread = Boolean(activeId);
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col">
+    <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
+      {/* Custom Pesan Inbox Background Layer */}
+      {pesanBg && pesanBg.mode !== 'default' && (
+        <div
+          className="absolute inset-0 pointer-events-none z-0 transition-all duration-500"
+          style={{
+            ...pesanBgStyle,
+            filter: pesanBg.blurAmount > 0 ? `blur(${pesanBg.blurAmount}px)` : undefined,
+            transform: pesanBg.blurAmount > 0 ? 'scale(1.03)' : undefined,
+          }}
+        >
+          {pesanBg.overlayDim > 0 && (
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: `rgba(0, 0, 0, ${pesanBg.overlayDim})` }}
+            />
+          )}
+        </div>
+      )}
+
       {localOnly && (
-        <p role="note" className="shrink-0 md:mx-3 md:mt-3 md:rounded-2xl px-4 py-2 text-xs text-ink-2 bg-brand-soft border-b md:border border-line-soft">
+        <p role="note" className="relative z-10 shrink-0 md:mx-3 md:mt-3 md:rounded-2xl px-4 py-2 text-xs text-ink-2 bg-brand-soft border-b md:border border-line-soft">
           Server pesan belum aktif. Percakapan disimpan di perangkat ini dan tetap ada setelah halaman dimuat ulang.
         </p>
       )}
       {/* Two floating glass panels on desktop (gap + radius), full-bleed single pane on phones */}
-      <div className="flex-1 min-h-0 flex md:gap-3 md:p-3">
+      <div className="relative z-10 flex-1 min-h-0 flex md:gap-3 md:p-3">
       <div
         className={`${hasThread ? 'hidden md:block' : 'block'} w-full md:w-[340px] lg:w-[360px] titik-pop shrink-0 min-h-0 bg-surface md:rounded-3xl md:overflow-hidden md:border md:border-line md:shadow-[var(--glass-shadow)]`}
       >
@@ -323,6 +386,7 @@ export const MessagesView: React.FC = () => {
           onFilter={setFilter}
           onSelect={openConversation}
           onNewChat={() => setIsNewChatOpen(true)}
+          onNewGroup={() => setIsCreateGroupOpen(true)}
         />
       </div>
 
@@ -344,13 +408,17 @@ export const MessagesView: React.FC = () => {
               canUseQuickActions={profile?.role === 'admin'}
               onQuickAction={handleQuickAction}
               inputRef={inputRef}
+              attachments={pendingAttachments}
+              onAddAttachment={handleAddAttachment}
+              onRemoveAttachment={handleRemoveAttachment}
+              isUploadingAttachment={isUploadingAttachment}
             />
           </div>
         ) : (
           <div className="m-auto text-center px-6 max-w-sm space-y-2">
             <MessageSquare className="w-8 h-8 mx-auto text-ink-3" />
             <p className="font-display text-lg font-semibold text-ink">Pilih percakapan</p>
-            <p className="text-sm text-ink-2">Pilih percakapan di daftar, atau mulai yang baru dengan tombol di kiri atas.</p>
+            <p className="text-sm text-ink-2">Pilih percakapan di daftar, buat komunitas baru, atau mulai dengan tombol di kiri atas.</p>
           </div>
         )}
       </div>
@@ -373,6 +441,15 @@ export const MessagesView: React.FC = () => {
           onPickUser={startWithUser}
           onPickReport={startWithReport}
           onClose={() => setIsNewChatOpen(false)}
+        />
+      )}
+
+      {isCreateGroupOpen && me && (
+        <CreateGroupModal
+          isOpen={isCreateGroupOpen}
+          onClose={() => setIsCreateGroupOpen(false)}
+          currentUserId={me}
+          onGroupCreated={handleGroupCreated}
         />
       )}
     </div>

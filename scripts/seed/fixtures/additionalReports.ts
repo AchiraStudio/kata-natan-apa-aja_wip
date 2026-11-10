@@ -312,19 +312,20 @@ const reportDrafts = [
     | 'reporterDisplayName'
     | 'title'
     | 'description'
-    | 'district'
-    | 'address'
-    | 'latitude'
-    | 'longitude'
     | 'category'
     | 'severity'
     | 'status'
     | 'responsibleAgency'
     | 'facilityName'
     | 'createdAt'
-    | 'mediaUrl'
     | 'supportCount'
-  >
+  > & {
+    district: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    mediaUrl: string;
+  }
 >;
 
 export const ADDITIONAL_DEMO_REPORTS: Report[] = reportDrafts.map((draft, index) => {

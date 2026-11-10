@@ -41,7 +41,7 @@ const ReportDetailRouteBridge: React.FC = () => {
 
   React.useEffect(() => {
     if (reportDetailOpen && selectedReport) {
-      const target = `/laporan/${encodeURIComponent(selectedReport.publicReference)}`;
+      const target = `/laporan/${encodeURIComponent(selectedReport.publicReference || selectedReport.id)}`;
       closeReportDetail();
       navigate(target);
     }

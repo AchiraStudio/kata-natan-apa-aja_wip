@@ -93,7 +93,7 @@ interface Testimony {
 export const ReportDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toggleSupport, currentUserId } = useTitik();
+  const { toggleSupport, currentUserId, posts } = useTitik();
   const { profile } = useAuth();
 
   const [report, setReport] = useState<Report | null>(null);
@@ -184,12 +184,24 @@ export const ReportDetailView: React.FC = () => {
         .getReportByReference(id, currentUserId)
         .then((res) => {
           if (isMounted) {
-            setReport(res);
+            let resolved = res;
+            if (!resolved && posts && posts.length > 0) {
+              const matched = posts.find(
+                (p) =>
+                  p.relatedReport?.id === id ||
+                  p.relatedReport?.publicReference?.toUpperCase() === id.toUpperCase() ||
+                  p.relatedReportId === id
+              );
+              if (matched?.relatedReport) {
+                resolved = matched.relatedReport;
+              }
+            }
+            setReport(resolved);
             setSelectedPhotoIndex(0);
             setLoading(false);
 
-            if (res) {
-              dataService.getPostByReportId(res.id).then((post) => {
+            if (resolved) {
+              dataService.getPostByReportId(resolved.id).then((post) => {
                 if (isMounted) {
                   if (post) {
                     setLinkedPostId(post.id);
@@ -214,6 +226,19 @@ export const ReportDetailView: React.FC = () => {
         })
         .catch(() => {
           if (isMounted) {
+            let fallback: Report | null = null;
+            if (posts && posts.length > 0) {
+              const matched = posts.find(
+                (p) =>
+                  p.relatedReport?.id === id ||
+                  p.relatedReport?.publicReference?.toUpperCase() === id.toUpperCase() ||
+                  p.relatedReportId === id
+              );
+              if (matched?.relatedReport) {
+                fallback = matched.relatedReport;
+              }
+            }
+            setReport(fallback);
             setLoading(false);
           }
         });
@@ -222,7 +247,7 @@ export const ReportDetailView: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [id, currentUserId]);
+  }, [id, currentUserId, posts]);
 
   // Realtime subscription for live report status, official response, and citizen testimonies
   useEffect(() => {

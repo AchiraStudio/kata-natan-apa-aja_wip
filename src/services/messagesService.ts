@@ -1,5 +1,12 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import type { Conversation, Message, MessageType, UserProfile } from '../types/domain';
+import type {
+  Conversation,
+  ConversationMember,
+  Message,
+  MessageAttachment,
+  MessageType,
+  UserProfile,
+} from '../types/domain';
 import { encryptMessage, decryptMessage } from '../utils/crypto';
 
 // ---------------------------------------------------------------------------
@@ -119,6 +126,47 @@ async function fetchProfile(userId: string): Promise<UserProfile | undefined> {
 /** Public profile summary for one user, used to label a brand-new thread. */
 export const getProfileSummary = fetchProfile;
 
+export function deduplicate1on1Conversations(list: Conversation[]): Conversation[] {
+  const seenPair = new Map<string, Conversation>();
+  const result: Conversation[] = [];
+
+  for (const conv of list) {
+    if (conv.is_group) {
+      result.push(conv);
+      continue;
+    }
+
+    const ids = (conv.participant_ids || []).filter(Boolean).sort();
+    if (ids.length !== 2) {
+      result.push(conv);
+      continue;
+    }
+
+    const key = ids.join(':');
+    const existing = seenPair.get(key);
+    if (!existing) {
+      seenPair.set(key, conv);
+      result.push(conv);
+    } else {
+      existing.unread_count = (existing.unread_count ?? 0) + (conv.unread_count ?? 0);
+      if (!existing.report_reference && conv.report_reference) {
+        existing.report_reference = conv.report_reference;
+        existing.report_id = conv.report_id;
+      }
+      if (
+        conv.last_message &&
+        (!existing.last_message ||
+          (conv.last_message.created_at || '') > (existing.last_message.created_at || ''))
+      ) {
+        existing.last_message = conv.last_message;
+        existing.updated_at = conv.updated_at;
+      }
+    }
+  }
+
+  return result;
+}
+
 // ---------------------------------------------------------------------------
 // getConversations
 // ---------------------------------------------------------------------------
@@ -126,9 +174,10 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
   if (!userId) return [];
   const [remote, local] = await Promise.all([getRemoteConversations(userId), getLocalConversations(userId)]);
   const remoteIds = new Set(remote.map((c) => c.id));
-  return [...remote, ...local.filter((c) => !remoteIds.has(c.id))].sort((a, b) =>
+  const rawList = [...remote, ...local.filter((c) => !remoteIds.has(c.id))].sort((a, b) =>
     (b.updated_at || '').localeCompare(a.updated_at || '')
   );
+  return deduplicate1on1Conversations(rawList);
 }
 
 async function getLocalConversations(userId: string): Promise<Conversation[]> {
@@ -144,6 +193,12 @@ async function getLocalConversations(userId: string): Promise<Conversation[]> {
         other_participant: other ?? conv.other_participant,
         last_message: thread[thread.length - 1],
         unread_count: thread.filter((m) => m.sender_id !== userId && !m.read_at).length,
+        is_group: Boolean(conv.is_group),
+        title: conv.title,
+        description: conv.description,
+        avatar_url: conv.avatar_url,
+        created_by: conv.created_by,
+        member_count: conv.participant_ids?.length || 1,
       };
     })
   );
@@ -258,6 +313,12 @@ async function getRemoteConversations(userId: string): Promise<Conversation[]> {
           last_message: lastMsg,
           unread_count: unread,
           report_reference: reportRef,
+          is_group: Boolean(conv.is_group),
+          title: conv.title,
+          description: conv.description,
+          avatar_url: conv.avatar_url,
+          created_by: conv.created_by,
+          member_count: Array.isArray(conv.participant_ids) ? conv.participant_ids.length : 1,
         };
       })
     );
@@ -353,7 +414,8 @@ export async function sendMessage(
   senderId: string,
   content: string,
   messageType: MessageType = 'text',
-  participantIds?: string[]
+  participantIds?: string[],
+  attachments: MessageAttachment[] = []
 ): Promise<Message> {
   const trimmed = content.trim();
 
@@ -364,7 +426,7 @@ export async function sendMessage(
       sender_id: senderId,
       content: trimmed,
       message_type: messageType,
-      attachments: [],
+      attachments: attachments ?? [],
       created_at: new Date().toISOString(),
       read_at: null,
     };
@@ -408,7 +470,7 @@ export async function sendMessage(
         sender_id: senderId,
         content: cipherContent,
         message_type: messageType,
-        attachments: [],
+        attachments: attachments ?? [],
       })
       .select()
       .single();
@@ -440,7 +502,7 @@ export async function sendMessage(
       sender_id: data.sender_id,
       content: trimmed,
       message_type: data.message_type,
-      attachments: data.attachments ?? [],
+      attachments: data.attachments ?? attachments ?? [],
       created_at: data.created_at,
       read_at: data.read_at,
     };
@@ -454,7 +516,8 @@ export async function sendMessage(
 }
 
 // ---------------------------------------------------------------------------
-// createConversation — idempotent: reuses existing if same report + participants
+// createConversation — 1-on-1 strictly idempotent: ALWAYS reuses existing thread
+// between the exact same 2 participants, preventing any duplicate chat creation.
 // ---------------------------------------------------------------------------
 export async function createConversation(
   reportId: string | null,
@@ -464,13 +527,29 @@ export async function createConversation(
 ): Promise<Conversation> {
   const participantIds = [adminId, citizenId].sort();
 
-  /** Thread kept on this device. Stable id, so reopening the same pair returns the same thread. */
+  /** Thread kept on this device. Stable canonical id for 1-on-1 pairs so reopening always returns the same thread. */
   const createLocal = (): Conversation => {
     const db = readLocal();
-    const id = `conv-local-${participantIds.join('_')}-${reportId ?? 'direct'}`.replace(/[^a-zA-Z0-9_-]/g, '');
-    const existing = db.conversations.find((c) => c.id === id);
-    if (existing) return existing;
+    // Check if any 1-on-1 conversation already exists between these 2 participants
+    const existing = db.conversations.find(
+      (c) =>
+        !c.is_group &&
+        Array.isArray(c.participant_ids) &&
+        c.participant_ids.length === 2 &&
+        c.participant_ids.includes(adminId) &&
+        c.participant_ids.includes(citizenId)
+    );
+    if (existing) {
+      if (reportId && !existing.report_id) {
+        existing.report_id = reportId;
+        existing.report_reference = reportReference || existing.report_reference;
+        writeLocal(db);
+      }
+      return existing;
+    }
+
     const now = new Date().toISOString();
+    const id = `conv-local-${participantIds.join('_')}`.replace(/[^a-zA-Z0-9_-]/g, '');
     const conv: Conversation = {
       id,
       report_id: reportId,
@@ -478,6 +557,7 @@ export async function createConversation(
       created_at: now,
       updated_at: now,
       report_reference: reportReference,
+      is_group: false,
     };
     db.conversations = [conv, ...db.conversations];
     writeLocal(db);
@@ -486,52 +566,63 @@ export async function createConversation(
 
   if (!isSupabaseConfigured || isConversationsTableAvailable === false) return createLocal();
 
+  // 1. Check for ANY existing 1-on-1 conversation between these two participants
+  try {
+    const { data: matches, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .contains('participant_ids', participantIds)
+      .order('updated_at', { ascending: false });
 
-  // Check if conversation already exists for this report + participants
-  if (reportId) {
-    try {
-      const { data: existing } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('report_id', reportId)
-        .contains('participant_ids', participantIds)
-        .limit(1)
-        .single();
+    if (!error && Array.isArray(matches) && matches.length > 0) {
+      // Find the direct 1-on-1 match (not a group)
+      const existing1on1 = matches.find(
+        (c) => !c.is_group && Array.isArray(c.participant_ids) && c.participant_ids.length === 2
+      );
 
-      if (existing) {
+      if (existing1on1) {
+        // If a new report context is initiated, link it and notify inside the existing thread
+        if (reportId && existing1on1.report_id !== reportId) {
+          try {
+            const { data: rep } = await supabase
+              .from('reports')
+              .select('public_reference, title')
+              .eq('id', reportId)
+              .single();
+            if (rep) {
+              const ref = rep.public_reference || reportReference || reportId;
+              const note = `Percakapan ditautkan dengan laporan #${ref}: "${rep.title}".`;
+              const cipher = await encryptMessage(note, existing1on1.id, participantIds);
+              await supabase.from('messages').insert({
+                conversation_id: existing1on1.id,
+                sender_id: adminId,
+                content: cipher,
+                message_type: 'status_update',
+                attachments: [],
+              });
+              await supabase
+                .from('conversations')
+                .update({ report_id: reportId, updated_at: new Date().toISOString() })
+                .eq('id', existing1on1.id);
+            }
+          } catch {
+            // ignore context message failure
+          }
+        }
+
         return {
-          id: existing.id,
-          report_id: existing.report_id,
-          participant_ids: existing.participant_ids,
-          created_at: existing.created_at,
-          updated_at: existing.updated_at,
+          id: existing1on1.id,
+          report_id: existing1on1.report_id ?? reportId ?? null,
+          participant_ids: existing1on1.participant_ids,
+          created_at: existing1on1.created_at,
+          updated_at: existing1on1.updated_at,
+          report_reference: reportReference,
+          is_group: false,
         };
       }
-    } catch {
-      // ignore
     }
-  } else {
-    try {
-      const { data: existing } = await supabase
-        .from('conversations')
-        .select('*')
-        .is('report_id', null)
-        .contains('participant_ids', participantIds)
-        .limit(1)
-        .single();
-
-      if (existing) {
-        return {
-          id: existing.id,
-          report_id: existing.report_id,
-          participant_ids: existing.participant_ids,
-          created_at: existing.created_at,
-          updated_at: existing.updated_at,
-        };
-      }
-    } catch {
-      // ignore
-    }
+  } catch {
+    // Ignore query error, proceed to insert
   }
 
   let data = null;
@@ -542,6 +633,7 @@ export async function createConversation(
       .insert({
         report_id: reportId,
         participant_ids: participantIds,
+        is_group: false,
       })
       .select()
       .single();
@@ -553,12 +645,11 @@ export async function createConversation(
 
   if (error || !data) {
     if (isTableMissingError(error)) isConversationsTableAvailable = false;
-    // Keep the thread on this device so it survives reloads
     return createLocal();
   }
   isConversationsTableAvailable = true;
 
-  // Send initial system message
+  // Send initial system message if tied to a report
   if (reportId) {
     try {
       const { data: rep } = await supabase
@@ -590,7 +681,248 @@ export async function createConversation(
     participant_ids: data.participant_ids,
     created_at: data.created_at,
     updated_at: data.updated_at,
+    report_reference: reportReference,
+    is_group: false,
   };
+}
+
+// ---------------------------------------------------------------------------
+// createGroupConversation — Creates a Group / Community thread (100+ members)
+// ---------------------------------------------------------------------------
+export async function createGroupConversation(
+  title: string,
+  creatorId: string,
+  memberIds: string[],
+  description?: string,
+  avatarUrl?: string
+): Promise<Conversation> {
+  const allParticipantIds = Array.from(new Set([creatorId, ...memberIds])).filter(Boolean);
+  const now = new Date().toISOString();
+
+  const createLocalGroup = (): Conversation => {
+    const db = readLocal();
+    const id = `conv-group-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const groupConv: Conversation = {
+      id,
+      report_id: null,
+      participant_ids: allParticipantIds,
+      created_at: now,
+      updated_at: now,
+      is_group: true,
+      title,
+      description,
+      avatar_url: avatarUrl,
+      created_by: creatorId,
+      member_count: allParticipantIds.length,
+    };
+    db.conversations = [groupConv, ...db.conversations];
+    writeLocal(db);
+
+    const sysMsg: Message = {
+      id: newLocalMessageId(),
+      conversation_id: id,
+      sender_id: creatorId,
+      content: `Komunitas "${title}" telah dibuat.`,
+      message_type: 'status_update',
+      attachments: [],
+      created_at: now,
+      read_at: null,
+    };
+    appendLocalMessage(id, sysMsg);
+
+    return groupConv;
+  };
+
+  if (!isSupabaseConfigured || isConversationsTableAvailable === false) {
+    return createLocalGroup();
+  }
+
+  try {
+    const { data: convData, error: convError } = await supabase
+      .from('conversations')
+      .insert({
+        report_id: null,
+        participant_ids: allParticipantIds,
+        is_group: true,
+        title,
+        description,
+        avatar_url: avatarUrl,
+        created_by: creatorId,
+      })
+      .select()
+      .single();
+
+    if (convError || !convData) {
+      return createLocalGroup();
+    }
+
+    // Insert members into conversation_members
+    try {
+      const memberRows = allParticipantIds.map((uid) => ({
+        conversation_id: convData.id,
+        user_id: uid,
+        role: uid === creatorId ? 'owner' : 'member',
+        joined_at: now,
+      }));
+      await supabase.from('conversation_members').insert(memberRows);
+    } catch {
+      // ignore if conversation_members table migration not applied yet
+    }
+
+    // Initial system announcement
+    try {
+      const initialPlain = `Komunitas "${title}" telah dibuat.`;
+      const initialCipher = await encryptMessage(initialPlain, convData.id, allParticipantIds);
+      await supabase.from('messages').insert({
+        conversation_id: convData.id,
+        sender_id: creatorId,
+        content: initialCipher,
+        message_type: 'status_update',
+        attachments: [],
+      });
+    } catch {
+      // ignore
+    }
+
+    return {
+      id: convData.id,
+      report_id: null,
+      participant_ids: allParticipantIds,
+      created_at: convData.created_at,
+      updated_at: convData.updated_at,
+      is_group: true,
+      title: convData.title,
+      description: convData.description,
+      avatar_url: convData.avatar_url,
+      created_by: convData.created_by,
+      member_count: allParticipantIds.length,
+    };
+  } catch {
+    return createLocalGroup();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// getGroupMembers — Fetch members with their profile and role
+// ---------------------------------------------------------------------------
+export async function getGroupMembers(conversationId: string): Promise<ConversationMember[]> {
+  if (isLocalConversationId(conversationId) || !isSupabaseConfigured) {
+    const db = readLocal();
+    const conv = db.conversations.find((c) => c.id === conversationId);
+    if (!conv) return [];
+    return Promise.all(
+      (conv.participant_ids || []).map(async (uid) => {
+        const profile = await fetchProfile(uid);
+        return {
+          conversation_id: conversationId,
+          user_id: uid,
+          role: uid === conv.created_by ? ('owner' as const) : ('member' as const),
+          joined_at: conv.created_at,
+          profile,
+        };
+      })
+    );
+  }
+
+  try {
+    const { data: members, error } = await supabase
+      .from('conversation_members')
+      .select('conversation_id, user_id, role, joined_at')
+      .eq('conversation_id', conversationId);
+
+    if (!error && members && members.length > 0) {
+      return Promise.all(
+        members.map(async (m) => {
+          const profile = await fetchProfile(m.user_id);
+          return {
+            conversation_id: m.conversation_id,
+            user_id: m.user_id,
+            role: m.role as 'owner' | 'admin' | 'member',
+            joined_at: m.joined_at,
+            profile,
+          };
+        })
+      );
+    }
+  } catch {
+    // fallback
+  }
+
+  // Fallback to conversation.participant_ids
+  try {
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('participant_ids, created_by, created_at')
+      .eq('id', conversationId)
+      .single();
+    if (!conv) return [];
+    return Promise.all(
+      (conv.participant_ids || []).map(async (uid: string) => {
+        const profile = await fetchProfile(uid);
+        return {
+          conversation_id: conversationId,
+          user_id: uid,
+          role: uid === conv.created_by ? ('owner' as const) : ('member' as const),
+          joined_at: conv.created_at,
+          profile,
+        };
+      })
+    );
+  } catch {
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// addGroupMembers — Add new members to an existing group
+// ---------------------------------------------------------------------------
+export async function addGroupMembers(
+  conversationId: string,
+  newMemberIds: string[],
+  addedByUserId: string
+): Promise<void> {
+  if (!newMemberIds.length) return;
+
+  if (isLocalConversationId(conversationId) || !isSupabaseConfigured) {
+    const db = readLocal();
+    const conv = db.conversations.find((c) => c.id === conversationId);
+    if (!conv) return;
+    const combined = Array.from(new Set([...(conv.participant_ids || []), ...newMemberIds]));
+    conv.participant_ids = combined;
+    conv.member_count = combined.length;
+    writeLocal(db);
+    return;
+  }
+
+  try {
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('participant_ids')
+      .eq('id', conversationId)
+      .single();
+
+    const existingIds = conv?.participant_ids || [];
+    const combined = Array.from(new Set([...existingIds, ...newMemberIds]));
+
+    await supabase
+      .from('conversations')
+      .update({ participant_ids: combined, updated_at: new Date().toISOString() })
+      .eq('id', conversationId);
+
+    const rows = newMemberIds.map((uid) => ({
+      conversation_id: conversationId,
+      user_id: uid,
+      role: 'member',
+      joined_at: new Date().toISOString(),
+    }));
+    await supabase.from('conversation_members').upsert(rows);
+
+    // Announcement
+    const note = `Menambahkan ${newMemberIds.length} anggota baru ke dalam grup.`;
+    await sendMessage(conversationId, addedByUserId, note, 'status_update', combined);
+  } catch {
+    // ignore
+  }
 }
 
 // ---------------------------------------------------------------------------

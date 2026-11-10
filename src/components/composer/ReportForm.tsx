@@ -342,15 +342,26 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel, onD
             </button>
           </div>
           <p className="text-xs text-ink-3">Simpan nomor ini untuk memantau status laporan tanpa perlu masuk akun.</p>
-          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-center">
-            <GhostButton onClick={onCancel} className="sm:min-w-28">Selesai</GhostButton>
+          <div className="flex flex-col-reverse sm:flex-row flex-wrap gap-2 sm:justify-center">
+            <GhostButton onClick={onCancel} className="sm:min-w-24">Selesai</GhostButton>
+            <button
+              type="button"
+              onClick={() => {
+                const targetRef = submissionResult.publicReference || submissionResult.report.id;
+                onCancel();
+                navigate(`/laporan/${encodeURIComponent(targetRef)}`);
+              }}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-surface border border-line text-ink text-sm font-semibold hover:bg-surface-2 transition-colors cursor-pointer"
+            >
+              Lihat detail laporan
+            </button>
             <PrimaryButton
               onClick={() => {
                 onCancel();
                 navigate(`/track?ref=${encodeURIComponent(submissionResult.publicReference)}`);
               }}
             >
-              Lihat status laporan
+              Pantau status
             </PrimaryButton>
           </div>
         </div>

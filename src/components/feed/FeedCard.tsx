@@ -456,7 +456,12 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         {post.relatedReport && (
           <button
             type="button"
-            onClick={() => post.relatedReport && openReportDetail(post.relatedReport)}
+            onClick={() => {
+              if (post.relatedReport) {
+                openReportDetail(post.relatedReport);
+                navigate(`/laporan/${encodeURIComponent(post.relatedReport.publicReference || post.relatedReport.id)}`);
+              }
+            }}
             className="glass-media w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-left hover:bg-black/60 transition-colors cursor-pointer"
           >
             <span className="min-w-0">

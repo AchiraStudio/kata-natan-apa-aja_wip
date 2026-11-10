@@ -110,17 +110,18 @@ export const BottomNav: React.FC = () => {
 
       {tab('/explore', 'Explore', Compass, currentPath === '/explore')}
 
-      {/* Create is an action, not a place: a raised key that breaks the bar's top edge */}
-      <div className="flex items-center justify-center">
+      {/* Action button: centered within the bar, aligned with other navigation destinations */}
+      <div className="flex flex-col items-center justify-center gap-1 h-[3.75rem]">
         <button
           type="button"
           onClick={openReportModal}
-          className="-translate-y-4 flex items-center justify-center w-14 h-14 rounded-2xl bg-brand text-on-brand border border-white/25 shadow-[0_12px_24px_-10px_rgba(0,0,0,0.6)] active:scale-95 transition-transform cursor-pointer"
+          className="flex items-center justify-center w-12 h-8 rounded-xl bg-brand text-on-brand shadow-[0_4px_14px_-4px_rgba(0,0,0,0.4)] active:scale-95 transition-all cursor-pointer hover:brightness-110"
           title="Buat laporan warga"
           aria-label="Buat"
         >
-          <Plus className="w-6 h-6" strokeWidth={2.8} />
+          <Plus className="w-5 h-5" strokeWidth={2.8} />
         </button>
+        <span className="text-[11px] leading-none font-semibold text-ink">Buat</span>
       </div>
 
       {tab('/map', 'Peta', MapPin, currentPath === '/map')}

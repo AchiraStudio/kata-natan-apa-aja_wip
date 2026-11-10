@@ -454,7 +454,7 @@ export const WeeklyTrend: React.FC<{ reports: Report[]; wide?: boolean }> = ({ r
               {shown.map((r) => (
                 <li key={r.id}>
                   <Link
-                    to={`/laporan/${encodeURIComponent(r.id)}`}
+                    to={`/laporan/${encodeURIComponent(r.publicReference || r.id)}`}
                     className="flex items-start justify-between gap-3 py-3 -mx-2 px-2 rounded-lg hover:bg-surface-2/60 transition-colors"
                   >
                     <span className="min-w-0">
