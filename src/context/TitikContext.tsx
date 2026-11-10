@@ -76,7 +76,7 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [landingBannerOpen, setLandingBannerOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(1);
 
   useEffect(() => {
     const handleUnreadUpdate = (e: Event) => {
