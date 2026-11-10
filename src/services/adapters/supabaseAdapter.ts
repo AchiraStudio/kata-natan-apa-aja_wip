@@ -12,6 +12,7 @@ import { resolveAvatarUrl } from '../../utils/avatar';
 import { Post, Report, ReportStatus, Facility, BudgetSectorContext, UserProfile, EvidenceStatus } from '../../types/domain';
 import { DataError } from '../errors/DataError';
 import { storageService } from '../storageService';
+import { normalizePostMedia } from '../../utils/postMedia';
 
 function mapPostgrestError(error: unknown, fallbackMessage: string): DataError {
   if (!error) return new DataError('network', fallbackMessage);
@@ -176,7 +177,7 @@ function mapPostRow(
     },
     body: row.body,
     postType: row.post_type || 'citizen_report',
-    media: Array.isArray(row.media) ? row.media : [],
+    media: normalizePostMedia(row.media, relatedReport?.mediaUrls),
     locationTag: row.location_tag || 'Kota Bogor',
     relatedReportId: row.related_report_id || undefined,
     relatedReport,
@@ -266,7 +267,8 @@ export class SupabaseDataAdapter implements IDataAdapter {
           comments:comments(count),
           likes:post_likes(count),
           saves:post_saves(count)
-        `);
+        `)
+        .not('related_report_id', 'is', null);
 
       if (followedUserIds) {
         query = query.in('author_id', followedUserIds);
@@ -282,7 +284,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
         .limit(100);
 
       if (error) {
-        throw mapPostgrestError(error, 'Gagal memuat postingan linimasa.');
+        throw mapPostgrestError(error, 'Gagal memuat laporan di beranda.');
       }
 
       if (!data || data.length === 0) {
@@ -346,15 +348,31 @@ export class SupabaseDataAdapter implements IDataAdapter {
 
   async getReportByReference(reference: string, userId?: string): Promise<Report | null> {
     try {
-      const { data, error } = await supabase
+      const normalizedReference = reference.trim();
+      const referenceResult = await supabase
         .from('reports')
         .select('*')
-        .eq('public_reference', reference)
+        .eq('public_reference', normalizedReference)
         .maybeSingle();
 
-      if (error) {
-        throw mapPostgrestError(error, 'Gagal mencari laporan.');
+      if (referenceResult.error) {
+        throw mapPostgrestError(referenceResult.error, 'Gagal mencari laporan.');
       }
+      let data = referenceResult.data;
+
+      if (!data && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalizedReference)) {
+        const idResult = await supabase
+          .from('reports')
+          .select('*')
+          .eq('id', normalizedReference)
+          .maybeSingle();
+
+        if (idResult.error) {
+          throw mapPostgrestError(idResult.error, 'Gagal mencari laporan.');
+        }
+        data = idResult.data;
+      }
+
       if (!data) return null;
       let isSavedByMe = false;
       if (userId) {
@@ -504,21 +522,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
   }
 
   async getMyReports(reporterUserId: string): Promise<Report[]> {
-    try {
-      const { data, error } = await supabase
-        .from('reports')
-        .select('*')
-        .eq('reporter_user_id', reporterUserId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw mapPostgrestError(error, 'Gagal memuat laporan saya.');
-      }
-      return (data || []).map((row: any) => mapReportRow(row));
-    } catch (err) {
-      if (err instanceof DataError) throw err;
-      throw mapPostgrestError(err, 'Terjadi kesalahan saat memuat daftar laporan.');
-    }
+    return this.getUserReports(reporterUserId);
   }
 
   async resubmitRejectedReport(
@@ -633,15 +637,14 @@ export class SupabaseDataAdapter implements IDataAdapter {
 
   async deleteReport(reportId: string): Promise<void> {
     try {
-      const { error } = await supabase.rpc('admin_delete_report', {
+      const { data, error } = await supabase.rpc('admin_delete_report', {
         p_report_id: reportId,
       });
       if (error) {
-        // Fallback to direct delete if RPC not installed
-        const { error: directErr } = await supabase.from('reports').delete().eq('id', reportId);
-        if (directErr) {
-          throw mapPostgrestError(directErr, 'Gagal menghapus laporan.');
-        }
+        throw mapPostgrestError(error, 'Gagal menghapus laporan.');
+      }
+      if (data !== true) {
+        throw new DataError('not_found', 'Laporan tidak ditemukan.');
       }
     } catch (err) {
       if (err instanceof DataError) throw err;
@@ -879,84 +882,6 @@ export class SupabaseDataAdapter implements IDataAdapter {
     } catch (err) {
       if (err instanceof DataError) throw err;
       throw mapPostgrestError(err, 'Gagal mendukung laporan.');
-    }
-  }
-
-  async togglePostSave(
-    postId: string,
-    userId?: string
-  ): Promise<{ savesCount: number; isSaved: boolean }> {
-    if (!userId) {
-      throw new DataError('auth', 'Autentikasi diperlukan untuk menyimpan postingan.');
-    }
-    try {
-      const { data, error } = await supabase.rpc('toggle_post_save', {
-        p_post_id: postId,
-      });
-      if (error) {
-        throw mapPostgrestError(error, 'Gagal menyimpan postingan.');
-      }
-      return {
-        savesCount: data.saves_count,
-        isSaved: data.is_saved,
-      };
-    } catch (err) {
-      if (err instanceof DataError) throw err;
-      throw mapPostgrestError(err, 'Gagal menyimpan postingan.');
-    }
-  }
-
-  async togglePostLike(
-    postId: string,
-    userId?: string
-  ): Promise<{ likesCount: number; isLiked: boolean }> {
-    if (!userId) {
-      throw new DataError('auth', 'Autentikasi diperlukan untuk menyukai postingan.');
-    }
-    try {
-      const { data, error } = await supabase.rpc('toggle_post_like', {
-        p_post_id: postId,
-      });
-      if (error) {
-        throw mapPostgrestError(error, 'Gagal menyukai postingan.');
-      }
-      return {
-        likesCount: data.likes_count,
-        isLiked: data.is_liked,
-      };
-    } catch (err) {
-      if (err instanceof DataError) throw err;
-      throw mapPostgrestError(err, 'Gagal menyukai postingan.');
-    }
-  }
-
-  async getSavedPosts(userId: string): Promise<Post[]> {
-    try {
-      const { data, error } = await supabase
-        .from('post_saves')
-        .select(`
-          post_id,
-          post:posts(
-            *,
-            relatedReport:reports(*, supports:report_supports(count)),
-            comments:comments(count),
-            likes:post_likes(count),
-            saves:post_saves(count)
-          )
-        `)
-        .eq('user_id', userId);
-
-      if (error) {
-        throw mapPostgrestError(error, 'Gagal memuat postingan tersimpan.');
-      }
-
-      return (data || [])
-        .map((row: any) => row.post)
-        .filter(Boolean)
-        .map((row: any) => mapPostRow(row, true, false, false));
-    } catch (err) {
-      if (err instanceof DataError) throw err;
-      throw mapPostgrestError(err, 'Gagal memuat postingan tersimpan.');
     }
   }
 
@@ -1346,97 +1271,51 @@ export class SupabaseDataAdapter implements IDataAdapter {
     }
   }
 
-  async deleteOwnPost(postId: string): Promise<void> {
-    try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError) throw mapPostgrestError(authError, 'Gagal memeriksa autentikasi.');
-      if (!user) throw new DataError('auth', 'Masuk untuk menghapus postingan Anda.');
-
-      const { data, error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', postId)
-        .eq('author_id', user.id)
-        .select('id')
-        .maybeSingle();
-
-      if (error) {
-        throw mapPostgrestError(error, 'Gagal menghapus postingan Anda.');
-      }
-      if (!data) {
-        throw new DataError('not_found', 'Postingan tidak ditemukan atau bukan milik akun Anda.');
-      }
-    } catch (err) {
-      if (err instanceof DataError) throw err;
-      throw mapPostgrestError(err, 'Gagal menghapus postingan Anda.');
-    }
-  }
-
-  async getUserPosts(userId: string): Promise<Post[]> {
-    try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          relatedReport:reports(*, supports:report_supports(count)),
-          comments:comments(count),
-          likes:post_likes(count),
-          saves:post_saves(count)
-        `)
-        .eq('author_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw mapPostgrestError(error, 'Gagal memuat postingan pengguna.');
-      }
-      return (data || []).map((row) => mapPostRow(row, false, false, false));
-    } catch (err) {
-      if (err instanceof DataError) throw err;
-      throw mapPostgrestError(err, 'Gagal memuat postingan pengguna.');
-    }
-  }
-
   async getUserReports(userId: string): Promise<Report[]> {
     try {
-      const { data, error } = await supabase
-        .from('reports')
-        .select('*')
-        .eq('reporter_user_id', userId)
-        .neq('reporter_type', 'anonymous')
-        .order('created_at', { ascending: false });
+      const [reportsResult, reportPostsResult] = await Promise.all([
+        supabase
+          .from('reports')
+          .select('*')
+          .eq('reporter_user_id', userId)
+          .neq('reporter_type', 'anonymous')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('posts')
+          .select('relatedReport:reports(*)')
+          .eq('author_id', userId)
+          .not('related_report_id', 'is', null),
+      ]);
 
-      if (error) {
-        throw mapPostgrestError(error, 'Gagal memuat laporan pengguna.');
+      if (reportsResult.error) {
+        throw mapPostgrestError(reportsResult.error, 'Gagal memuat laporan pengguna.');
       }
-      return (data || []).map((row) => mapReportRow(row));
+      if (reportPostsResult.error) {
+        throw mapPostgrestError(reportPostsResult.error, 'Gagal memuat laporan pengguna.');
+      }
+
+      const reports = (reportsResult.data || []).map((row) => mapReportRow(row));
+      const reportIds = new Set(reports.map((report) => report.id));
+      for (const post of reportPostsResult.data || []) {
+        const relatedReports = Array.isArray(post.relatedReport)
+          ? post.relatedReport
+          : post.relatedReport
+            ? [post.relatedReport]
+            : [];
+        for (const row of relatedReports) {
+          if (row.reporter_user_id !== userId || row.reporter_type === 'anonymous') continue;
+          const report = mapReportRow(row);
+          if (!reportIds.has(report.id)) {
+            reports.push(report);
+            reportIds.add(report.id);
+          }
+        }
+      }
+
+      return reports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (err) {
       if (err instanceof DataError) throw err;
       throw mapPostgrestError(err, 'Gagal memuat laporan pengguna.');
-    }
-  }
-
-  async getPostById(postId: string): Promise<Post | null> {
-    try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          relatedReport:reports(*, supports:report_supports(count)),
-          comments:comments(count),
-          likes:post_likes(count),
-          saves:post_saves(count)
-        `)
-        .eq('id', postId)
-        .maybeSingle();
-
-      if (error) {
-        throw mapPostgrestError(error, 'Gagal memuat postingan.');
-      }
-      if (!data) return null;
-      return mapPostRow(data, false, false, false);
-    } catch (err) {
-      if (err instanceof DataError) throw err;
-      throw mapPostgrestError(err, 'Gagal memuat postingan.');
     }
   }
 
@@ -1455,13 +1334,13 @@ export class SupabaseDataAdapter implements IDataAdapter {
         .maybeSingle();
 
       if (error) {
-        throw mapPostgrestError(error, 'Gagal memuat postingan terkait laporan.');
+        throw mapPostgrestError(error, 'Gagal memuat laporan di beranda.');
       }
       if (!data) return null;
       return mapPostRow(data, false, false, false);
     } catch (err) {
       if (err instanceof DataError) throw err;
-      throw mapPostgrestError(err, 'Gagal memuat postingan terkait laporan.');
+      throw mapPostgrestError(err, 'Gagal memuat laporan di beranda.');
     }
   }
 

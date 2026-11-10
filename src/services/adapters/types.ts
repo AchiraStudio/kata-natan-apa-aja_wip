@@ -101,9 +101,6 @@ export interface IDataAdapter {
   getPrivateEvidenceSignedUrl(filePath: string): Promise<string>;
   toggleReportSupport(reportId: string, userId?: string): Promise<{ supportCount: number; isSupported: boolean }>;
   toggleReportSave(reportId: string, userId?: string): Promise<{ isSaved: boolean }>;
-  togglePostSave(postId: string, userId?: string): Promise<{ savesCount: number; isSaved: boolean }>;
-  togglePostLike(postId: string, userId?: string): Promise<{ likesCount: number; isLiked: boolean }>;
-  getSavedPosts(userId: string): Promise<Post[]>;
   getSavedReports(userId: string): Promise<Report[]>;
   addComment(postId: string, authorName: string, avatarUrl: string, body: string, parentId?: string): Promise<FeedComment>;
   getComments(postId: string): Promise<FeedComment[]>;
@@ -114,10 +111,7 @@ export interface IDataAdapter {
   getProfileByUsername(username: string): Promise<UserProfile | null>;
   getUserFollowStats(userId: string, viewerId?: string): Promise<UserFollowStats>;
   toggleUserFollow(userId: string): Promise<UserFollowStats>;
-  deleteOwnPost(postId: string): Promise<void>;
-  getUserPosts(userId: string): Promise<Post[]>;
   getUserReports(userId: string): Promise<Report[]>;
-  getPostById(postId: string): Promise<Post | null>;
   getPostByReportId(reportId: string): Promise<Post | null>;
   updateProfile(payload: {
     displayName?: string;

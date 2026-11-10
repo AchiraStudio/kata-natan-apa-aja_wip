@@ -20,9 +20,7 @@ const stripProtocol = (url: string) => url.replace(/^https?:\/\//i, '').replace(
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
   const {
     profile,
-    posts,
     reports,
-    setActiveTab,
     isOwnProfile,
     bannerInputRef,
     handleBannerFileChange,
@@ -41,6 +39,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
   const joined = formatJoined(profile.createdAt);
   const theme = getProfileTheme(profile.backgroundTheme);
   const isAdmin = profile.role === 'admin';
+  const isFollowing = followStats?.isFollowing ?? false;
+  const followerCount = followStats?.followerCount ?? 0;
+  const followingCount = followStats?.followingCount ?? 0;
   const actionBtn =
     'inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60';
 
@@ -142,15 +143,15 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
                 type="button"
                 onClick={handleToggleFollow}
                 disabled={isTogglingFollow}
-                aria-pressed={followStats.isFollowing}
+                aria-pressed={isFollowing}
                 className={`${actionBtn} ${
-                  followStats.isFollowing
+                  isFollowing
                     ? 'bg-surface-2 text-ink hover:bg-line'
                     : 'bg-brand text-on-brand hover:bg-brand-hover'
                 }`}
               >
-                {followStats.isFollowing ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                <span>{isTogglingFollow ? 'Memproses' : followStats.isFollowing ? 'Mengikuti' : 'Ikuti'}</span>
+                {isFollowing ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                <span>{isTogglingFollow ? 'Memproses' : isFollowing ? 'Mengikuti' : 'Ikuti'}</span>
               </button>
               <button
                 type="button"
@@ -175,25 +176,21 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
           )}
         </div>
 
-        <dl className="mt-6 pt-5 border-t border-line-soft grid grid-cols-2 sm:grid-cols-5 gap-2 text-left">
-          <button type="button" onClick={() => setActiveTab('posts')} className="text-left cursor-pointer group">
-            <dd className="font-display text-xl font-bold text-ink tabular-nums group-hover:text-brand transition-colors">{posts.length}</dd>
-            <dt className="text-xs text-ink-3">Postingan</dt>
-          </button>
-          <button type="button" onClick={() => setActiveTab('reports')} className="text-left cursor-pointer group">
-            <dd className="font-display text-xl font-bold text-ink tabular-nums group-hover:text-brand transition-colors">{reports.length}</dd>
+        <dl className="mt-6 pt-5 border-t border-line-soft grid grid-cols-2 sm:grid-cols-4 gap-2 text-left">
+          <div className="text-left">
+            <dd className="font-display text-xl font-bold text-ink tabular-nums">{reports.length}</dd>
             <dt className="text-xs text-ink-3">Laporan</dt>
-          </button>
+          </div>
           <div>
             <dd className="font-display text-xl font-bold text-ink tabular-nums">{totalSupportAndLikes}</dd>
             <dt className="text-xs text-ink-3">Dukungan diterima</dt>
           </div>
           <div>
-            <dd className="font-display text-xl font-bold text-ink tabular-nums">{followStats.followerCount}</dd>
+            <dd className="font-display text-xl font-bold text-ink tabular-nums">{followerCount}</dd>
             <dt className="text-xs text-ink-3">Pengikut</dt>
           </div>
           <div>
-            <dd className="font-display text-xl font-bold text-ink tabular-nums">{followStats.followingCount}</dd>
+            <dd className="font-display text-xl font-bold text-ink tabular-nums">{followingCount}</dd>
             <dt className="text-xs text-ink-3">Mengikuti</dt>
           </div>
         </dl>

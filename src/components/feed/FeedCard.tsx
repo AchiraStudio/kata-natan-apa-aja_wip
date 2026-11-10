@@ -49,7 +49,7 @@ const formatTime = (secs: number) => {
 export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive = true, isMuted, onToggleMute }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const { toggleSupport, togglePostSave, togglePostLike, openReportDetail, updatePostCommentsCount } = useTitik();
+  const { toggleSupport, toggleReportSave, openReportDetail, updatePostCommentsCount } = useTitik();
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,7 +60,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
   const [flash, setFlash] = useState<'play' | 'pause' | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isSaved, setIsSaved] = useState(post.isSavedByMe ?? false);
+  const [isSaved, setIsSaved] = useState(post.relatedReport?.isSavedByMe ?? false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
@@ -76,7 +76,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
   if (post.id !== prevPostId) {
     setPrevPostId(post.id);
     setActiveMediaIndex(0);
-    setIsSaved(post.isSavedByMe ?? false);
+    setIsSaved(post.relatedReport?.isSavedByMe ?? false);
     setShareCopied(false);
     setHasMediaError(false);
   }
@@ -90,8 +90,6 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
 
   const media = post.media[activeMediaIndex] || post.media[0];
   const isVideo = media?.type === 'video';
-  const normalizedRatio = (media?.aspectRatio || '9/16').replace(':', '/');
-  const isVertical = normalizedRatio === '9/16';
   const hasLongCaption = (post.body || '').length > CAPTION_COLLAPSE_CHARS;
 
   const isSupportPost = Boolean(post.relatedReportId);
@@ -174,18 +172,20 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
       setBurstActive(true);
       setTimeout(() => setBurstActive(false), 600);
       if (post.relatedReportId) toggleSupport(post.relatedReportId);
-      else togglePostLike?.(post.id);
     });
 
   const handleSave = () =>
     requireAuth(() => {
+      if (!post.relatedReportId) return;
       const next = !isSaved;
       setIsSaved(next);
-      togglePostSave?.(post.id).catch(() => setIsSaved(!next));
+      toggleReportSave?.(post.relatedReportId).then((result) => setIsSaved(result.isSaved)).catch(() => setIsSaved(!next));
     });
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/post/${post.id}`;
+    const shareUrl = post.relatedReport
+      ? `${window.location.origin}/laporan/${encodeURIComponent(post.relatedReport.publicReference)}`
+      : window.location.origin;
     try {
       if (navigator.share) {
         await navigator.share({ title: 'TITIK.', text: post.body || 'Lihat ini di TITIK.', url: shareUrl });
@@ -221,14 +221,13 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
     }`;
   const railCount = 'mt-1 text-[11px] font-semibold tabular-nums leading-none [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]';
 
-  // Evidence photos are never cropped: non-vertical media is letterboxed and its edges fade into the blurred backdrop
-  const mediaFit = isVertical
-    ? 'object-cover'
-    : 'object-contain [mask-image:linear-gradient(to_bottom,transparent,#000_9%,#000_91%,transparent)]';
+  // Keep the full original image/video visible inside the full-screen feed frame.
+  const mediaFit = 'object-contain';
+  const backdropUrl = media?.posterUrl || (!isVideo ? media?.url : undefined);
 
   return (
     <article
-      aria-label={`Postingan ${post.author.displayName}`}
+      aria-label={`Laporan oleh ${post.author.displayName}`}
       className="relative w-full h-[100dvh] lg:h-full lg:w-auto lg:aspect-[9/16] lg:max-w-[min(100%,460px)] overflow-hidden bg-black text-white select-none lg:rounded-2xl lg:ring-1 lg:ring-white/10 lg:shadow-[0_30px_70px_-30px_rgba(0,0,0,0.7)]"
     >
       {/* Media */}
@@ -240,11 +239,8 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
         </div>
       ) : (
         <div className="absolute inset-0 bg-neutral-950 cursor-pointer" onClick={isVideo ? togglePlay : undefined}>
-          {!isVertical && (media?.posterUrl || media?.url) && !isVideo && (
-            <img src={media.url} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-125" />
-          )}
-          {!isVertical && isVideo && media?.posterUrl && (
-            <img src={media.posterUrl} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-125" />
+          {backdropUrl && (
+            <img src={backdropUrl} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-125" />
           )}
 
           {isVideo ? (
@@ -360,8 +356,8 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
             type="button"
             onClick={handleEngage}
             aria-pressed={isEngaged}
-            aria-label={isSupportPost ? 'Dukung laporan ini, saya terdampak juga' : 'Sukai postingan ini'}
-            title={isSupportPost ? 'Dukung laporan ini (saya terdampak juga)' : 'Sukai postingan ini'}
+            aria-label="Dukung laporan ini, saya terdampak juga"
+            title="Dukung laporan ini (saya terdampak juga)"
             className={railBtn(isEngaged)}
           >
             <Heart className={`w-5 h-5 ${isEngaged ? 'fill-current' : ''}`} />
@@ -397,7 +393,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
       {/* Caption block */}
       <div className="absolute z-10 left-0 right-0 bottom-0 pl-4 pr-[4.5rem] pb-[calc(7.25rem+env(safe-area-inset-bottom,0px))] lg:pb-6 space-y-2.5">
         {post.media.length > 1 && (
-          <div className="flex items-center" role="group" aria-label="Media pada postingan ini">
+          <div className="flex items-center" role="group" aria-label="Media dalam laporan ini">
             {post.media.map((item, index) => (
               <button
                 key={item.id}
@@ -454,7 +450,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
           <MapPin className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">{post.locationTag}</span>
           <span aria-hidden="true" className="text-white/40">/</span>
-          <span className="shrink-0">{post.postType === 'citizen_report' ? 'Laporan warga' : 'Diskusi warga'}</span>
+          <span className="shrink-0">Laporan warga</span>
         </p>
 
         {post.relatedReport && (

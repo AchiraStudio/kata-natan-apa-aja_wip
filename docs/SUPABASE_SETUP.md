@@ -53,6 +53,7 @@ Execute the SQL migration files located in `supabase/migrations/` in sequential 
 - Report attachment storage compatibility: `supabase/migrations/20261110000003_add_report_private_supporting_documents.sql`
 - Allow reporters to delete their own reports: `supabase/migrations/20261110000004_allow_reporter_delete_own_report.sql`
 - Allow QuickTime report evidence: `supabase/migrations/20261110000005_allow_quicktime_post_media.sql`
+- Remove linked feed posts when deleting reports: `supabase/migrations/20261110000006_delete_linked_feed_post_with_report.sql`
 - Or use `supabase/schema.sql` for a clean full setup.
 
 ### Option A: Via Supabase Dashboard SQL Editor (Quickest)

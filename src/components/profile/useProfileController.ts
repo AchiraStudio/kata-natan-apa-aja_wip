@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTitik } from '../../context/TitikContext';
 import { dataService } from '../../services/dataService';
-import { UserProfile, Post, Report } from '../../types/domain';
+import { UserProfile, Report } from '../../types/domain';
 import { stripExifAndCleanImage, uploadFileToSupabase } from '../../components/composer/useMediaUpload';
 import { THEME_OPTIONS } from './profileThemes';
 import { createConversation } from '../../services/messagesService';
@@ -14,10 +14,9 @@ export function useProfileController() {
   const { username } = useParams<{ username?: string }>();
   const navigate = useNavigate();
   const { profile: currentAuthProfile, isAuthenticated, refreshProfile, signOut, invalidateSession } = useAuth();
-  const { openComposer, openReportDetail, refreshFeed } = useTitik();
+  const { openReportModal, openReportDetail, refreshFeed, removeReportFromFeed } = useTitik();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [reportsLoadError, setReportsLoadError] = useState<string | null>(null);
   const [followStats, setFollowStats] = useState<UserFollowStats>({
@@ -27,9 +26,8 @@ export function useProfileController() {
   });
   const [isTogglingFollow, setIsTogglingFollow] = useState(false);
   const [followStatsError, setFollowStatsError] = useState<string | null>(null);
-  const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [savedReports, setSavedReports] = useState<Report[]>([]);
-  const [activeTab, setActiveTab] = useState<'posts' | 'reports' | 'saved' | 'settings'>('posts');
+  const [activeTab, setActiveTab] = useState<'reports' | 'saved' | 'settings'>('reports');
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +51,6 @@ export function useProfileController() {
   const [editError, setEditError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [deletingReportId, setDeletingReportId] = useState('');
-  const [deletingPostId, setDeletingPostId] = useState('');
 
   const isOwnProfile = Boolean(
     isAuthenticated &&
@@ -115,11 +112,7 @@ export function useProfileController() {
 
       // Load posts and reports for this user safely without crashing profile
       try {
-        const [userPosts, userReportsResult, fetchedFollowStats] = await Promise.all([
-          dataService.getUserPosts(fetchedProfile.id).catch((postsError) => {
-            console.error('Could not load profile posts:', postsError);
-            return [];
-          }),
+        const [userReportsResult, fetchedFollowStats] = await Promise.all([
           dataService
             .getUserReports(fetchedProfile.id)
             .then((userReports) => ({ reports: userReports, error: null as string | null }))
@@ -136,7 +129,6 @@ export function useProfileController() {
             })),
         ]);
 
-        setPosts(userPosts);
         setReports(userReportsResult.reports);
         setReportsLoadError(userReportsResult.error);
         if (userReportsResult.error) {
@@ -149,27 +141,18 @@ export function useProfileController() {
           setFollowStatsError('Statistik pengikut belum dapat dimuat. Coba muat ulang halaman.');
         }
 
-        // If viewing own profile, load saved posts
         const isViewerOwner =
           isAuthenticated &&
           (currentAuthProfile.id === fetchedProfile.id ||
             currentAuthProfile.username.toLowerCase() === fetchedProfile.username.toLowerCase());
 
         if (isViewerOwner) {
-          const [saved, savedReportsList] = await Promise.all([
-            dataService.getSavedPosts(currentAuthProfile.id).catch((err) => {
-              console.warn('Could not load saved posts:', err);
-              return [];
-            }),
-            dataService.getSavedReports(currentAuthProfile.id).catch((err) => {
+          const savedReportsList = await dataService.getSavedReports(currentAuthProfile.id).catch((err) => {
               console.warn('Could not load saved reports:', err);
               return [];
-            }),
-          ]);
-          setSavedPosts(saved);
+            });
           setSavedReports(savedReportsList);
         } else {
-          setSavedPosts([]);
           setSavedReports([]);
         }
       } catch (auxErr) {
@@ -425,6 +408,7 @@ export function useProfileController() {
     setDeletingReportId(report.id);
     try {
       await dataService.deleteOwnReport(report.id);
+      removeReportFromFeed(report.id);
       setReports((current) => current.filter((item) => item.id !== report.id));
       setSavedReports((current) => current.filter((item) => item.id !== report.id));
       void refreshFeed().catch((refreshError: unknown) => {
@@ -436,35 +420,6 @@ export function useProfileController() {
       showToast(deleteError instanceof Error ? deleteError.message : 'Laporan gagal dihapus. Silakan coba lagi.');
     } finally {
       setDeletingReportId('');
-    }
-  };
-
-  const handleDeleteOwnPost = async (post: Post) => {
-    if (
-      !isOwnProfile ||
-      !currentAuthProfile?.id ||
-      post.author.id !== currentAuthProfile.id
-    ) {
-      return;
-    }
-
-    const confirmed = window.confirm('Hapus postingan ini secara permanen? Tindakan ini tidak dapat dibatalkan.');
-    if (!confirmed || deletingPostId) return;
-
-    setDeletingPostId(post.id);
-    try {
-      await dataService.deleteOwnPost(post.id);
-      setPosts((current) => current.filter((item) => item.id !== post.id));
-      setSavedPosts((current) => current.filter((item) => item.id !== post.id));
-      void refreshFeed().catch((refreshError: unknown) => {
-        console.error('Failed to refresh feed after deleting post:', refreshError);
-      });
-      showToast('Postingan berhasil dihapus.');
-    } catch (deleteError) {
-      console.error('Failed to delete own profile post:', deleteError);
-      showToast(deleteError instanceof Error ? deleteError.message : 'Postingan gagal dihapus. Silakan coba lagi.');
-    } finally {
-      setDeletingPostId('');
     }
   };
 
@@ -488,10 +443,7 @@ export function useProfileController() {
     }
   };
 
-  const totalSupportAndLikes = posts.reduce(
-    (acc, p) => acc + (p.likesCount || 0) + (p.supportCount || 0),
-    0
-  );
+  const totalSupportAndLikes = reports.reduce((total, report) => total + report.supportCount, 0);
 
   const currentTheme =
     THEME_OPTIONS.find((t) => t.id === profile?.backgroundTheme) || THEME_OPTIONS[0];
@@ -504,12 +456,10 @@ export function useProfileController() {
     isAuthenticated,
     refreshProfile,
     signOut,
-    openComposer,
+    openReportModal,
     openReportDetail,
     profile,
     setProfile,
-    posts,
-    setPosts,
     reports,
     setReports,
     reportsLoadError,
@@ -518,10 +468,6 @@ export function useProfileController() {
     isTogglingFollow,
     deletingReportId,
     handleDeleteOwnReport,
-    deletingPostId,
-    handleDeleteOwnPost,
-    savedPosts,
-    setSavedPosts,
     savedReports,
     setSavedReports,
     activeTab,

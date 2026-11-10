@@ -3,7 +3,6 @@ import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { useProfileController } from '../components/profile/useProfileController';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { ProfileTabs } from '../components/profile/ProfileTabs';
-import { PostsTab } from '../components/profile/PostsTab';
 import { ReportsTab } from '../components/profile/ReportsTab';
 import { SavedTab } from '../components/profile/SavedTab';
 import { SettingsTab } from '../components/profile/SettingsTab';
@@ -54,7 +53,6 @@ export const ProfileView: React.FC = () => {
           <ProfileHeader ctrl={ctrl} />
           <ProfileTabs ctrl={ctrl} />
           <div role="tabpanel">
-            <PostsTab ctrl={ctrl} />
             <ReportsTab ctrl={ctrl} />
             <SavedTab ctrl={ctrl} />
             <SettingsTab ctrl={ctrl} />

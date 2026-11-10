@@ -23,7 +23,7 @@ const TAB_BASE = 'group flex flex-col items-center justify-center gap-1 h-[3.75r
 export const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { openComposer, setActiveFeedTab } = useTitik();
+  const { openReportModal, setActiveFeedTab } = useTitik();
   const { profile, isAuthenticated } = useAuth();
   const [isVisible, setIsVisible] = useState(true);
   const [isCommentsSheetOpen, setIsCommentsSheetOpen] = useState(false);
@@ -114,9 +114,9 @@ export const BottomNav: React.FC = () => {
       <div className="flex items-center justify-center">
         <button
           type="button"
-          onClick={() => openComposer('post')}
+          onClick={openReportModal}
           className="-translate-y-4 flex items-center justify-center w-14 h-14 rounded-2xl bg-brand text-on-brand border border-white/25 shadow-[0_12px_24px_-10px_rgba(0,0,0,0.6)] active:scale-95 transition-transform cursor-pointer"
-          title="Buat Postingan atau Laporan"
+          title="Buat laporan warga"
           aria-label="Buat"
         >
           <Plus className="w-6 h-6" strokeWidth={2.8} />

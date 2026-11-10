@@ -17,7 +17,6 @@ const ReportDetailView = React.lazy(() => import('./views/ReportDetailView').the
 const MyReportsView = React.lazy(() => import('./views/MyReportsView').then((m) => ({ default: m.MyReportsView })));
 const SavedReportsView = React.lazy(() => import('./views/SavedReportsView').then((m) => ({ default: m.SavedReportsView })));
 const ProfileView = React.lazy(() => import('./views/ProfileView').then((m) => ({ default: m.ProfileView })));
-const PostDetailView = React.lazy(() => import('./views/PostDetailView').then((m) => ({ default: m.PostDetailView })));
 const AccountSetupView = React.lazy(() => import('./views/AccountSetupView').then((m) => ({ default: m.AccountSetupView })));
 const MessagesView = React.lazy(() => import('./views/MessagesView'));
 
@@ -42,7 +41,7 @@ const ReportDetailRouteBridge: React.FC = () => {
 
   React.useEffect(() => {
     if (reportDetailOpen && selectedReport) {
-      const target = `/laporan/${encodeURIComponent(selectedReport.id)}`;
+      const target = `/laporan/${encodeURIComponent(selectedReport.publicReference)}`;
       closeReportDetail();
       navigate(target);
     }
@@ -170,8 +169,8 @@ export const AppRoutes: React.FC = () => {
           />
           <Route path="/u/:username" element={<ProfileView />} />
           <Route path="/profile/:username" element={<ProfileView />} />
-          <Route path="/post/:id" element={<PostDetailView />} />
-          <Route path="/postingan/:id" element={<PostDetailView />} />
+          <Route path="/post/:id" element={<Navigate to="/" replace />} />
+          <Route path="/postingan/:id" element={<Navigate to="/" replace />} />
           <Route
             path="/laporan-saya"
             element={

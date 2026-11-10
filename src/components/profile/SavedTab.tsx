@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Bookmark } from 'lucide-react';
 import { formatIndonesianTimeAgo } from '../../utils/timeAgo';
 import { SaveReportButton } from '../reporting/SaveReportButton';
@@ -10,19 +9,19 @@ interface SavedTabProps {
 }
 
 export const SavedTab: React.FC<SavedTabProps> = ({ ctrl }) => {
-  const { navigate, savedPosts, savedReports, setSavedReports, openReportDetail, activeTab, isOwnProfile } = ctrl;
+  const { navigate, savedReports, setSavedReports, openReportDetail, activeTab, isOwnProfile } = ctrl;
   return (
     <>
             {isOwnProfile && activeTab === 'saved' && (
               <div>
-                {savedPosts.length === 0 && savedReports.length === 0 ? (
+                {savedReports.length === 0 ? (
                   <div className="bg-surface dark:bg-surface-2 border border-line rounded-2xl p-8 text-center space-y-3">
                     <Bookmark className="w-8 h-8 text-ink-2 mx-auto opacity-40" />
                     <h4 className="text-sm font-bold text-ink">
-                      Belum Ada yang Disimpan
+                      Belum Ada Laporan Tersimpan
                     </h4>
                     <p className="text-xs text-ink-2 max-w-xs mx-auto">
-                      Simpan postingan atau laporan penting agar mudah ditemukan dan ditinjau kembali.
+                      Simpan laporan penting agar mudah ditemukan dan ditinjau kembali.
                     </p>
                     <button
                       type="button"
@@ -34,52 +33,6 @@ export const SavedTab: React.FC<SavedTabProps> = ({ ctrl }) => {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {savedPosts.length > 0 && (
-                      <section className="space-y-3">
-                        <h3 className="text-sm font-bold text-ink">Postingan tersimpan</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {savedPosts.map((post) => (
-                            <Link
-                              key={post.id}
-                              to={`/post/${post.id}`}
-                              className="group bg-surface dark:bg-surface-2 border border-line rounded-2xl overflow-hidden hover:border-brand/40 transition-all shadow-xs flex flex-col justify-between"
-                            >
-                              <div>
-                                {post.media && post.media.length > 0 && (
-                                  <div className="relative aspect-video w-full bg-stone-900 overflow-hidden">
-                                    <img
-                                      src={post.media[0].url}
-                                      alt="Pratinjau"
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                    />
-                                  </div>
-                                )}
-                                <div className="p-4 space-y-2">
-                                  <div className="flex items-center gap-2 text-[11px] text-ink-2">
-                                    <span className="font-bold text-ink">
-                                      @{post.author.username}
-                                    </span>
-                                    <span>•</span>
-                                    <span>{formatIndonesianTimeAgo(post.createdAt)}</span>
-                                  </div>
-                                  <p className="text-xs text-ink line-clamp-3">
-                                    {post.body}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="px-4 py-3 bg-canvas/50 dark:bg-surface/50 border-t border-line/60 flex items-center justify-between text-[11px] text-ink-2">
-                                <span>{post.locationTag || 'Kota Bogor'}</span>
-                                <span className="text-[10px] font-bold group-hover:text-brand">
-                                  Lihat Postingan &rarr;
-                                </span>
-                              </div>
-                            </Link>
-                          ))}
-                        </div>
-                      </section>
-                    )}
-
                     {savedReports.length > 0 && (
                       <section className="space-y-3">
                         <h3 className="text-sm font-bold text-ink">Laporan tersimpan</h3>

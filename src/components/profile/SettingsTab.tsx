@@ -7,7 +7,7 @@ interface SettingsTabProps {
 }
 
 export const SettingsTab: React.FC<SettingsTabProps> = ({ ctrl }) => {
-  const { profile, reports, savedPosts, activeTab, setActiveTab, avatarInputRef, isOwnProfile, handleLogout, handleOpenEdit } = ctrl;
+  const { profile, reports, activeTab, setActiveTab, avatarInputRef, isOwnProfile, handleLogout, handleOpenEdit } = ctrl;
   if (!profile) return null;
   return (
     <>
@@ -91,8 +91,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ ctrl }) => {
                         <Bookmark className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-ink">Postingan & Laporan Tersimpan</div>
-                        <div className="text-[11px] text-ink-2">{(savedPosts || []).length} postingan diarsipkan untuk ditinjau nanti</div>
+                        <div className="text-xs font-bold text-ink">Laporan Tersimpan</div>
+                        <div className="text-[11px] text-ink-2">Tinjau kembali laporan yang Anda simpan</div>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-ink-2" />

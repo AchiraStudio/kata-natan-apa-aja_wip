@@ -21,7 +21,7 @@ export const GlobalSearchModal: React.FC = () => {
       p.body.toLowerCase().includes(query.toLowerCase()) ||
       p.locationTag.toLowerCase().includes(query.toLowerCase()) ||
       p.relatedReport?.title.toLowerCase().includes(query.toLowerCase())
-  );
+  ).filter((post) => post.relatedReport);
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-black/50 dark:bg-black/70 backdrop-blur-xs">
@@ -57,12 +57,12 @@ export const GlobalSearchModal: React.FC = () => {
               {filteredPosts.slice(0, 3).map((p) => (
                 <a
                   key={p.id}
-                  href={p.relatedReport ? `/report/${p.relatedReport.id}` : '#'}
+                  href={p.relatedReport ? `/report/${p.relatedReport.publicReference}` : '#'}
                   onClick={(e) => {
                     e.preventDefault();
                     setSearchModalOpen(false);
                     if (p.relatedReport) {
-                      navigate(`/report/${p.relatedReport.id}`);
+                      navigate(`/report/${p.relatedReport.publicReference}`);
                     }
                   }}
                   className="p-2.5 rounded-xl bg-canvas dark:bg-surface-2 hover:bg-brand-soft/60 dark:hover:bg-line transition-colors cursor-pointer flex items-center justify-between"

@@ -11,7 +11,7 @@ interface ReportsTabProps {
 
 export const ReportsTab: React.FC<ReportsTabProps> = ({ ctrl }) => {
   const {
-    openComposer,
+    openReportModal,
     openReportDetail,
     reports,
     savedReports,
@@ -53,7 +53,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ ctrl }) => {
                     {isOwnProfile && (
                       <button
                         type="button"
-                        onClick={() => openComposer('report')}
+                        onClick={openReportModal}
                         className="px-4 py-2 bg-brand text-on-brand rounded-xl text-xs font-bold hover:bg-brand-hover cursor-pointer"
                       >
                         + Laporkan Masalah Fasilitas

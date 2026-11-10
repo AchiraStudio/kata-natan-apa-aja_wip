@@ -32,7 +32,7 @@ export const FeedContainer: React.FC = () => {
     activePost,
     setActivePostId,
     setSearchModalOpen,
-    openComposer,
+    openReportModal,
     unreadMessagesCount,
   } = useTitik();
 
@@ -298,7 +298,7 @@ export const FeedContainer: React.FC = () => {
               <p className="text-sm text-ink-2">Jadilah yang pertama mendokumentasikan fasilitas di lingkungan Anda.</p>
               <button
                 type="button"
-                onClick={() => openComposer('post')}
+                onClick={openReportModal}
                 className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-brand text-on-brand text-sm font-semibold hover:bg-brand-hover cursor-pointer"
               >
                 <Plus className="w-4 h-4" strokeWidth={2.6} />

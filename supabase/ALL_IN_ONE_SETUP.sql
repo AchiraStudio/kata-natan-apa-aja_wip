@@ -4,7 +4,7 @@
 -- Description: Complete, self-contained, idempotent SQL script that sets up:
 --              1. Tables (user_roles, profiles, facilities, reports, posts, comments, budgets)
 --              2. Least-privilege RLS policies & secure public views
---              3. Atomic RPCs (create_post, submit_report, toggle likes/saves/supports)
+--              3. Atomic RPCs (submit_report, toggle likes/saves/supports)
 --              4. Storage buckets & policies (post-media, avatars, report-evidence-private)
 --              5. Seed accounts in auth.users (admin@titik.id & warga@titik.id)
 --              6. Schema cache reload for PostgREST
@@ -442,64 +442,8 @@ GRANT EXECUTE ON FUNCTION public.update_my_profile(TEXT, TEXT, TEXT, TEXT, TEXT,
 -- 4. ATOMIC INTERACTION RPCS
 -- -----------------------------------------------------------------------------
 
--- Create Post RPC
+-- Remove the standalone post creation RPC; feed entries are created with reports.
 DROP FUNCTION IF EXISTS public.create_post(UUID, TEXT, TEXT, JSONB, TEXT, TEXT);
-CREATE OR REPLACE FUNCTION public.create_post(
-  p_request_id UUID,
-  p_body TEXT,
-  p_post_type TEXT DEFAULT 'citizen_report',
-  p_media JSONB DEFAULT '[]'::jsonb,
-  p_location_tag TEXT DEFAULT 'Kota Bogor',
-  p_related_report_id TEXT DEFAULT NULL
-)
-RETURNS public.posts AS $$
-DECLARE
-  v_uid TEXT;
-  v_profile public.profiles;
-  v_post_id TEXT;
-  v_post public.posts;
-BEGIN
-  v_uid := (SELECT auth.uid()::text);
-  IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'Autentikasi diperlukan untuk menerbitkan postingan.';
-  END IF;
-
-  -- Idempotency check
-  IF p_request_id IS NOT NULL THEN
-    SELECT * INTO v_post FROM public.posts WHERE request_id = p_request_id;
-    IF v_post.id IS NOT NULL THEN
-      RETURN v_post;
-    END IF;
-  END IF;
-
-  SELECT * INTO v_profile FROM public.profiles WHERE id = v_uid;
-  IF v_profile.id IS NULL THEN
-    RAISE EXCEPTION 'Profil pengguna tidak ditemukan.';
-  END IF;
-
-  IF p_post_type = 'official_update' AND NOT public.is_admin() THEN
-    RAISE EXCEPTION 'Akses ditolak: Hanya administrator yang dapat menerbitkan pembaruan resmi.';
-  END IF;
-
-  v_post_id := 'post-' || substr(md5(random()::text || clock_timestamp()::text), 1, 10);
-
-  INSERT INTO public.posts (
-    id, author_id, author_username, author_display_name, author_avatar_url, author_role,
-    body, post_type, media, location_tag, related_report_id, is_demo, request_id, created_at
-  )
-  VALUES (
-    v_post_id, v_uid, v_profile.username, v_profile.display_name,
-    COALESCE(v_profile.avatar_url, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'),
-    v_profile.role, p_body, p_post_type, COALESCE(p_media, '[]'::jsonb),
-    p_location_tag, p_related_report_id, false, p_request_id, NOW()
-  )
-  RETURNING * INTO v_post;
-
-  RETURN v_post;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
-
-GRANT EXECUTE ON FUNCTION public.create_post(UUID, TEXT, TEXT, JSONB, TEXT, TEXT) TO authenticated;
 
 -- Atomic Like Toggle
 DROP FUNCTION IF EXISTS public.toggle_post_like(TEXT);
@@ -838,12 +782,26 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 DROP FUNCTION IF EXISTS public.admin_delete_report(TEXT);
 CREATE OR REPLACE FUNCTION public.admin_delete_report(p_report_id TEXT)
 RETURNS BOOLEAN AS $$
+DECLARE
+  v_deleted_id TEXT;
 BEGIN
   IF NOT public.is_admin() THEN
-    RAISE EXCEPTION 'Akses ditolak: Hanya administrator yang berwenang menghapus laporan.';
+    RAISE EXCEPTION 'Akses ditolak: Hanya administrator yang berwenang menghapus laporan.'
+      USING ERRCODE = '42501';
   END IF;
 
-  DELETE FROM public.reports WHERE id = p_report_id;
+  SELECT id INTO v_deleted_id
+  FROM public.reports
+  WHERE id = p_report_id
+  FOR UPDATE;
+
+  IF v_deleted_id IS NULL THEN
+    RAISE EXCEPTION 'Laporan tidak ditemukan.'
+      USING ERRCODE = 'P0002';
+  END IF;
+
+  DELETE FROM public.posts WHERE related_report_id = v_deleted_id;
+  DELETE FROM public.reports WHERE id = v_deleted_id;
   RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
@@ -859,17 +817,20 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
-  DELETE FROM public.reports
+  SELECT id INTO v_deleted_id
+  FROM public.reports
   WHERE id = p_report_id
     AND reporter_user_id = v_user_id
     AND reporter_type <> 'anonymous'
-  RETURNING id INTO v_deleted_id;
+  FOR UPDATE;
 
   IF v_deleted_id IS NULL THEN
     RAISE EXCEPTION 'Laporan tidak ditemukan atau bukan milik akun Anda.'
       USING ERRCODE = '42501';
   END IF;
 
+  DELETE FROM public.posts WHERE related_report_id = v_deleted_id;
+  DELETE FROM public.reports WHERE id = v_deleted_id;
   RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;

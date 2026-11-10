@@ -5,17 +5,16 @@ interface ProfileTabsProps {
   ctrl: ProfileController;
 }
 
-type TabKey = 'posts' | 'reports' | 'saved' | 'settings';
+type TabKey = 'reports' | 'saved' | 'settings';
 
 export const ProfileTabs: React.FC<ProfileTabsProps> = ({ ctrl }) => {
-  const { posts, reports, savedPosts, savedReports, activeTab, setActiveTab, isOwnProfile } = ctrl;
+  const { reports, savedReports, activeTab, setActiveTab, isOwnProfile } = ctrl;
 
   const tabs: Array<{ key: TabKey; label: string }> = [
-    { key: 'posts', label: `Postingan ${posts.length}` },
     { key: 'reports', label: `Laporan ${reports.length}` },
     ...(isOwnProfile
       ? ([
-          { key: 'saved', label: `Disimpan ${savedPosts.length + savedReports.length}` },
+          { key: 'saved', label: `Disimpan ${savedReports.length}` },
           { key: 'settings', label: 'Akun' },
         ] as Array<{ key: TabKey; label: string }>)
       : []),

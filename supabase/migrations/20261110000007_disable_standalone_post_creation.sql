@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.create_post(UUID, TEXT, TEXT, JSONB, TEXT, TEXT);

@@ -61,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
   const isWide = isWideSidebarPath(currentPath);
 
   const { profile, isAuthenticated } = useAuth();
-  const { openComposer, setActiveFeedTab, setSearchModalOpen, unreadMessagesCount, posts } = useTitik();
+  const { openReportModal, setActiveFeedTab, setSearchModalOpen, unreadMessagesCount, posts } = useTitik();
 
   const isAdminRoute = currentPath.startsWith('/admin');
   const [sidebarTooltip, setSidebarTooltip] = React.useState<{
@@ -255,9 +255,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
         {/* Primary action */}
         <button
           type="button"
-          onClick={() => openComposer('post')}
-          aria-label="Buat laporan atau postingan"
-          title="Buat laporan atau postingan"
+          onClick={openReportModal}
+          aria-label="Buat laporan warga"
+          title="Buat laporan warga"
           className="w-full h-11 flex items-center justify-center gap-2 rounded-lg bg-lime text-on-lime text-sm font-bold hover:brightness-105 active:scale-[0.98] transition cursor-pointer"
         >
           <Plus className="w-[18px] h-[18px]" strokeWidth={2.6} />

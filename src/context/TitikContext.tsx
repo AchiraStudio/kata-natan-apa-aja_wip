@@ -15,8 +15,6 @@ export interface TitikContextType {
   facilities: Facility[];
   budgetSectors: BudgetSectorContext[];
   composerOpen: boolean;
-  composerTab: 'post' | 'report';
-  openComposer: (tab?: 'post' | 'report') => void;
   closeComposer: () => void;
   reportModalOpen: boolean;
   openReportModal: () => void;
@@ -36,8 +34,7 @@ export interface TitikContextType {
   currentUserId?: string;
   toggleSupport: (reportId: string) => Promise<void>;
   toggleReportSave?: (reportId: string) => Promise<{ isSaved: boolean }>;
-  togglePostSave?: (postId: string) => Promise<void>;
-  togglePostLike?: (postId: string) => Promise<void>;
+  removeReportFromFeed: (reportId: string) => void;
   addComment: (
     postId: string,
     body: string,
@@ -69,7 +66,6 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [budgetSectors, setBudgetSectors] = useState<BudgetSectorContext[]>([]);
 
   const [composerOpen, setComposerOpen] = useState(false);
-  const [composerTab, setComposerTab] = useState<'post' | 'report'>('post');
 
   const [reportDetailOpen, setReportDetailOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -89,18 +85,14 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => window.removeEventListener('titik-unread-count', handleUnreadUpdate);
   }, []);
 
-  const openComposer = (tab: 'post' | 'report' = 'post') => {
-    setComposerTab(tab);
-    setComposerOpen(true);
-  };
+  const openReportModal = () => setComposerOpen(true);
 
   const closeComposer = () => {
     setComposerOpen(false);
   };
 
-  const openReportModal = () => openComposer('report');
   const closeReportModal = closeComposer;
-  const reportModalOpen = composerOpen && composerTab === 'report';
+  const reportModalOpen = composerOpen;
 
   const refreshFeed = useCallback(async () => {
     setIsLoading(true);
@@ -363,88 +355,6 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const togglePostSave = async (postId: string) => {
-    const post = posts.find((p) => p.id === postId);
-    const wasSaved = post?.isSavedByMe ?? false;
-    const prevCount = post?.savesCount ?? 0;
-
-    setPosts((prev) =>
-      prev.map((p) => {
-        if (p.id === postId) {
-          const isSaved = !wasSaved;
-          const savesCount = isSaved ? prevCount + 1 : Math.max(0, prevCount - 1);
-          return {
-            ...p,
-            isSavedByMe: isSaved,
-            savesCount,
-          };
-        }
-        return p;
-      })
-    );
-
-    try {
-      const res = await dataService.togglePostSave(postId, currentUserId);
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? { ...p, isSavedByMe: res.isSaved, savesCount: res.savesCount }
-            : p
-        )
-      );
-    } catch (err) {
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? { ...p, isSavedByMe: wasSaved, savesCount: prevCount }
-            : p
-        )
-      );
-      throw err;
-    }
-  };
-
-  const togglePostLike = async (postId: string) => {
-    const post = posts.find((p) => p.id === postId);
-    const wasLiked = post?.isLikedByMe ?? false;
-    const prevCount = post?.likesCount ?? 0;
-
-    setPosts((prev) =>
-      prev.map((p) => {
-        if (p.id === postId) {
-          const isLiked = !wasLiked;
-          const likesCount = isLiked ? prevCount + 1 : Math.max(0, prevCount - 1);
-          return {
-            ...p,
-            isLikedByMe: isLiked,
-            likesCount,
-          };
-        }
-        return p;
-      })
-    );
-
-    try {
-      const res = await dataService.togglePostLike(postId, currentUserId);
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? { ...p, isLikedByMe: res.isLiked, likesCount: res.likesCount }
-            : p
-        )
-      );
-    } catch (err) {
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? { ...p, isLikedByMe: wasLiked, likesCount: prevCount }
-            : p
-        )
-      );
-      throw err;
-    }
-  };
-
   const getComments = async (postId: string) => {
     return dataService.getComments(postId);
   };
@@ -515,9 +425,17 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const removeReportFromFeed = (reportId: string) => {
+    setPosts((prev) =>
+      prev.filter(
+        (post) => post.relatedReportId !== reportId && post.relatedReport?.id !== reportId
+      )
+    );
+  };
+
   const deleteReport = async (reportId: string) => {
     await dataService.deleteReport(reportId);
-    setPosts((prev) => prev.filter((post) => post.relatedReportId !== reportId));
+    removeReportFromFeed(reportId);
     if (selectedReport?.id === reportId) {
       setSelectedReport(null);
       setReportDetailOpen(false);
@@ -534,8 +452,6 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         facilities,
         budgetSectors,
         composerOpen,
-        composerTab,
-        openComposer,
         closeComposer,
         reportModalOpen,
         openReportModal,
@@ -555,8 +471,7 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         currentUserId,
         toggleSupport,
         toggleReportSave,
-        togglePostSave,
-        togglePostLike,
+        removeReportFromFeed,
         addComment,
         getComments,
         updatePostCommentsCount,

@@ -29,7 +29,7 @@ const tally = (values: string[]) => {
 };
 
 export const ExploreView: React.FC = () => {
-  const { facilities, posts, isLoading, openComposer, budgetSectors } = useTitik();
+  const { facilities, posts, isLoading, openReportModal, budgetSectors } = useTitik();
 
   const [tab, setTab] = useState<Tab>('reports');
   const [query, setQuery] = useState('');
@@ -101,7 +101,7 @@ export const ExploreView: React.FC = () => {
         actions={
           <button
             type="button"
-            onClick={() => openComposer('report')}
+            onClick={openReportModal}
             className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-brand text-on-brand text-sm font-semibold hover:bg-brand-hover transition-colors"
           >
             <Plus className="w-4 h-4" strokeWidth={2.6} />

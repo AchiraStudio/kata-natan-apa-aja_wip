@@ -42,7 +42,7 @@ async function loadAllMyReports(userId: string): Promise<Report[]> {
 export const MyReportsView: React.FC = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { openReportModal, refreshFeed } = useTitik();
+  const { openReportModal, refreshFeed, removeReportFromFeed } = useTitik();
   const [loadedReports, setLoadedReports] = useState<{
     userId: string;
     reports?: Report[];
@@ -186,6 +186,7 @@ export const MyReportsView: React.FC = () => {
     setDeleteSuccess('');
     try {
       await dataService.deleteOwnReport(report.id);
+      removeReportFromFeed(report.id);
       setLoadedReports((current) =>
         current?.userId === profile.id
           ? { userId: profile.id, reports: (current.reports || []).filter((item) => item.id !== report.id) }

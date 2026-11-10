@@ -1,17 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { useTitik } from '../../context/useTitik';
-import { PostComposer } from './PostComposer';
 import { ReportForm } from './ReportForm';
 import { GhostButton } from './ui';
 
 /**
  * Create dialog. A full-screen sheet on phones, a centered panel from `sm` up.
- * Each form owns its scroll area and sticky footer; this shell owns the tabs, the close
+ * The report form owns its scroll area and sticky footer; this shell owns the close
  * button, focus handling and the "discard?" prompt, which only appears when there is something to lose.
  */
 export const CreateModal: React.FC = () => {
-  const { composerOpen, composerTab, closeComposer, openComposer } = useTitik();
+  const { composerOpen, closeComposer } = useTitik();
   // A ref, not state: Escape pressed right after typing must already see the latest value
   const dirtyRef = useRef(false);
   const setDirty = useCallback((value: boolean) => {
@@ -93,27 +92,9 @@ export const CreateModal: React.FC = () => {
       >
         <header className="shrink-0 flex items-center gap-3 h-14 pl-4 pr-2 sm:pl-6 sm:pr-3 border-b border-line-soft pt-[env(safe-area-inset-top)] box-content">
           <h2 id="composer-modal-title" className="sr-only">
-            {composerTab === 'post' ? 'Buat postingan' : 'Buat laporan warga'}
+            Buat laporan warga
           </h2>
-          <div role="tablist" aria-label="Yang ingin dibuat" className="titik-pill-track">
-            {(
-              [
-                ['post', 'Postingan'],
-                ['report', 'Laporan'],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={composerTab === key}
-                onClick={() => openComposer(key)}
-                className={`titik-pill-tab ${composerTab === key ? 'active' : ''}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <h2 className="text-sm font-bold text-ink">Buat Laporan Warga</h2>
           <button
             type="button"
             onClick={requestClose}
@@ -125,11 +106,7 @@ export const CreateModal: React.FC = () => {
         </header>
 
         <div className="flex-1 min-h-0 flex flex-col">
-          {composerTab === 'post' ? (
-            <PostComposer onSuccess={closeComposer} onCancel={requestClose} onDirtyChange={setDirty} />
-          ) : (
-            <ReportForm onSuccess={() => {}} onCancel={closeComposer} onDirtyChange={setDirty} />
-          )}
+          <ReportForm onSuccess={() => {}} onCancel={requestClose} onDirtyChange={setDirty} />
         </div>
 
         {confirming && (
@@ -140,9 +117,7 @@ export const CreateModal: React.FC = () => {
                   Tutup dan buang isian?
                 </h3>
                 <p id="discard-body" className="mt-1 text-sm text-ink-2">
-                  {composerTab === 'post'
-                    ? 'Teks postingan tetap tersimpan sebagai draf di sesi ini. Foto dan video yang sudah dipilih akan hilang.'
-                    : 'Isian laporan, foto, dan video yang sudah dipilih akan hilang.'}
+                  Isian laporan, foto, dan video yang sudah dipilih akan hilang.
                 </p>
               </div>
               <div className="flex gap-2">
