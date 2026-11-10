@@ -1,8 +1,9 @@
 import React from 'react';
-import { Search, SquarePen, Users, Palette, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Search, SquarePen, Users, Palette } from 'lucide-react';
 import { UserAvatar } from '../common/UserAvatar';
 import { formatUnreadBadge } from '../../services/messagesService';
-import type { Conversation } from '../../types/domain';
+import type { Conversation, UserProfile } from '../../types/domain';
 import { formatListTime, SPECIAL_TYPE_LABEL } from './messageFormat';
 
 export type ListFilter = 'all' | 'direct' | 'groups' | 'unread' | 'reports';
@@ -15,6 +16,9 @@ interface ConversationListProps {
   hasAnyConversation: boolean;
   query: string;
   onQuery: (value: string) => void;
+  userSearchResults: UserProfile[];
+  isSearchingUsers: boolean;
+  onPickUser: (user: UserProfile) => void;
   filter: ListFilter;
   onFilter: (value: ListFilter) => void;
   onSelect: (id: string) => void;
@@ -38,6 +42,9 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   hasAnyConversation,
   query,
   onQuery,
+  userSearchResults,
+  isSearchingUsers,
+  onPickUser,
   filter,
   onFilter,
   onSelect,
@@ -92,7 +99,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
           type="search"
           value={query}
           onChange={(e) => onQuery(e.target.value)}
-          placeholder="Cari nama, grup, atau kode laporan"
+          placeholder="Cari percakapan atau nama pengguna"
           aria-label="Cari percakapan"
           className="titik-pill-input pl-10 pr-3"
         />
@@ -118,6 +125,41 @@ export const ConversationList: React.FC<ConversationListProps> = ({
     </div>
 
     <div className="flex-1 min-h-0 overflow-y-auto pb-28 md:pb-3 px-2">
+      {query.trim().length >= 2 && (
+        <section aria-label="Hasil pencarian pengguna" className="mb-3">
+          <h2 className="px-3 py-2 text-xs font-semibold text-ink-3">Pengguna</h2>
+          {isSearchingUsers ? (
+            <p role="status" className="px-3 py-3 text-sm text-ink-2">Mencari pengguna...</p>
+          ) : userSearchResults.length === 0 ? (
+            <p className="px-3 py-3 text-sm text-ink-2">Tidak ada pengguna yang cocok.</p>
+          ) : (
+            <ul className="space-y-0.5">
+              {userSearchResults.map((user) => (
+                <li key={user.id} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-surface-2">
+                  <UserAvatar
+                    src={user.avatarUrl}
+                    alt={user.displayName}
+                    name={user.displayName}
+                    role={user.role}
+                    className="w-9 h-9 rounded-full object-cover shrink-0"
+                  />
+                  <Link to={`/u/${encodeURIComponent(user.username)}`} className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-ink">{user.displayName}</span>
+                    <span className="block truncate text-xs text-ink-3">@{user.username}</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => onPickUser(user)}
+                    className="shrink-0 rounded-lg bg-brand px-2.5 py-1.5 text-xs font-semibold text-on-brand hover:brightness-110 cursor-pointer"
+                  >
+                    Pesan
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
       {isLoading && !hasAnyConversation ? (
         <p role="status" className="p-6 text-sm text-ink-2 text-center">
           Memuat percakapan

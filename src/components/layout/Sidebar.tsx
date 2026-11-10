@@ -112,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
       },
     },
     { label: 'Jelajah', hint: 'Statistik dan daftar laporan', title: 'Jelajah sektor', icon: Compass, href: '/explore', active: currentPath === '/explore' },
-    { label: 'Peta', hint: 'Sebaran laporan di Kota Bogor', title: 'Peta laporan', icon: MapPin, href: '/map', active: currentPath === '/map' },
+    { label: 'Peta', hint: 'Sebaran laporan dari pengguna', title: 'Peta laporan', icon: MapPin, href: '/map', active: currentPath === '/map' },
     {
       label: 'Pesan',
       hint: 'Percakapan dengan warga dan petugas',
@@ -227,9 +227,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
           }}
           className="flex items-center justify-center xl:justify-start gap-2.5 h-10 xl:px-1.5 cursor-pointer"
         >
-          <TitikLogo className="w-8 h-8 shrink-0" pinColor="#cde46a" innerColor="#0f2a1b" dotColor="#eaf3e2" />
+          <TitikLogo className="w-8 h-8 shrink-0" pinColor="#5fc785" innerColor="#0f2a1b" dotColor="#eaf3e2" />
           <span className={`hidden xl:flex items-baseline font-display font-extrabold tracking-tight text-side-ink ${isWide ? 'text-[22px] 2xl:text-[28px]' : 'text-[22px]'}`}>
-            TITIK<span className="text-lime">.</span>
+            TITIK<span className="text-brand">.</span>
           </span>
         </a>
 
@@ -267,9 +267,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
 
         {/* Live city summary: only on the wide pages, only when real reports are loaded */}
         {isWide && summary.total > 0 && (
-          <section aria-label="Ringkasan laporan kota" className="hidden 2xl:block rounded-2xl bg-white/6 border border-side-line p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+          <section aria-label="Ringkasan status laporan" className="hidden 2xl:block rounded-2xl bg-white/6 border border-side-line p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
             <div className="flex items-center justify-between">
-              <h2 className="font-sans text-xs font-semibold text-side-ink-2">Laporan Kota Bogor</h2>
               <span className="inline-flex items-center gap-1.5 text-[11px] text-side-ink-2">
                 <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-lime titik-live" />
                 langsung

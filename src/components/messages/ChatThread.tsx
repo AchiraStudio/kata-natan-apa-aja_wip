@@ -12,6 +12,10 @@ import {
   Palette,
   Download,
   File as FileIcon,
+  MoreVertical,
+  Star,
+  Trash2,
+  X as CloseIcon,
 } from 'lucide-react';
 import { UserAvatar } from '../common/UserAvatar';
 import type { Conversation, Message, MessageAttachment } from '../../types/domain';
@@ -40,6 +44,9 @@ interface ChatThreadProps {
   onAddAttachment?: (file: File) => Promise<void>;
   onRemoveAttachment?: (index: number) => void;
   isUploadingAttachment?: boolean;
+  onDeleteForMe: (message: Message) => Promise<void>;
+  onDeleteForEveryone: (message: Message) => Promise<void>;
+  onToggleStar: (message: Message) => Promise<void>;
 }
 
 const QUICK_ACTIONS: Array<[QuickAction, string]> = [
@@ -47,6 +54,94 @@ const QUICK_ACTIONS: Array<[QuickAction, string]> = [
   ['disposition_update', 'Update status'],
   ['resolution_notice', 'Tandai tuntas'],
 ];
+
+const MessageActions: React.FC<{
+  message: Message;
+  mine: boolean;
+  onDeleteForMe: (message: Message) => Promise<void>;
+  onDeleteForEveryone: (message: Message) => Promise<void>;
+  onToggleStar: (message: Message) => Promise<void>;
+}> = ({ message, mine, onDeleteForMe, onDeleteForEveryone, onToggleStar }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isWorking, setIsWorking] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [isOpen]);
+
+  const runAction = async (action: () => Promise<void>) => {
+    setIsWorking(true);
+    try {
+      await action();
+      setIsOpen(false);
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
+  return (
+    <div ref={rootRef} className="absolute top-1 right-1 z-20">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-label="Menu tindakan pesan"
+        aria-expanded={isOpen}
+        className="w-7 h-7 rounded-lg flex items-center justify-center bg-surface/80 text-ink-2 hover:bg-surface hover:text-ink cursor-pointer"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+      {isOpen && (
+        <div role="menu" className="absolute top-8 right-0 z-30 min-w-48 rounded-xl border border-line bg-surface shadow-lg p-1.5">
+          <button
+            type="button"
+            role="menuitem"
+            disabled={isWorking}
+            onClick={() => void runAction(() => onDeleteForMe(message))}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm text-ink hover:bg-surface-2 disabled:opacity-50 cursor-pointer"
+          >
+            <Trash2 className="w-4 h-4" />
+            Hapus untuk saya
+          </button>
+          {mine && (
+            <button
+              type="button"
+              role="menuitem"
+              disabled={isWorking}
+              onClick={() => void runAction(() => onDeleteForEveryone(message))}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm text-rose-600 hover:bg-surface-2 disabled:opacity-50 cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+              Hapus untuk semua orang
+            </button>
+          )}
+          <button
+            type="button"
+            role="menuitem"
+            disabled={isWorking}
+            onClick={() => void runAction(() => onToggleStar(message))}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm text-ink hover:bg-surface-2 disabled:opacity-50 cursor-pointer"
+          >
+            <Star className="w-4 h-4" />
+            {message.is_starred ? 'Hapus bintang' : 'Bintangi pesan'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const ChatThread: React.FC<ChatThreadProps> = ({
   conversation,
@@ -67,15 +162,20 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   onAddAttachment,
   onRemoveAttachment,
   isUploadingAttachment = false,
+  onDeleteForMe,
+  onDeleteForEveryone,
+  onToggleStar,
 }) => {
   const endRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [isStarredMessagesOpen, setIsStarredMessagesOpen] = useState(false);
 
   const { config: chatBg, inlineStyle: chatBgStyle } = useCustomBackground('chat');
 
   const groups = useMemo(() => groupByDay(messages), [messages]);
+  const starredMessages = useMemo(() => messages.filter((message) => message.is_starred), [messages]);
   const isGroup = Boolean(conversation?.is_group);
   const other = conversation?.other_participant;
   const name = isGroup
@@ -181,6 +281,20 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
+            onClick={() => setIsStarredMessagesOpen(true)}
+            title="Lihat pesan berbintang"
+            aria-label={`Pesan berbintang${starredMessages.length ? `, ${starredMessages.length}` : ''}`}
+            className="relative w-9 h-9 rounded-lg bg-surface-2 text-ink-2 flex items-center justify-center hover:bg-line hover:text-ink transition-colors cursor-pointer"
+          >
+            <Star className="w-4 h-4" />
+            {starredMessages.length > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-brand text-on-brand text-[9px] font-bold flex items-center justify-center">
+                {starredMessages.length}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
             onClick={() =>
               window.dispatchEvent(
                 new CustomEvent('titik-open-custom-bg', { detail: { target: 'chat' } })
@@ -232,7 +346,14 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                 const special = SPECIAL_TYPE_LABEL[m.message_type];
                 if (special) {
                   return (
-                    <div key={m.id} className="mx-auto max-w-[88%] sm:max-w-md panel p-3.5 my-2 shadow-xs border border-line">
+                    <div key={m.id} className="relative mx-auto max-w-[88%] sm:max-w-md panel p-3.5 pr-12 my-2 shadow-xs border border-line">
+                      <MessageActions
+                        message={m}
+                        mine={mine}
+                        onDeleteForMe={onDeleteForMe}
+                        onDeleteForEveryone={onDeleteForEveryone}
+                        onToggleStar={onToggleStar}
+                      />
                       <p className="text-[11px] font-semibold text-brand flex items-center gap-1.5">
                         <FileText className="w-3.5 h-3.5" />
                         <span>{special}</span>
@@ -259,12 +380,25 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                       />
                     )}
                     <div
-                      className={`max-w-[85%] sm:max-w-[72%] px-3.5 py-2.5 rounded-2xl shadow-xs transition-shadow ${
+                      className={`relative max-w-[85%] sm:max-w-[72%] px-3.5 pr-12 py-2.5 rounded-2xl shadow-xs transition-shadow ${
                         mine
                           ? 'bg-brand text-on-brand rounded-br-sm'
                           : 'bg-surface-2 text-ink border border-line-soft rounded-bl-sm backdrop-blur-sm'
                       }`}
                     >
+                      <MessageActions
+                        message={m}
+                        mine={mine}
+                        onDeleteForMe={onDeleteForMe}
+                        onDeleteForEveryone={onDeleteForEveryone}
+                        onToggleStar={onToggleStar}
+                      />
+                      {m.is_starred && (
+                        <Star
+                          aria-label="Pesan berbintang"
+                          className={`absolute top-2 right-9 w-3.5 h-3.5 ${mine ? 'text-on-brand' : 'text-brand'}`}
+                        />
+                      )}
                       {/* Sender name for group chats */}
                       {!mine && isGroup && (
                         <p className="text-[11px] font-bold text-brand mb-1">
@@ -479,6 +613,51 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
           </button>
         </form>
       </div>
+
+      {isStarredMessagesOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--scrim)] p-4"
+          onClick={() => setIsStarredMessagesOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="starred-messages-title"
+            onClick={(event) => event.stopPropagation()}
+            className="glass-strong w-full max-w-lg max-h-[75dvh] flex flex-col rounded-2xl overflow-hidden"
+          >
+            <header className="flex items-center justify-between px-5 py-4 border-b border-line-soft">
+              <h2 id="starred-messages-title" className="font-semibold text-ink">Pesan berbintang</h2>
+              <button
+                type="button"
+                onClick={() => setIsStarredMessagesOpen(false)}
+                aria-label="Tutup pesan berbintang"
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-ink-2 hover:bg-surface-2 cursor-pointer"
+              >
+                <CloseIcon className="w-5 h-5" />
+              </button>
+            </header>
+            <div className="overflow-y-auto p-3">
+              {starredMessages.length === 0 ? (
+                <p className="py-8 text-center text-sm text-ink-2">Belum ada pesan berbintang di percakapan ini.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {starredMessages.map((message) => (
+                    <li key={message.id} className="rounded-xl bg-surface-2 p-3">
+                      <p className="text-sm text-ink whitespace-pre-wrap break-words">
+                        {message.content || 'Lampiran'}
+                      </p>
+                      <p className="mt-1 text-[11px] text-ink-3">
+                        {message.sender_id === currentUserId ? 'Anda' : message.sender?.displayName || name} · {formatClock(message.created_at)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* Group Info Modal */}
       {conversation && isGroup && (

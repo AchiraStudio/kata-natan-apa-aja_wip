@@ -228,6 +228,7 @@ export interface Message {
   created_at: string;
   read_at: string | null;
   sender?: UserProfile;
+  is_starred?: boolean;
 }
 
 export interface Conversation {

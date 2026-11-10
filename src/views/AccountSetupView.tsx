@@ -18,7 +18,8 @@ import { dataService } from '../services/dataService';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { TitikLogo } from '../components/common/TitikLogo';
 import { ThemeToggle } from '../components/common/ThemeToggle';
-import { BOGOR_DISTRICTS, THEME_OPTIONS, BANNER_PRESETS, getProfileTheme } from '../components/profile/profileThemes';
+import { METRO_JABODETABEK_DISTRICTS } from '../data/metroDistricts';
+import { THEME_OPTIONS, BANNER_PRESETS, getProfileTheme } from '../components/profile/profileThemes';
 import { stripExifAndCleanImage, uploadFileToSupabase } from '../components/composer/useMediaUpload';
 
 type SetupStep = 1 | 2 | 3;
@@ -601,7 +602,7 @@ export const AccountSetupView: React.FC = () => {
                       className="min-h-11"
                     >
                       <option value="">Pilih kecamatan</option>
-                      {BOGOR_DISTRICTS.map((d) => (
+                      {METRO_JABODETABEK_DISTRICTS.map((d) => (
                         <option key={d} value={d}>
                           {d}
                         </option>

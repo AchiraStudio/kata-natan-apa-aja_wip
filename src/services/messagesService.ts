@@ -42,6 +42,8 @@ const LOCAL_EVENT = 'titik-local-messages';
 interface LocalDb {
   conversations: Conversation[];
   messages: Record<string, Message[]>;
+  hiddenMessageIdsByUser?: Record<string, string[]>;
+  starredMessageIdsByUser?: Record<string, string[]>;
 }
 
 const isLocalConversationId = (id: string) => id.startsWith('conv-');
@@ -51,12 +53,17 @@ function readLocal(): LocalDb {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(LOCAL_KEY) : null;
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<LocalDb>;
-      return { conversations: parsed.conversations ?? [], messages: parsed.messages ?? {} };
+      return {
+        conversations: parsed.conversations ?? [],
+        messages: parsed.messages ?? {},
+        hiddenMessageIdsByUser: parsed.hiddenMessageIdsByUser ?? {},
+        starredMessageIdsByUser: parsed.starredMessageIdsByUser ?? {},
+      };
     }
   } catch {
     // corrupt or unavailable storage: start empty
   }
-  return { conversations: [], messages: {} };
+  return { conversations: [], messages: {}, hiddenMessageIdsByUser: {}, starredMessageIdsByUser: {} };
 }
 
 function writeLocal(db: LocalDb) {
@@ -186,12 +193,14 @@ async function getLocalConversations(userId: string): Promise<Conversation[]> {
   return Promise.all(
     mine.map(async (conv) => {
       const thread = db.messages[conv.id] ?? [];
+      const hiddenIds = new Set(db.hiddenMessageIdsByUser?.[userId] ?? []);
+      const visibleThread = thread.filter((message) => !hiddenIds.has(message.id));
       const otherId = conv.participant_ids.find((id) => id !== userId);
       const other = otherId ? await fetchProfile(otherId).catch(() => undefined) : undefined;
       return {
         ...conv,
         other_participant: other ?? conv.other_participant,
-        last_message: thread[thread.length - 1],
+        last_message: visibleThread[visibleThread.length - 1],
         unread_count: thread.filter((m) => m.sender_id !== userId && !m.read_at).length,
         is_group: Boolean(conv.is_group),
         title: conv.title,
@@ -223,6 +232,18 @@ async function getRemoteConversations(userId: string): Promise<Conversation[]> {
     if (!data) return [];
     isConversationsTableAvailable = true;
 
+    const { data: hiddenStates, error: hiddenStatesError } = await supabase
+      .from('message_user_states')
+      .select('message_id')
+      .eq('user_id', userId)
+      .eq('is_hidden', true);
+    if (hiddenStatesError && !isTableMissingError(hiddenStatesError)) {
+      console.error('Could not load hidden message states for the inbox:', hiddenStatesError);
+    }
+    const hiddenMessageIds = new Set(
+      (hiddenStatesError ? [] : hiddenStates ?? []).map((state) => state.message_id)
+    );
+
     const enriched: Conversation[] = await Promise.all(
       data.map(async (conv) => {
         const otherId = conv.participant_ids?.find((id: string) => id !== userId);
@@ -237,31 +258,34 @@ async function getRemoteConversations(userId: string): Promise<Conversation[]> {
               .select('*')
               .eq('conversation_id', conv.id)
               .order('created_at', { ascending: false })
-              .limit(1);
+              .limit(hiddenMessageIds.size > 0 ? 50 : 1);
 
             if (msgError && isTableMissingError(msgError)) {
               isMessagesTableAvailable = false;
-            } else if (msgs?.[0]) {
+            } else if (msgs?.length) {
               isMessagesTableAvailable = true;
-              let decryptedContent = msgs[0].content;
-              if (decryptedContent && Array.isArray(conv.participant_ids) && conv.participant_ids.length > 0) {
-                try {
-                  decryptedContent = await decryptMessage(decryptedContent, conv.id, conv.participant_ids);
-                } catch {
-                  decryptedContent = msgs[0].content;
+              const latestVisibleMessage = msgs.find((message) => !hiddenMessageIds.has(message.id));
+              if (latestVisibleMessage) {
+                let decryptedContent = latestVisibleMessage.content;
+                if (decryptedContent && Array.isArray(conv.participant_ids) && conv.participant_ids.length > 0) {
+                  try {
+                    decryptedContent = await decryptMessage(decryptedContent, conv.id, conv.participant_ids);
+                  } catch {
+                    decryptedContent = latestVisibleMessage.content;
+                  }
                 }
-              }
 
-              lastMsg = {
-                id: msgs[0].id,
-                conversation_id: msgs[0].conversation_id,
-                sender_id: msgs[0].sender_id,
-                content: decryptedContent,
-                message_type: msgs[0].message_type,
-                attachments: msgs[0].attachments ?? [],
-                created_at: msgs[0].created_at,
-                read_at: msgs[0].read_at,
-              };
+                lastMsg = {
+                  id: latestVisibleMessage.id,
+                  conversation_id: latestVisibleMessage.conversation_id,
+                  sender_id: latestVisibleMessage.sender_id,
+                  content: decryptedContent,
+                  message_type: latestVisibleMessage.message_type,
+                  attachments: latestVisibleMessage.attachments ?? [],
+                  created_at: latestVisibleMessage.created_at,
+                  read_at: latestVisibleMessage.read_at,
+                };
+              }
             }
           } catch {
             // ignore last message query failure
@@ -334,76 +358,163 @@ async function getRemoteConversations(userId: string): Promise<Conversation[]> {
 // ---------------------------------------------------------------------------
 export async function getMessages(
   conversationId: string,
-  participantIds?: string[]
+  participantIds?: string[],
+  currentUserId?: string
 ): Promise<Message[]> {
   if (!conversationId) return [];
-  const local = () => readLocal().messages[conversationId] ?? [];
+  const local = () => {
+    const db = readLocal();
+    const hiddenIds = new Set(db.hiddenMessageIdsByUser?.[currentUserId ?? ''] ?? []);
+    const starredIds = new Set(db.starredMessageIdsByUser?.[currentUserId ?? ''] ?? []);
+    return (db.messages[conversationId] ?? [])
+      .filter((message) => !hiddenIds.has(message.id))
+      .map((message) => ({ ...message, is_starred: starredIds.has(message.id) }));
+  };
 
   // Device-local threads, or the server cannot store messages
   if (isLocalConversationId(conversationId) || !isSupabaseConfigured || isMessagesTableAvailable === false) {
     return local();
   }
 
-  try {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true });
 
-    if (error) {
-      if (isTableMissingError(error)) {
-        isMessagesTableAvailable = false;
-      }
-      return local();
+  if (error) {
+    if (isTableMissingError(error)) {
+      isMessagesTableAvailable = false;
     }
-    if (!data) return [];
-    isMessagesTableAvailable = true;
-
-    let participants = participantIds;
-    if (!participants || participants.length === 0) {
-      try {
-        const { data: convData } = await supabase
-          .from('conversations')
-          .select('participant_ids')
-          .eq('id', conversationId)
-          .single();
-        participants = convData?.participant_ids ?? [];
-      } catch {
-        participants = [];
-      }
-    }
-
-    const withSenders: Message[] = await Promise.all(
-      data.map(async (m) => {
-        const sender = await fetchProfile(m.sender_id);
-        let decrypted = m.content;
-        if (participants && participants.length > 0) {
-          try {
-            decrypted = await decryptMessage(m.content, conversationId, participants);
-          } catch {
-            decrypted = m.content;
-          }
-        }
-
-        return {
-          id: m.id,
-          conversation_id: m.conversation_id,
-          sender_id: m.sender_id,
-          content: decrypted,
-          message_type: m.message_type as MessageType,
-          attachments: m.attachments ?? [],
-          created_at: m.created_at,
-          read_at: m.read_at,
-          sender,
-        };
-      })
-    );
-
-    return withSenders;
-  } catch {
-    return [];
+    return local();
   }
+  if (!data) return [];
+  isMessagesTableAvailable = true;
+
+  let participants = participantIds;
+  if (!participants || participants.length === 0) {
+    try {
+      const { data: convData } = await supabase
+        .from('conversations')
+        .select('participant_ids')
+        .eq('id', conversationId)
+        .single();
+      participants = convData?.participant_ids ?? [];
+    } catch {
+      participants = [];
+    }
+  }
+
+  let states = new Map<string, { is_hidden: boolean; is_starred: boolean }>();
+  if (currentUserId && data.length > 0) {
+    const { data: stateRows, error: stateError } = await supabase
+      .from('message_user_states')
+      .select('message_id, is_hidden, is_starred')
+      .eq('user_id', currentUserId)
+      .in('message_id', data.map((message) => message.id));
+    if (stateError) {
+      throw new Error(
+        isTableMissingError(stateError)
+          ? 'Fitur hapus dan bintangi pesan belum aktif. Jalankan migrasi supabase/migrations/20261110000010_message_controls.sql.'
+          : 'Status pesan belum dapat dimuat.'
+      );
+    }
+    states = new Map(
+      (stateRows ?? []).map((state) => [
+        state.message_id,
+        { is_hidden: state.is_hidden, is_starred: state.is_starred },
+      ])
+    );
+  }
+
+  const hiddenIds = new Set(
+    [...states.entries()].filter(([, state]) => state.is_hidden).map(([id]) => id)
+  );
+  const withSenders: Message[] = await Promise.all(
+    data.map(async (m) => {
+      const sender = await fetchProfile(m.sender_id);
+      const state = states.get(m.id);
+      let decrypted = m.content;
+      if (participants && participants.length > 0) {
+        try {
+          decrypted = await decryptMessage(m.content, conversationId, participants);
+        } catch {
+          decrypted = m.content;
+        }
+      }
+
+      return {
+        id: m.id,
+        conversation_id: m.conversation_id,
+        sender_id: m.sender_id,
+        content: decrypted,
+        message_type: m.message_type as MessageType,
+        attachments: m.attachments ?? [],
+        created_at: m.created_at,
+        read_at: m.read_at,
+        sender,
+        is_starred: state?.is_starred ?? false,
+      };
+    })
+  );
+
+  return withSenders.filter((message) => !hiddenIds.has(message.id));
+}
+
+export type MessageUserState = 'hidden' | 'starred';
+
+export async function setMessageUserState(
+  messageId: string,
+  userId: string,
+  state: MessageUserState,
+  enabled: boolean
+): Promise<void> {
+  if (!messageId || !userId) throw new Error('Pesan atau pengguna tidak valid.');
+  if (messageId.startsWith('msg-') || !isSupabaseConfigured) {
+    const db = readLocal();
+    const idsByUser = state === 'hidden' ? db.hiddenMessageIdsByUser! : db.starredMessageIdsByUser!;
+    const ids = new Set(idsByUser[userId] ?? []);
+    if (enabled) ids.add(messageId);
+    else ids.delete(messageId);
+    idsByUser[userId] = [...ids];
+    writeLocal(db);
+    return;
+  }
+
+  const { error } = await supabase.rpc('set_message_user_state', {
+    p_message_id: messageId,
+    p_state: state,
+    p_enabled: enabled,
+  });
+  if (error) {
+    throw new Error(
+      isTableMissingError(error) || error.message?.includes('set_message_user_state')
+        ? 'Fitur hapus dan bintangi pesan belum aktif. Jalankan migrasi supabase/migrations/20261110000010_message_controls.sql.'
+        : error.message || 'Gagal memperbarui pesan.'
+    );
+  }
+}
+
+export async function deleteMessageForEveryone(message: Message, userId: string): Promise<void> {
+  if (message.sender_id !== userId) throw new Error('Anda hanya dapat menghapus pesan sendiri untuk semua orang.');
+  if (isLocalConversationId(message.conversation_id) || !isSupabaseConfigured) {
+    const db = readLocal();
+    db.messages[message.conversation_id] = (db.messages[message.conversation_id] ?? []).filter(
+      (item) => item.id !== message.id
+    );
+    writeLocal(db);
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from('messages')
+    .delete()
+    .eq('id', message.id)
+    .eq('sender_id', userId)
+    .select('id')
+    .maybeSingle();
+  if (error) throw new Error(error.message || 'Pesan belum dapat dihapus untuk semua orang.');
+  if (!data) throw new Error('Pesan tidak ditemukan atau Anda tidak berhak menghapusnya.');
 }
 
 // ---------------------------------------------------------------------------
@@ -981,7 +1092,8 @@ export function subscribeToMessages(
   callback: (msg: Message) => void,
   participantIds?: string[],
   /** Called when an existing message changes, e.g. the recipient read it. */
-  onUpdate?: (update: { id: string; read_at: string | null }) => void
+  onUpdate?: (update: { id: string; read_at: string | null }) => void,
+  onDelete?: (messageId: string) => void
 ) {
   if (!conversationId) return { unsubscribe: () => {} };
 
@@ -989,7 +1101,15 @@ export function subscribeToMessages(
     // Another tab (or another account in this browser) wrote to the same device store
     const known = new Map((readLocal().messages[conversationId] ?? []).map((m) => [m.id, m.read_at]));
     const stop = onLocalChange(() => {
-      (readLocal().messages[conversationId] ?? []).forEach((m) => {
+      const current = readLocal().messages[conversationId] ?? [];
+      const currentIds = new Set(current.map((message) => message.id));
+      for (const id of known.keys()) {
+        if (!currentIds.has(id)) {
+          known.delete(id);
+          onDelete?.(id);
+        }
+      }
+      current.forEach((m) => {
         if (!known.has(m.id)) callback(m);
         else if (known.get(m.id) !== m.read_at) onUpdate?.({ id: m.id, read_at: m.read_at });
         known.set(m.id, m.read_at);
@@ -1055,6 +1175,19 @@ export function subscribeToMessages(
             read_at: row.read_at as string | null,
           });
         })();
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      (payload) => {
+        const row = payload.old as Record<string, unknown>;
+        if (typeof row.id === 'string') onDelete?.(row.id);
       }
     )
     .subscribe();
@@ -1227,7 +1360,7 @@ export async function searchProfiles(query: string, excludeUserId?: string): Pro
   try {
     let request = supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url, role, created_at, email')
+      .select('id, username, display_name, avatar_url, role, email')
       .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
       .limit(16);
     if (excludeUserId) request = request.neq('id', excludeUserId);
@@ -1246,8 +1379,7 @@ export async function searchProfiles(query: string, excludeUserId?: string): Pro
           id.startsWith('usr-kn-') ||
           username.includes('demo') ||
           username.includes('bot');
-        const isOld = row.created_at && new Date(row.created_at).getTime() < new Date('2026-11-10T00:00:00Z').getTime();
-        return !isBot && !isOld;
+        return !isBot;
       })
       .slice(0, 8)
       .map((row) => ({

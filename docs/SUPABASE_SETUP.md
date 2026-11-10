@@ -50,6 +50,7 @@ Execute the SQL migration files located in `supabase/migrations/` in sequential 
 - Forward-only security hardening migration: `supabase/migrations/20261028000001_security_hardening.sql`
 - Saved-report bookmarks: `supabase/migrations/20261030000001_add_report_saves.sql`
 - User follow relationships: `supabase/migrations/20261110000002_user_follows.sql`
+- Per-user message deletion, delete-for-everyone, and starred messages: `supabase/migrations/20261110000010_message_controls.sql`
 - Report attachment storage compatibility: `supabase/migrations/20261110000003_add_report_private_supporting_documents.sql`
 - Allow reporters to delete their own reports: `supabase/migrations/20261110000004_allow_reporter_delete_own_report.sql`
 - Allow QuickTime report evidence: `supabase/migrations/20261110000005_allow_quicktime_post_media.sql`
@@ -60,7 +61,7 @@ Execute the SQL migration files located in `supabase/migrations/` in sequential 
 
 1. Open your Supabase Dashboard:
    `https://supabase.com/dashboard/project/<your-project-ref>/sql/new`
-2. For an existing installation, run pending migrations in order, including the user-follows migration to enable profile following. For a clean setup, run `supabase/schema.sql`.
+2. For an existing installation, run pending migrations in order, including user-follows and message-controls migrations. For a clean setup, run `supabase/schema.sql`.
 
 ### Option B: Via Supabase CLI
 

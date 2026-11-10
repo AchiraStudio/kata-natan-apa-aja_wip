@@ -1,6 +1,4 @@
-/* HomeView: video feed stage.
-   The stream is a vertical scroll-snap list; each item is exactly one viewport tall. */
-
+/* The homepage feed is a vertical, viewport-sized stream. */
 .home-portal-root {
   width: 100%;
   max-width: 1680px;
@@ -23,7 +21,6 @@
   scroll-snap-stop: always;
 }
 
-/* Native range thumb stays invisible: the visible progress line is drawn separately */
 .home-feed-stream input[type='range'] {
   -webkit-appearance: none;
   appearance: none;

@@ -35,9 +35,9 @@ export const AuthShell: React.FC<AuthShellProps> = ({ mode, title, description, 
         </div>
 
         <Link to="/" className="relative flex items-center gap-2.5 w-fit" aria-label="TITIK. Beranda">
-          <TitikLogo className="w-9 h-9" pinColor="#cde46a" innerColor="#14301f" dotColor="#f2f7ec" />
+          <TitikLogo className="w-9 h-9" pinColor="#5fc785" innerColor="#14301f" dotColor="#eaf3e2" />
           <span className="font-display text-2xl font-extrabold tracking-tight">
-            TITIK<span className="text-lime">.</span>
+            TITIK<span className="text-brand">.</span>
           </span>
         </Link>
 

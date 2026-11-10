@@ -15,6 +15,9 @@ import {
   getProfileSummary,
   formatAdminReportMessage,
   isMessagingLocalOnly,
+  searchProfiles,
+  setMessageUserState,
+  deleteMessageForEveryone,
 } from '../services/messagesService';
 import { uploadChatAttachment } from '../services/chatMediaService';
 import { ConversationList, type ListFilter } from '../components/messages/ConversationList';
@@ -46,6 +49,8 @@ export const MessagesView: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
   const [query, setQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState<UserProfile[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
   const [filter, setFilter] = useState<ListFilter>('all');
   const [draft, setDraft] = useState('');
   const [pendingType, setPendingType] = useState<MessageType>('text');
@@ -114,6 +119,34 @@ export const MessagesView: React.FC = () => {
     };
   }, [me, loadConversations]);
 
+  useEffect(() => {
+    const search = query.trim();
+    if (search.length < 2 || !me) return;
+
+    let active = true;
+    const timer = setTimeout(() => {
+      if (!active) return;
+      setUserSearchResults([]);
+      setIsSearchingUsers(true);
+      searchProfiles(search, me)
+        .then((results) => {
+          if (active) setUserSearchResults(results);
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to search message users:', error);
+          if (active) {
+            setUserSearchResults([]);
+            setNotice('Pengguna belum dapat dicari. Periksa koneksi, lalu coba lagi.');
+          }
+        })
+        .finally(() => active && setIsSearchingUsers(false));
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query, me]);
+
   // Deep links: ?report_id=... and ?new_chat=<userId> open (or create) a thread, then normalise the URL
   useEffect(() => {
     if (!me) return;
@@ -181,13 +214,13 @@ export const MessagesView: React.FC = () => {
     const participants = conversationsRef.current.find((c) => c.id === activeId)?.participant_ids;
 
     setIsLoadingThread(true);
-    getMessages(activeId, participants)
+    getMessages(activeId, participants, me)
       .then((msgs) => {
         if (!active) return;
         setMessages(msgs);
         markRead(activeId);
       })
-      .catch(() => active && setSendError('Pesan belum dapat dimuat.'))
+      .catch((error: unknown) => active && setSendError(error instanceof Error ? error.message : 'Pesan belum dapat dimuat.'))
       .finally(() => active && setIsLoadingThread(false));
 
     const messageSub = subscribeToMessages(
@@ -206,6 +239,11 @@ export const MessagesView: React.FC = () => {
       participants,
       (update) => {
         if (active) setMessages((prev) => prev.map((m) => (m.id === update.id ? { ...m, read_at: update.read_at } : m)));
+      },
+      (messageId) => {
+        if (!active) return;
+        setMessages((prev) => prev.filter((message) => message.id !== messageId));
+        loadConversations();
       }
     );
 
@@ -224,7 +262,7 @@ export const MessagesView: React.FC = () => {
       typingRef.current = null;
       if (typingHideTimerRef.current) clearTimeout(typingHideTimerRef.current);
     };
-  }, [activeId, me, markRead]);
+  }, [activeId, me, markRead, loadConversations]);
 
   const handleDraft = (value: string) => {
     setDraft(value);
@@ -297,12 +335,53 @@ export const MessagesView: React.FC = () => {
   const startWithUser = async (user: UserProfile) => {
     if (!me) return;
     setIsNewChatOpen(false);
+    setQuery('');
     try {
       const conv = await createConversation(null, me, user.id);
       setConversations((prev) => (prev.some((c) => c.id === conv.id) ? prev : [{ ...conv, other_participant: user, unread_count: 0 }, ...prev]));
       openConversation(conv.id);
     } catch {
       setNotice('Percakapan belum dapat dibuka. Coba lagi beberapa saat.');
+    }
+  };
+
+  const handleDeleteForMe = async (message: Message) => {
+    if (!me) return;
+    try {
+      await setMessageUserState(message.id, me, 'hidden', true);
+      setMessages((prev) => prev.filter((item) => item.id !== message.id));
+      setNotice('Pesan dihapus dari tampilan Anda.');
+    } catch (error) {
+      console.error('Failed to hide message for current user:', error);
+      setNotice(error instanceof Error ? error.message : 'Pesan belum dapat dihapus.');
+    }
+  };
+
+  const handleDeleteForEveryone = async (message: Message) => {
+    if (!me || !window.confirm('Hapus pesan ini untuk semua orang?')) return;
+    try {
+      await deleteMessageForEveryone(message, me);
+      setMessages((prev) => prev.filter((item) => item.id !== message.id));
+      setNotice('Pesan dihapus untuk semua orang.');
+      loadConversations();
+    } catch (error) {
+      console.error('Failed to delete message for everyone:', error);
+      setNotice(error instanceof Error ? error.message : 'Pesan belum dapat dihapus untuk semua orang.');
+    }
+  };
+
+  const handleToggleStar = async (message: Message) => {
+    if (!me) return;
+    const nextStarred = !message.is_starred;
+    try {
+      await setMessageUserState(message.id, me, 'starred', nextStarred);
+      setMessages((prev) =>
+        prev.map((item) => (item.id === message.id ? { ...item, is_starred: nextStarred } : item))
+      );
+      setNotice(nextStarred ? 'Pesan ditambahkan ke pesan berbintang Anda.' : 'Bintang pesan dihapus.');
+    } catch (error) {
+      console.error('Failed to update starred message:', error);
+      setNotice(error instanceof Error ? error.message : 'Status bintang pesan belum dapat diperbarui.');
     }
   };
 
@@ -382,6 +461,9 @@ export const MessagesView: React.FC = () => {
           hasAnyConversation={conversations.length > 0}
           query={query}
           onQuery={setQuery}
+          userSearchResults={userSearchResults}
+          isSearchingUsers={isSearchingUsers}
+          onPickUser={startWithUser}
           filter={filter}
           onFilter={setFilter}
           onSelect={openConversation}
@@ -412,6 +494,9 @@ export const MessagesView: React.FC = () => {
               onAddAttachment={handleAddAttachment}
               onRemoveAttachment={handleRemoveAttachment}
               isUploadingAttachment={isUploadingAttachment}
+              onDeleteForMe={handleDeleteForMe}
+              onDeleteForEveryone={handleDeleteForEveryone}
+              onToggleStar={handleToggleStar}
             />
           </div>
         ) : (

@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { Select } from '../common/Select';
 import { Camera, Check, Loader2, X, Trash2 } from 'lucide-react';
 import type { ProfileController } from './useProfileController';
-import { BOGOR_DISTRICTS, THEME_OPTIONS, BANNER_PRESETS, getProfileTheme } from './profileThemes';
+import { METRO_JABODETABEK_DISTRICTS } from '../../data/metroDistricts';
+import { THEME_OPTIONS, BANNER_PRESETS, getProfileTheme } from './profileThemes';
 import { UserAvatar } from '../common/UserAvatar';
 
 interface EditProfileModalProps {
@@ -336,7 +337,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ ctrl }) => {
                       className="min-h-11"
                     >
                       <option value="">Tidak ditampilkan</option>
-                      {BOGOR_DISTRICTS.map((d) => (
+                      {METRO_JABODETABEK_DISTRICTS.map((d) => (
                         <option key={d} value={d}>{d}</option>
                       ))}
                     </Select>

@@ -1,12 +1,3 @@
-export const BOGOR_DISTRICTS = [
-  'Bogor Tengah',
-  'Bogor Timur',
-  'Bogor Barat',
-  'Bogor Selatan',
-  'Bogor Utara',
-  'Tanah Sareal',
-];
-
 export interface ThemeOption {
   id: string;
   name: string;
