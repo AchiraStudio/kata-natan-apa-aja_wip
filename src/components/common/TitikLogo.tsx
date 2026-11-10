@@ -14,10 +14,10 @@ export const TitikLogo: React.FC<TitikLogoProps> = ({
   className = 'w-8 h-8',
   size,
   showText = false,
-  textClassName = 'text-xl font-black tracking-tight text-[#101913]',
-  dotColor = '#34D399',
-  pinColor = '#1B4332',
-  innerColor = '#FFFFFF',
+  textClassName = 'font-display text-xl font-extrabold tracking-tight text-ink',
+  dotColor = 'var(--ink)',
+  pinColor = 'var(--brand)',
+  innerColor = 'var(--canvas)',
 }) => {
   const svgSize = size ? { width: size, height: size } : {};
 
@@ -49,7 +49,7 @@ export const TitikLogo: React.FC<TitikLogoProps> = ({
 
       {showText && (
         <span className={textClassName}>
-          TITIK<span className="text-[#34D399]">.</span>
+          TITIK<span className="text-brand">.</span>
         </span>
       )}
     </div>

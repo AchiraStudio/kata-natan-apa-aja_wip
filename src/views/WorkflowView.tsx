@@ -13,6 +13,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useTitik } from '../context/TitikContext';
+import { PageHeader } from '../components/layout/PageShell';
 import './WorkflowView.css';
 
 export const WorkflowView: React.FC = () => {
@@ -100,54 +101,18 @@ export const WorkflowView: React.FC = () => {
   return (
     <>
       {/* 1. Mobile-Only Header */}
-      <header className="lg:hidden h-14 bg-[#F7F5EF] dark:bg-[#131916] border-b border-[#E3E0D6] dark:border-[#26352E] px-4 flex items-center justify-between shrink-0 z-20">
-        <a
-          href="/"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate('/');
-          }}
-          className="inline-flex items-center gap-1.5 text-xl font-black tracking-tight text-[#101913] dark:text-[#F3F6F4]"
-        >
-          <span>TITIK</span>
-          <span className="w-2 h-2 rounded-full bg-[#1B4332] dark:bg-[#10B981]"></span>
-        </a>
-        <div className="flex items-center gap-2 text-xs font-semibold text-[#1B4332] dark:text-[#34D399]">
-          <Sparkles className="w-4 h-4" />
-          <span>Alur Akuntabilitas</span>
-        </div>
-      </header>
 
 
       {/* 3. Main Full-Height Scrollable Workflow Guide */}
-      <main className="flex-1 h-screen overflow-y-auto no-scrollbar p-4 lg:p-10 w-full max-w-5xl space-y-8 pb-24 lg:pb-16 min-w-0">
-        {/* Hero Banner with Geometric Ribbons & Angled Slashes (-35deg) */}
-        <div className="workflow-hero-banner relative overflow-hidden rounded-3xl p-6 lg:p-8 flex flex-col justify-between border border-[#1B4332]/20 shadow-xs">
-          {/* Geometric Angled Slashes Container */}
-          <div className="workflow-slashes-container" aria-hidden="true">
-            <div className="workflow-ambient-glow" />
-            <div className="workflow-ribbon workflow-ribbon-1" />
-            <div className="workflow-ribbon workflow-ribbon-2" />
-            <div className="workflow-slash-line workflow-slash-1" />
-            <div className="workflow-slash-line workflow-slash-2" />
-          </div>
-
-          <div className="relative z-10 space-y-2.5 max-w-3xl">
-            <h1 className="text-2xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
-              Alur Akuntabilitas 4 Tahap TITIK.
-            </h1>
-
-            <p className="text-xs lg:text-sm text-[#E7EBDD]/90 leading-relaxed">
-              Menjembatani aspirasi warga dengan tindak nyata pemerintah daerah. Dari rekaman
-              masalah fasilitas publik hingga pencocokan alokasi APBD dan riwayat penyelesaian yang
-              dapat diaudit oleh seluruh masyarakat.
-            </p>
-          </div>
-        </div>
+      <main className="flex-1 min-w-0 w-full mx-auto max-w-5xl px-4 sm:px-6 lg:px-10 pt-5 lg:pt-10 pb-32 lg:pb-14 space-y-8">
+        <PageHeader
+          title="Alur penanganan laporan"
+          description="Empat tahap yang dilalui setiap laporan, dari bukti di lapangan sampai riwayat penyelesaian yang dapat diaudit warga."
+        />
 
         {/* 4 Stages Grid */}
         <div className="space-y-4">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-[#4F5A52] dark:text-[#9EACA3]">
+          <h2 className="text-xs font-bold text-ink-2">
             Siklus Hidup Laporan Sipil Terverifikasi
           </h2>
 
@@ -157,29 +122,29 @@ export const WorkflowView: React.FC = () => {
               return (
                 <div
                   key={st.step}
-                  className="workflow-stage-card bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4 relative overflow-hidden group hover:border-[#1B4332]/40 dark:hover:border-[#10B981]/40 transition-colors"
+                  className="workflow-stage-card bg-surface border border-line rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4 relative overflow-hidden group hover:border-brand/40 transition-colors"
                 >
                   <div className="flex items-start gap-3.5">
                     <div className={`workflow-step-badge workflow-step-badge--${st.step}`}>
                       <Icon className="w-5 h-5" />
                     </div>
                     <div>
-                      <span className="text-[10px] font-mono tabular-nums font-bold tracking-wider text-[#1B4332] dark:text-[#34D399]">
+                      <span className="text-[10px] font-mono tabular-nums font-bold text-brand">
                         TAHAP {st.step} • {st.tagline.toUpperCase()}
                       </span>
-                      <h3 className="text-base font-bold text-[#101913] dark:text-[#F3F6F4] leading-snug mt-0.5">
+                      <h3 className="text-base font-bold text-ink leading-snug mt-0.5">
                         {st.title}
                       </h3>
                     </div>
                   </div>
 
-                  <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] leading-relaxed">{st.summary}</p>
+                  <p className="text-xs text-ink-2 leading-relaxed">{st.summary}</p>
 
-                  <div className="pt-3 border-t border-[#E3E0D6]/60 dark:border-[#26352E]">
+                  <div className="pt-3 border-t border-line/60 dark:border-line">
                     <ul className="space-y-1.5">
                       {st.features.map((feat, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-xs text-[#101913]/90 dark:text-[#F3F6F4]/90">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#1B4332] dark:bg-[#10B981] mt-1.5 shrink-0"></span>
+                        <li key={idx} className="flex items-start gap-2 text-xs text-ink/90">
+                          <span className="w-1.5 h-1.5 rounded-full bg-brand mt-1.5 shrink-0"></span>
                           <span>{feat}</span>
                         </li>
                       ))}
@@ -192,12 +157,12 @@ export const WorkflowView: React.FC = () => {
         </div>
 
         {/* Comparison Table: Traditional vs TITIK */}
-        <div className="workflow-comparison-card bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 lg:p-7 shadow-xs space-y-4">
+        <div className="workflow-comparison-card bg-surface border border-line rounded-3xl p-6 lg:p-7 shadow-xs space-y-4">
           <div>
-            <h2 className="text-lg font-bold text-[#101913] dark:text-[#F3F6F4]">
+            <h2 className="text-lg font-bold text-ink">
               Mengapa TITIK Berbeda dengan Kanal Tradisional?
             </h2>
-            <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] mt-1">
+            <p className="text-xs text-ink-2 mt-1">
               Prinsip desain utama kami adalah memisahkan diskusi publik, laporan klaim warga, dan
               tindak lanjut resmi lembaga negara secara transparan.
             </p>
@@ -206,22 +171,22 @@ export const WorkflowView: React.FC = () => {
           <div className="overflow-x-auto no-scrollbar">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-[#E3E0D6] dark:border-[#26352E] text-[#4F5A52] dark:text-[#9EACA3]">
-                  <th className="py-3 pr-4 font-bold uppercase tracking-wider text-[11px]">Aspek</th>
-                  <th className="py-3 pr-4 font-bold uppercase tracking-wider text-[11px]">
+                <tr className="border-b border-line text-ink-2">
+                  <th className="py-3 pr-4 font-bold text-[11px]">Aspek</th>
+                  <th className="py-3 pr-4 font-bold text-[11px]">
                     Kanal Pengaduan Konvensional
                   </th>
-                  <th className="py-3 font-bold uppercase tracking-wider text-[11px] text-[#1B4332] dark:text-[#34D399]">
+                  <th className="py-3 font-bold text-[11px] text-brand">
                     TITIK. (Civic Social & Audit)
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E3E0D6]/60 dark:divide-[#26352E]">
+              <tbody className="divide-y divide-line/60 dark:divide-line">
                 {comparisons.map((c, i) => (
-                  <tr key={i} className="hover:bg-[#F7F5EF]/50 dark:hover:bg-[#131916]/50 transition-colors">
-                    <td className="py-3.5 pr-4 font-semibold text-[#101913] dark:text-[#F3F6F4] whitespace-nowrap">{c.aspect}</td>
-                    <td className="py-3.5 pr-4 text-[#4F5A52] dark:text-[#9EACA3] leading-relaxed">{c.traditional}</td>
-                    <td className="py-3.5 font-medium text-[#1B4332] dark:text-[#34D399] leading-relaxed">{c.titik}</td>
+                  <tr key={i} className="hover:bg-canvas/50 dark:hover:bg-surface-2/50 transition-colors">
+                    <td className="py-3.5 pr-4 font-semibold text-ink whitespace-nowrap">{c.aspect}</td>
+                    <td className="py-3.5 pr-4 text-ink-2 leading-relaxed">{c.traditional}</td>
+                    <td className="py-3.5 font-medium text-brand leading-relaxed">{c.titik}</td>
                   </tr>
                 ))}
               </tbody>
@@ -230,95 +195,95 @@ export const WorkflowView: React.FC = () => {
         </div>
 
         {/* Catatan Evaluasi & Saran Pengembang Mentor (FDS Web In Action 2026) */}
-        <section aria-labelledby="workflow-mentorship-heading" className="workflow-mentorship-card bg-white dark:bg-[#161F1B] border border-[#E3E0D6] dark:border-[#24322B] p-6 sm:p-8 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#E3E0D6] dark:border-[#26352E]">
+        <section aria-labelledby="workflow-mentorship-heading" className="workflow-mentorship-card bg-surface border border-line p-6 sm:p-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-line">
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/20 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                <Award className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-lime-500/10 dark:bg-lime-950/40 border border-lime-500/20 text-xs font-semibold text-lime-800 dark:text-lime-300">
+                <Award className="w-3.5 h-3.5 text-lime-600 dark:text-lime-400" />
                 <span>Evaluasi FDS · Web In Action (WIA) 2026</span>
               </div>
-              <h2 id="workflow-mentorship-heading" className="text-lg sm:text-xl font-black text-[#101913] dark:text-[#F3F6F4] tracking-tight">
+              <h2 id="workflow-mentorship-heading" className="text-lg sm:text-xl font-extrabold text-ink tracking-tight">
                 Catatan &amp; Arahan Mentor Penilai: Adi Prabowo
               </h2>
-              <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3]">
+              <p className="text-xs text-ink-2">
                 Hasil observasi Tim <strong>Kata nathan apa aja</strong> pada subtema <em>Civic Reporting &amp; Accountability</em> (Skor Rata-Rata: <strong>4.6 / 5.0</strong>).
               </p>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <div className="px-3.5 py-1.5 rounded-2xl bg-[#F7F5EF] dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] text-center">
-                <div className="text-[10px] uppercase font-bold tracking-wider text-[#4F5A52] dark:text-[#9EACA3]">Status FDS</div>
-                <div className="text-sm font-black text-[#1B4332] dark:text-[#10B981] font-mono">Sangat Baik (5/5)</div>
+              <div className="px-3.5 py-1.5 rounded-2xl bg-canvas dark:bg-surface border border-line text-center">
+                <div className="text-[10px] font-bold text-ink-2">Status FDS</div>
+                <div className="text-sm font-extrabold text-brand font-mono">Sangat Baik (5/5)</div>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Pilar 1: Interaktivitas Data Publik */}
-            <div className="workflow-pillar-card p-4 sm:p-5 bg-[#F7F5EF]/60 dark:bg-[#131916]/80 border border-[#E3E0D6] dark:border-[#26352E] flex flex-col justify-between space-y-3">
+            <div className="workflow-pillar-card p-4 sm:p-5 bg-canvas/60 dark:bg-surface-2/80 border border-line flex flex-col justify-between space-y-3">
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-[#1B4332] dark:text-[#10B981] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-lime-500/15 text-brand flex items-center justify-center">
                     <BarChart3 className="w-4 h-4" />
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-lime-500/10 dark:bg-lime-950/40 text-lime-800 dark:text-lime-300 border border-lime-500/20">
                     Terimplementasi
                   </span>
                 </div>
-                <h3 className="text-sm font-bold text-[#101913] dark:text-[#F3F6F4]">
+                <h3 className="text-sm font-bold text-ink">
                   Optimalisasi Interaktivitas Data Publik
                 </h3>
-                <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] leading-relaxed">
+                <p className="text-xs text-ink-2 leading-relaxed">
                   &ldquo;Tambahkan fitur filter lanjutan, pencarian instan (real-time search), atau visualisasi data dinamis (seperti grafik interaktif) agar pengguna dapat mengeksplorasi data publik secara lebih mendalam.&rdquo;
                 </p>
               </div>
-              <div className="pt-2 border-t border-[#E3E0D6]/60 dark:border-[#26352E] text-[11px] font-medium text-[#1B4332] dark:text-[#34D399]">
+              <div className="pt-2 border-t border-line/60 dark:border-line text-[11px] font-medium text-brand">
                 ✓ Grafik donat status, batang sektor, &amp; filter multi-parameter aktif di Direktori
               </div>
             </div>
 
             {/* Pilar 2: Aksesibilitas & Performa */}
-            <div className="workflow-pillar-card p-4 sm:p-5 bg-[#F7F5EF]/60 dark:bg-[#131916]/80 border border-[#E3E0D6] dark:border-[#26352E] flex flex-col justify-between space-y-3">
+            <div className="workflow-pillar-card p-4 sm:p-5 bg-canvas/60 dark:bg-surface-2/80 border border-line flex flex-col justify-between space-y-3">
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center">
                     <Search className="w-4 h-4" />
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-lime-500/10 dark:bg-lime-950/40 text-lime-800 dark:text-lime-300 border border-lime-500/20">
                     Terimplementasi
                   </span>
                 </div>
-                <h3 className="text-sm font-bold text-[#101913] dark:text-[#F3F6F4]">
+                <h3 className="text-sm font-bold text-ink">
                   Peningkatan Aksesibilitas &amp; Performa
                 </h3>
-                <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] leading-relaxed">
+                <p className="text-xs text-ink-2 leading-relaxed">
                   &ldquo;Pastikan seluruh aset grafis dan waktu muat halaman (load time) tetap optimal, serta perhatikan standar aksesibilitas web (web accessibility) untuk menjangkau ragam pengguna yang lebih luas.&rdquo;
                 </p>
               </div>
-              <div className="pt-2 border-t border-[#E3E0D6]/60 dark:border-[#26352E] text-[11px] font-medium text-[#1B4332] dark:text-[#34D399]">
+              <div className="pt-2 border-t border-line/60 dark:border-line text-[11px] font-medium text-brand">
                 ✓ Standar WCAG 2.1 AA, teks pembaca layar (sr-only), &amp; build optimal (&lt;3 detik)
               </div>
             </div>
 
             {/* Pilar 3: Skalabilitas Kolaborasi & Umpan Balik */}
-            <div className="workflow-pillar-card p-4 sm:p-5 bg-[#F7F5EF]/60 dark:bg-[#131916]/80 border border-[#E3E0D6] dark:border-[#26352E] flex flex-col justify-between space-y-3">
+            <div className="workflow-pillar-card p-4 sm:p-5 bg-canvas/60 dark:bg-surface-2/80 border border-line flex flex-col justify-between space-y-3">
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-700 dark:text-sky-400 flex items-center justify-center">
                     <Users className="w-4 h-4" />
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-lime-500/10 dark:bg-lime-950/40 text-lime-800 dark:text-lime-300 border border-lime-500/20">
                     Terimplementasi
                   </span>
                 </div>
-                <h3 className="text-sm font-bold text-[#101913] dark:text-[#F3F6F4]">
+                <h3 className="text-sm font-bold text-ink">
                   Skalabilitas Kolaborasi &amp; Umpan Balik
                 </h3>
-                <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] leading-relaxed">
+                <p className="text-xs text-ink-2 leading-relaxed">
                   &ldquo;Pertimbangkan penambahan modul partisipasi publik—seperti kolom aspirasi, pelaporan, atau integrasi pengaduan—untuk memperkuat fungsi akuntabilitas dan partisipasi masyarakat secara langsung.&rdquo;
                 </p>
               </div>
-              <div className="pt-2 border-t border-[#E3E0D6]/60 dark:border-[#26352E] text-[11px] font-medium text-[#1B4332] dark:text-[#34D399]">
+              <div className="pt-2 border-t border-line/60 dark:border-line text-[11px] font-medium text-brand">
                 ✓ Modul Aspirasi &amp; Musrenbang Warga, chat E2EE dua arah, &amp; audit publik
               </div>
             </div>
@@ -326,10 +291,10 @@ export const WorkflowView: React.FC = () => {
         </section>
 
         {/* Action Banners */}
-        <div className="workflow-action-banner p-6 bg-[#E7EBDD] dark:bg-[#1A2E24] border border-[#1B4332]/20 dark:border-[#10B981]/30 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="workflow-action-banner p-6 bg-brand-soft border border-brand/20 dark:border-brand/30 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
-            <h3 className="text-base font-bold text-[#101913] dark:text-[#F3F6F4]">Siap Mengawal Fasilitas Kota?</h3>
-            <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] mt-0.5">
+            <h3 className="text-base font-bold text-ink">Siap Mengawal Fasilitas Kota?</h3>
+            <p className="text-xs text-ink-2 mt-0.5">
               Laporkan masalah jalan rusak, drainase tersumbat, atau fasilitas umum lainnya hari ini.
             </p>
           </div>
@@ -338,14 +303,14 @@ export const WorkflowView: React.FC = () => {
             <button
               type="button"
               onClick={openReportModal}
-              className="workflow-pill-btn px-5 py-2.5 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-full text-xs font-semibold hover:bg-[#14352A] dark:hover:bg-[#34D399] transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+              className="workflow-pill-btn px-5 py-2.5 bg-brand text-on-brand rounded-full text-xs font-semibold hover:bg-brand-hover dark:hover:bg-brand transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
             >
               <span>+ Buat Laporan Baru</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
             <a
               href="/track"
-              className="workflow-pill-btn px-5 py-2.5 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] text-[#101913] dark:text-[#F3F6F4] rounded-full text-xs font-semibold hover:bg-[#F7F5EF] dark:hover:bg-[#131916] transition-all"
+              className="workflow-pill-btn px-5 py-2.5 bg-surface border border-line text-ink rounded-full text-xs font-semibold hover:bg-canvas dark:hover:bg-surface-2 transition-all"
             >
               Lacak Status Laporan
             </a>

@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { dataService } from '../../services/dataService';
 import { useTitik } from '../../context/TitikContext';
+import { useAuth } from '../../context/AuthContext';
+import { sendInfoRequest } from '../../services/messagesService';
 import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 import { Report, ReportStatus, ReportSeverity } from '../../types/domain';
 import { AdminSortOption, ReportDraft, ZoomMedia, AdminMetricsSummary } from './types';
@@ -12,14 +15,32 @@ const SEVERITY_WEIGHT: Record<ReportSeverity, number> = {
   low: 1,
 };
 
+export interface RequestInfoResult {
+  ok: boolean;
+  /** Thread the request was sent to, when the reporter could be reached. */
+  conversationId?: string;
+  /** Set when the status changed but the message could not be delivered. */
+  messageFailed?: boolean;
+  /** Set when the report has no author to message (anonymous). */
+  anonymous?: boolean;
+  error?: string;
+}
+
 export function useAdminWorkspace() {
   const { updateReportStatus, deleteReport, refreshFeed } = useTitik();
+  const { profile: adminProfile } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoadingReports, setIsLoadingReports] = useState(true);
 
-  const [selectedReportId, setSelectedReportId] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  // The open report lives in the URL (?r=<id>) so "Tinjau" links and reloads land on the same report
+  const selectedReportId = searchParams.get('r') ?? '';
+  const setSelectedReportId = useCallback(
+    (id: string) => setSearchParams(id ? { r: id } : {}, { replace: true }),
+    [setSearchParams]
+  );
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') ?? 'all');
   const [categoryFilter, setCategoryFilter] = useState<string>('Semua');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<AdminSortOption>('newest');
@@ -418,6 +439,67 @@ export function useAdminWorkspace() {
     }
   };
 
+  /**
+   * Ask the reporter for more information: move the report to needs_info with the note,
+   * then deliver the same note as an info_request message in a direct thread.
+   * The status change is the source of truth; a failed message is reported, not hidden.
+   */
+  const handleRequestInfo = async (note: string): Promise<RequestInfoResult> => {
+    if (!selectedReport || isUpdating) return { ok: false, error: 'Tidak ada laporan yang dipilih.' };
+    const text = note.trim();
+    if (!text) return { ok: false, error: 'Tulis informasi apa yang perlu dilengkapi pelapor.' };
+
+    setIsUpdating(true);
+    setActionError('');
+    setActionSuccess('');
+
+    try {
+      const updated = await dataService.transitionReportStatus(selectedReport.id, 'needs_info', text, false, text);
+      setReports((prev) => prev.map((r) => (r.id === selectedReport.id ? updated : r)));
+      try {
+        await updateReportStatus(selectedReport.id, 'needs_info', text);
+      } catch (ctxErr) {
+        console.warn('Context updateReportStatus warning:', ctxErr);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Status laporan gagal diperbarui.';
+      setActionError(message);
+      setIsUpdating(false);
+      return { ok: false, error: message };
+    }
+
+    let result: RequestInfoResult = { ok: true };
+    if (!selectedReport.reporterUserId) {
+      result = { ok: true, anonymous: true };
+    } else if (!adminProfile?.id) {
+      result = { ok: true, messageFailed: true };
+    } else {
+      try {
+        const conv = await sendInfoRequest(selectedReport, adminProfile.id, text);
+        result = { ok: true, conversationId: conv.id };
+      } catch (err) {
+        console.warn('Info request message failed:', err);
+        result = { ok: true, messageFailed: true };
+      }
+    }
+
+    setActionSuccess(
+      result.messageFailed
+        ? `Status ${selectedReport.publicReference} menjadi "butuh info", tetapi pesan ke pelapor belum terkirim. Kirim manual lewat Pesan.`
+        : result.anonymous
+        ? `Status ${selectedReport.publicReference} menjadi "butuh info". Pelapor anonim, jadi catatan hanya tampil di halaman pelacakan.`
+        : `Permintaan info untuk ${selectedReport.publicReference} terkirim ke pelapor.`
+    );
+    setDrafts((prev) => {
+      const next = { ...prev };
+      delete next[selectedReport.id];
+      return next;
+    });
+    await fetchReports();
+    setIsUpdating(false);
+    return result;
+  };
+
   const openZoom = useCallback(
     (url: string, type: 'image' | 'video', title: string, address: string) => {
       setZoomMedia({ url, type, title, address });
@@ -466,6 +548,7 @@ export function useAdminWorkspace() {
     handleVerifyEvidence,
     handleSaveResponse,
     handleRegisterFacility,
+    handleRequestInfo,
     metrics,
     mobileTab,
     setMobileTab,

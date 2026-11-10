@@ -1,26 +1,48 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, ChevronUp, ChevronDown, MessageSquare } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, MessageSquare, Plus } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { FeedCard } from './FeedCard';
 import { TitikLogo } from '../common/TitikLogo';
+
+const FEED_TABS = [
+  { key: 'following', label: 'Mengikuti' },
+  { key: 'for_you', label: 'Untuk Anda' },
+  { key: 'nearby', label: 'Terdekat' },
+] as const;
+
+const ACTIVE_POST_STORAGE_KEY = 'titik_feed_active_post_id';
+
+/** True when a key press belongs to a form control or an open dialog rather than the feed. */
+const isTypingContext = (target: EventTarget | null): boolean => {
+  const el = target as HTMLElement | null;
+  if (!el || !el.tagName) return false;
+  if (el.isContentEditable) return true;
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return true;
+  return Boolean(el.closest?.('[role="dialog"], [data-scroll-isolated="true"]'));
+};
 
 export const FeedContainer: React.FC = () => {
   const navigate = useNavigate();
   const {
     posts,
+    isLoading,
     activeFeedTab,
     setActiveFeedTab,
     activePost,
     setActivePostId,
     setSearchModalOpen,
+    openComposer,
     unreadMessagesCount,
   } = useTitik();
+
+  // Sound preference is shared by every card: one tap on unmute carries to the next video
+  const [isMuted, setIsMuted] = useState(true);
 
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Gesture Lock Refs: prevents trackpad momentum from jumping multiple posts
+  // Wheel gesture lock: one physical swipe moves exactly one post
   const isLockedRef = useRef(false);
   const wheelIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const accumulatedDeltaRef = useRef(0);
@@ -29,51 +51,45 @@ export const FeedContainer: React.FC = () => {
   const isRestoringScrollRef = useRef(true);
   const hasRestoredInitialScrollRef = useRef(false);
   const initialTargetIdRef = useRef(
-    (typeof window !== 'undefined' ? sessionStorage.getItem('titik_feed_active_post_id') : null) ||
-    activePost?.id
+    (typeof window !== 'undefined' ? sessionStorage.getItem(ACTIVE_POST_STORAGE_KEY) : null) || activePost?.id
   );
 
-  // Scroll Restoration: Restore feed to activePost or saved post ONCE on initial mount when returning from other views
+  const forgetSavedPost = () => {
+    try {
+      sessionStorage.removeItem(ACTIVE_POST_STORAGE_KEY);
+    } catch {
+      // storage unavailable: nothing to forget
+    }
+  };
+
+  // Restore the feed to the previously viewed post once, when returning from another view
   useEffect(() => {
     if (hasRestoredInitialScrollRef.current) return;
     if (!posts || posts.length === 0) {
       isRestoringScrollRef.current = false;
       return;
     }
+    hasRestoredInitialScrollRef.current = true;
 
     const savedTargetId = initialTargetIdRef.current;
-
-    if (!savedTargetId) {
-      hasRestoredInitialScrollRef.current = true;
+    const targetIdx = savedTargetId ? posts.findIndex((p) => p.id === savedTargetId) : -1;
+    if (!savedTargetId || targetIdx <= 0) {
       isRestoringScrollRef.current = false;
       return;
     }
 
-    const targetIdx = posts.findIndex((p) => p.id === savedTargetId);
-    if (targetIdx <= 0) {
-      hasRestoredInitialScrollRef.current = true;
-      isRestoringScrollRef.current = false;
-      return;
-    }
-
-    hasRestoredInitialScrollRef.current = true;
     activePostIndexRef.current = targetIdx;
-
-    const restoreScroll = () => {
+    const timer = setTimeout(() => {
       const targetEl = cardRefs.current.get(savedTargetId);
-      const container = scrollContainerRef.current;
-      if (targetEl && container) {
-        container.scrollTo({ top: targetEl.offsetTop, behavior: 'instant' as ScrollBehavior });
-      }
+      scrollContainerRef.current?.scrollTo({ top: targetEl?.offsetTop ?? 0, behavior: 'instant' as ScrollBehavior });
       setTimeout(() => {
         isRestoringScrollRef.current = false;
       }, 150);
-    };
-
-    const timer = setTimeout(restoreScroll, 25);
+    }, 25);
     return () => clearTimeout(timer);
   }, [posts]);
 
+  // A new first post (tab switch, refresh) resets the stream to the top
   useEffect(() => {
     const firstPostId = posts[0]?.id;
     if (firstPostId && firstPostIdRef.current && firstPostId !== firstPostIdRef.current) {
@@ -84,153 +100,104 @@ export const FeedContainer: React.FC = () => {
     firstPostIdRef.current = firstPostId;
   }, [posts, setActivePostId]);
 
-  // Keep active index ref in sync with active post
   useEffect(() => {
     const idx = posts.findIndex((p) => p.id === activePost?.id);
-    if (idx !== -1) {
-      activePostIndexRef.current = idx;
-    }
+    if (idx !== -1) activePostIndexRef.current = idx;
   }, [posts, activePost?.id]);
 
-  // Smooth scroll to a target post index with pixel precision
   const scrollToIndex = useCallback(
     (targetIndex: number) => {
-      if (targetIndex < 0 || targetIndex >= posts.length) return;
       const targetPost = posts[targetIndex];
       if (!targetPost) return;
-
       activePostIndexRef.current = targetIndex;
       setActivePostId(targetPost.id);
-
       const targetEl = cardRefs.current.get(targetPost.id);
-      const container = scrollContainerRef.current;
-      if (targetEl && container) {
-        const targetTop = targetEl.offsetTop;
-        container.scrollTo({ top: targetTop, behavior: 'smooth' });
-      }
+      scrollContainerRef.current?.scrollTo({ top: targetEl?.offsetTop ?? 0, behavior: 'smooth' });
     },
     [posts, setActivePostId]
   );
 
-  // Setup IntersectionObserver to sync active card when user swipes on mobile touch
+  // Touch swipes and native scrolling: the card that is mostly visible becomes active
   useEffect(() => {
+    const root = scrollContainerRef.current;
+    if (!root) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (isRestoringScrollRef.current) return;
-
-        let bestEntry: IntersectionObserverEntry | null = null;
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-            if (!bestEntry || entry.intersectionRatio > bestEntry.intersectionRatio) {
-              bestEntry = entry;
-            }
-          }
-        });
-
-        if (bestEntry) {
-          const id = (bestEntry as IntersectionObserverEntry).target.getAttribute('data-post-id');
-          if (id) {
-            setActivePostId(id);
-            try {
-              sessionStorage.setItem('titik_feed_active_post_id', id);
-            } catch {
-              // ignore
-            }
-            const idx = posts.findIndex((p) => p.id === id);
-            if (idx !== -1) {
-              activePostIndexRef.current = idx;
-            }
+        let best: IntersectionObserverEntry | null = null;
+        for (const entry of entries) {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.6 && (!best || entry.intersectionRatio > best.intersectionRatio)) {
+            best = entry;
           }
         }
+        const id = best?.target.getAttribute('data-post-id');
+        if (!id) return;
+        setActivePostId(id);
+        try {
+          sessionStorage.setItem(ACTIVE_POST_STORAGE_KEY, id);
+        } catch {
+          // storage unavailable: restoration is a convenience only
+        }
+        const idx = posts.findIndex((p) => p.id === id);
+        if (idx !== -1) activePostIndexRef.current = idx;
       },
-      { threshold: 0.5 }
+      { root, threshold: [0.6] }
     );
-
     cardRefs.current.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, [posts, setActivePostId]);
 
-  // Support intentional tap-to-top on home icon
+  // Home icon: jump back to the first post
   useEffect(() => {
     const handleScrollTop = () => {
       isRestoringScrollRef.current = false;
-      try {
-        sessionStorage.removeItem('titik_feed_active_post_id');
-      } catch {
-        // ignore
-      }
+      forgetSavedPost();
       scrollToIndex(0);
     };
-
     window.addEventListener('titik-scroll-top', handleScrollTop);
     return () => window.removeEventListener('titik-scroll-top', handleScrollTop);
   }, [scrollToIndex]);
 
-  // Keyboard navigation: ArrowUp, ArrowDown, PageUp, PageDown
+  // Keyboard: arrows and Page keys move between posts, but never while typing or in a dialog
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown'].includes(e.key)) {
-        e.preventDefault();
-        const currentIndex = activePostIndexRef.current;
-        const isDown = e.key === 'ArrowDown' || e.key === 'PageDown';
-        const nextIndex = isDown ? currentIndex + 1 : currentIndex - 1;
-
-        if (nextIndex >= 0 && nextIndex < posts.length) {
-          scrollToIndex(nextIndex);
-        }
-      }
+      if (!['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown'].includes(e.key)) return;
+      if (e.altKey || e.ctrlKey || e.metaKey || isTypingContext(e.target)) return;
+      if (document.body.dataset.commentsOpen === 'true') return;
+      e.preventDefault();
+      const isDown = e.key === 'ArrowDown' || e.key === 'PageDown';
+      const nextIndex = activePostIndexRef.current + (isDown ? 1 : -1);
+      if (nextIndex >= 0 && nextIndex < posts.length) scrollToIndex(nextIndex);
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [posts, scrollToIndex]);
 
-  // Desktop Mouse Wheel & Trackpad Interceptor: Single-Post Snappy Transition (Guaranteed Zero Runaway)
+  // Desktop wheel and trackpad: single-post transitions with inertia absorbed
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
-      // Early return guard: ignore wheel events from scroll-isolated sub-containers (e.g. comments, caption expansions)
-      if ((e.target as HTMLElement | null)?.closest?.('[data-scroll-isolated="true"]')) {
-        return;
-      }
-
-      // Ignore horizontal trackpad gestures
+      if ((e.target as HTMLElement | null)?.closest?.('[data-scroll-isolated="true"]')) return;
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-
-      // Always prevent default to eliminate loose browser free gliding
       e.preventDefault();
 
-      // Reset idle timer on every incoming event packet (absorbs trackpad deceleration curve)
-      if (wheelIdleTimerRef.current) {
-        clearTimeout(wheelIdleTimerRef.current);
-      }
-
-      // Unlock 240ms after user stops physically scrolling
+      if (wheelIdleTimerRef.current) clearTimeout(wheelIdleTimerRef.current);
       wheelIdleTimerRef.current = setTimeout(() => {
         isLockedRef.current = false;
         accumulatedDeltaRef.current = 0;
       }, 240);
 
-      // If a transition has already been triggered for this physical swipe, drop all inertial packets!
-      if (isLockedRef.current) {
-        return;
-      }
-
+      if (isLockedRef.current) return;
       accumulatedDeltaRef.current += e.deltaY;
+      if (Math.abs(accumulatedDeltaRef.current) < 24) return;
 
-      // Require intentional flick threshold (24px)
-      if (Math.abs(accumulatedDeltaRef.current) >= 24) {
-        isLockedRef.current = true;
-        const direction = accumulatedDeltaRef.current > 0 ? 1 : -1;
-        const currentIndex = activePostIndexRef.current;
-        const targetIndex = Math.max(0, Math.min(posts.length - 1, currentIndex + direction));
-
-        if (targetIndex !== currentIndex) {
-          scrollToIndex(targetIndex);
-        }
-      }
+      isLockedRef.current = true;
+      const direction = accumulatedDeltaRef.current > 0 ? 1 : -1;
+      const currentIndex = activePostIndexRef.current;
+      const targetIndex = Math.max(0, Math.min(posts.length - 1, currentIndex + direction));
+      if (targetIndex !== currentIndex) scrollToIndex(targetIndex);
     };
 
     container.addEventListener('wheel', handleWheel, { passive: false });
@@ -240,115 +207,102 @@ export const FeedContainer: React.FC = () => {
     };
   }, [posts, scrollToIndex]);
 
-  const tabs = [
-    { key: 'following', label: 'Mengikuti' },
-    { key: 'for_you', label: 'Untuk Anda' },
-    { key: 'nearby', label: 'Terdekat' },
-  ] as const;
-
   const currentActiveIndex = posts.findIndex((p) => p.id === activePost?.id);
+  const unread = (unreadMessagesCount ?? 0) > 0;
+
+  const iconBtn =
+    'relative w-9 h-9 rounded-xl glass-media flex items-center justify-center text-white/90 hover:bg-black/60 transition-colors cursor-pointer';
 
   return (
-    <div className="relative w-full h-[100dvh] lg:h-screen flex flex-col items-center max-w-none lg:max-w-4xl xl:max-w-5xl mx-auto p-0 overflow-hidden">
-      {/* 1. Centered Feed Tabs Header (Optimized for Mobile with Clean Segmented Pill) */}
-      <div className="absolute top-0 inset-x-0 z-30 pt-[max(0.75rem,env(safe-area-inset-top))] pb-1 px-3.5 flex items-center justify-between pointer-events-none lg:static lg:w-full lg:max-w-none lg:h-12 lg:shrink-0 lg:bg-transparent lg:pt-3 lg:pb-1 lg:pointer-events-auto">
-        {/* Left: Minimal Mobile Brand Mark */}
-        <div className="lg:hidden pointer-events-auto flex items-center">
-          <a
-            href="/"
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToIndex(0);
-            }}
-            className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-xl border border-white/15 hover:bg-black/60 transition-colors cursor-pointer flex items-center justify-center text-white shadow-xs"
-            title="Kembali ke atas"
-          >
-            <TitikLogo className="w-4 h-4" />
-          </a>
-        </div>
+    <div className="relative w-full h-[100dvh] lg:h-screen flex flex-col items-center overflow-hidden">
+      {/* Header: floats over the video on phones, sits on the canvas on desktop */}
+      <header className="absolute top-0 inset-x-0 z-30 pt-[max(0.75rem,env(safe-area-inset-top))] px-3 pb-6 flex items-center justify-between pointer-events-none bg-gradient-to-b from-black/55 to-transparent lg:static lg:h-14 lg:shrink-0 lg:bg-none lg:p-0 lg:justify-center">
+        <a
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            scrollToIndex(0);
+          }}
+          className="lg:hidden pointer-events-auto w-9 h-9 flex items-center justify-center"
+          aria-label="Kembali ke laporan pertama"
+          title="Kembali ke atas"
+        >
+          <TitikLogo className="w-7 h-7" />
+        </a>
 
-        {/* Center: Sleek Segmented Pill Tabs (Mobile) / Clean Navigation Bar (Desktop) */}
-        <div className="pointer-events-auto flex items-center bg-black/40 backdrop-blur-xl border border-white/15 rounded-full p-0.5 shadow-md lg:bg-transparent lg:backdrop-blur-none lg:border-none lg:shadow-none lg:p-0 lg:gap-8 mx-auto">
-          {tabs.map((tab) => {
+        <nav className="pointer-events-auto flex items-center gap-5 lg:gap-8" aria-label="Jenis feed">
+          {FEED_TABS.map((tab) => {
             const isActive = activeFeedTab === tab.key;
             return (
               <button
                 key={tab.key}
                 type="button"
+                aria-pressed={isActive}
                 onClick={() => {
-                  try {
-                    sessionStorage.removeItem('titik_feed_active_post_id');
-                  } catch {
-                    // ignore
-                  }
+                  forgetSavedPost();
                   isRestoringScrollRef.current = false;
                   setActiveFeedTab(tab.key);
                 }}
-                className={`text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-full transition-all cursor-pointer lg:text-xs lg:tracking-wide lg:rounded-none lg:px-0 lg:py-0 lg:pb-1.5 lg:relative ${
-                  isActive
-                    ? 'bg-white/20 text-white font-bold backdrop-blur-xs shadow-xs lg:bg-transparent lg:text-[#101913] dark:lg:text-[#F3F6F4] lg:font-bold'
-                    : 'text-white/70 hover:text-white lg:text-[#4F5A52] dark:lg:text-[#8FA096] lg:font-medium hover:lg:text-[#101913] dark:hover:lg:text-[#F3F6F4]'
+                className={`relative py-1.5 text-[13px] font-semibold transition-colors cursor-pointer drop-shadow-sm lg:drop-shadow-none ${
+                  isActive ? 'text-white lg:text-ink' : 'text-white/65 hover:text-white lg:text-ink-3 lg:hover:text-ink'
                 }`}
               >
-                <span>{tab.label}</span>
-                {isActive && (
-                  <span className="hidden lg:block absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-[#1B4332] dark:bg-[#10B981] rounded-full"></span>
-                )}
+                {tab.label}
+                {isActive && <span className="absolute left-0 right-0 -bottom-0.5 h-0.5 rounded-full bg-brand" />}
               </button>
             );
           })}
-        </div>
+        </nav>
 
-        {/* Right: Minimalist Search Action Button */}
-        <div className="pointer-events-auto lg:opacity-0 lg:pointer-events-none flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => navigate('/pesan')}
-            className="relative w-8 h-8 rounded-full bg-black/40 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border border-white/15 lg:border-transparent text-white/90 lg:text-[#4F5A52] dark:lg:text-[#9EACA3] hover:text-white hover:bg-black/60 lg:hover:bg-white dark:lg:hover:bg-[#1A221E] transition-colors cursor-pointer flex items-center justify-center shadow-xs"
-            title="Pesan Langsung"
-            aria-label="Pesan"
-          >
+        <div className="lg:hidden pointer-events-auto flex items-center gap-2">
+          <button type="button" onClick={() => navigate('/pesan')} className={iconBtn} title="Pesan Langsung" aria-label="Pesan">
             <MessageSquare className="w-4 h-4" />
-            {(unreadMessagesCount ?? 0) > 0 && (
+            {unread && (
               <span
                 data-testid="messages-unread-dot"
-                className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-[#101913] dark:ring-[#131916] animate-pulse"
+                className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-black/60"
                 title="Pesan belum dibaca"
               />
             )}
           </button>
-          <button
-            type="button"
-            onClick={() => setSearchModalOpen(true)}
-            className="w-8 h-8 rounded-full bg-black/40 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border border-white/15 lg:border-transparent text-white/90 lg:text-[#4F5A52] dark:lg:text-[#9EACA3] hover:text-white hover:bg-black/60 lg:hover:bg-white dark:lg:hover:bg-[#1A221E] transition-colors cursor-pointer flex items-center justify-center shadow-xs"
-            title="Cari laporan atau fasilitas"
-            aria-label="Cari"
-          >
+          <button type="button" onClick={() => setSearchModalOpen(true)} className={iconBtn} title="Cari laporan atau fasilitas" aria-label="Cari">
             <Search className="w-4 h-4" />
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* 2. Scroll-Snapped Feed Stream (Full Height Viewport on Both Desktop & Mobile) */}
+      {/* Stream */}
       <div
         ref={scrollContainerRef}
         data-feed-scroll="true"
-        className="home-feed-stream w-full h-[100dvh] lg:h-[calc(100vh-3rem)] flex-1 flex flex-col items-center overflow-y-scroll snap-y snap-mandatory lg:scroll-smooth no-scrollbar select-none"
+        className="home-feed-stream w-full h-[100dvh] lg:h-[calc(100dvh-3.5rem)] overflow-y-scroll snap-y snap-mandatory lg:scroll-smooth no-scrollbar select-none"
       >
-        {posts.length === 0 ? (
-          <div className="p-12 text-center text-[#4F5A52] dark:text-[#9EACA3] bg-white dark:bg-[#1A221E] rounded-2xl border border-[#E3E0D6] dark:border-[#26352E] max-w-md my-auto">
-            <Sparkles className="w-8 h-8 text-[#1B4332] dark:text-[#10B981] mx-auto mb-2" />
-            <h4 className="font-bold text-sm text-[#101913] dark:text-[#F3F6F4]">Belum ada laporan di tab ini</h4>
-            <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] mt-1">
-              Jadilah yang pertama mendokumentasikan fasilitas di lingkungan Anda!
-            </p>
+        {isLoading && posts.length === 0 ? (
+          <div className="h-full flex items-center justify-center" role="status" aria-live="polite">
+            <div className="flex flex-col items-center gap-3 text-ink-2 text-sm">
+              <span className="w-2.5 h-2.5 rounded-full bg-brand titik-live" />
+              Memuat laporan warga
+            </div>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="h-full flex items-center justify-center p-6">
+            <div className="panel max-w-sm p-6 text-center space-y-3">
+              <h2 className="font-display text-lg font-bold text-ink">Belum ada laporan di tab ini</h2>
+              <p className="text-sm text-ink-2">Jadilah yang pertama mendokumentasikan fasilitas di lingkungan Anda.</p>
+              <button
+                type="button"
+                onClick={() => openComposer('post')}
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-brand text-on-brand text-sm font-semibold hover:bg-brand-hover cursor-pointer"
+              >
+                <Plus className="w-4 h-4" strokeWidth={2.6} />
+                Buat laporan
+              </button>
+            </div>
           </div>
         ) : (
-          posts.map((post) => {
+          posts.map((post, postIdx) => {
             const isActive = activePost?.id === post.id;
-            const postIdx = posts.findIndex((p) => p.id === post.id);
-            const isNearActive = Math.abs(postIdx - currentActiveIndex) <= 1;
-
+            const isNearActive = currentActiveIndex < 0 ? postIdx <= 1 : Math.abs(postIdx - currentActiveIndex) <= 1;
             return (
               <div
                 key={post.id}
@@ -357,12 +311,14 @@ export const FeedContainer: React.FC = () => {
                   if (el) cardRefs.current.set(post.id, el);
                   else cardRefs.current.delete(post.id);
                 }}
-                className="home-feed-item snap-start snap-always w-full h-[100dvh] lg:h-[calc(100vh-3rem)] shrink-0 flex justify-center items-center py-0 lg:py-2"
+                className="home-feed-item snap-start snap-always w-full h-[100dvh] lg:h-[calc(100dvh-3.5rem)] shrink-0 flex justify-center items-center lg:pb-4"
               >
                 <FeedCard
                   post={post}
                   isActive={isActive}
                   isNearActive={isNearActive}
+                  isMuted={isMuted}
+                  onToggleMute={() => setIsMuted((m) => !m)}
                 />
               </div>
             );
@@ -370,27 +326,34 @@ export const FeedContainer: React.FC = () => {
         )}
       </div>
 
-      {/* 3. Desktop Floating Tactical Up/Down Navigation Chevrons */}
-      <div className="hidden lg:flex flex-col gap-2 absolute right-3 xl:right-5 top-1/2 -translate-y-1/2 z-30 pointer-events-auto">
-        <button
-          type="button"
-          disabled={currentActiveIndex <= 0}
-          onClick={() => scrollToIndex(currentActiveIndex - 1)}
-          className="p-2.5 rounded-full bg-white/80 dark:bg-[#161F1B]/85 backdrop-blur-md border border-[#E3E0D6] dark:border-[#24322B] text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:border-[#1B4332]/40 dark:hover:border-[#10B981]/50 active:scale-95 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
-          title="Laporan Sebelumnya (ArrowUp)"
-        >
-          <ChevronUp className="w-4 h-4 stroke-[2.2]" />
-        </button>
-        <button
-          type="button"
-          disabled={currentActiveIndex >= posts.length - 1}
-          onClick={() => scrollToIndex(currentActiveIndex + 1)}
-          className="p-2.5 rounded-full bg-white/80 dark:bg-[#161F1B]/85 backdrop-blur-md border border-[#E3E0D6] dark:border-[#24322B] text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:border-[#1B4332]/40 dark:hover:border-[#10B981]/50 active:scale-95 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
-          title="Laporan Berikutnya (ArrowDown)"
-        >
-          <ChevronDown className="w-4 h-4 stroke-[2.2]" />
-        </button>
-      </div>
+      {/* Desktop position and step controls */}
+      {posts.length > 1 && (
+        <div className="hidden lg:flex flex-col items-center gap-1.5 absolute right-4 xl:right-6 top-1/2 -translate-y-1/2 z-30">
+          <button
+            type="button"
+            disabled={currentActiveIndex <= 0}
+            onClick={() => scrollToIndex(currentActiveIndex - 1)}
+            className="w-10 h-10 rounded-xl bg-surface border border-line-soft text-ink-2 hover:text-ink hover:bg-surface-2 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center justify-center cursor-pointer"
+            aria-label="Laporan sebelumnya"
+            title="Laporan sebelumnya (Panah atas)"
+          >
+            <ChevronUp className="w-4 h-4" strokeWidth={2.2} />
+          </button>
+          <span className="text-[11px] font-medium text-ink-3 tabular-nums py-0.5">
+            {Math.max(1, currentActiveIndex + 1)}/{posts.length}
+          </span>
+          <button
+            type="button"
+            disabled={currentActiveIndex >= posts.length - 1}
+            onClick={() => scrollToIndex(currentActiveIndex + 1)}
+            className="w-10 h-10 rounded-xl bg-surface border border-line-soft text-ink-2 hover:text-ink hover:bg-surface-2 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center justify-center cursor-pointer"
+            aria-label="Laporan berikutnya"
+            title="Laporan berikutnya (Panah bawah)"
+          >
+            <ChevronDown className="w-4 h-4" strokeWidth={2.2} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

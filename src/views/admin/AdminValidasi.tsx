@@ -1,26 +1,30 @@
-import React from 'react';
-import { ArrowLeft, ListFilter, FileText, MessageSquare } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, FileText } from 'lucide-react';
 import {
   useAdminWorkspace,
+  useMessageReporter,
   ReportQueueList,
   EvidenceInspector,
   EvidenceZoomModal,
   OfficialResponseComposer,
   StatusTransitionActions,
   ReportAuditTrail,
+  RequestInfoDialog,
+  SeverityMark,
+  ageLabel,
+  Notice,
 } from '../../components/admin';
-import { UserProfile } from '../../types/domain';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { createConversation } from '../../services/messagesService';
+import { StatusLabel } from '../../components/common/StatusLabel';
+import type { UserProfile } from '../../types/domain';
 
 interface Props {
   profile: UserProfile;
 }
 
-export const AdminValidasi: React.FC<Props> = ({ profile }) => {
-  const navigate = useNavigate();
-  const { profile: authProfile } = useAuth();
+/** Review workspace: the queue on the left, the open report on the right. The open report is ?r=<id>. */
+export const AdminValidasi: React.FC<Props> = () => {
+  const messenger = useMessageReporter();
+  const [requestOpen, setRequestOpen] = useState(false);
   const {
     reports,
     isLoadingReports,
@@ -46,61 +50,29 @@ export const AdminValidasi: React.FC<Props> = ({ profile }) => {
     handleDeleteReport,
     handleVerifyEvidence,
     handleRegisterFacility,
+    handleRequestInfo,
     handleSaveResponse,
     mobileTab,
     setMobileTab,
     zoomMedia,
     openZoom,
     closeZoom,
-    refresh,
   } = useAdminWorkspace();
-
-  const handleMessageReporter = async () => {
-    if (!selectedReport?.reporterUserId || !authProfile) return;
-    try {
-      const conv = await createConversation(
-        selectedReport.id,
-        authProfile.id,
-        selectedReport.reporterUserId
-      );
-      navigate(`/pesan?conversation_id=${conv.id}`);
-    } catch {
-      navigate(`/pesan?report_id=${selectedReport.id}`);
-    }
-  };
 
   return (
     <div className="space-y-4">
-      {/* Mobile Tab Switcher */}
-      <div className="lg:hidden flex items-center p-1 rounded-2xl bg-[#E3E0D6]/60 dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E]">
-        <button
-          type="button"
-          onClick={() => setMobileTab('queue')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            mobileTab === 'queue'
-              ? 'bg-white dark:bg-[#26352E] text-[#101913] dark:text-[#F3F6F4] shadow-xs'
-              : 'text-[#4F5A52] dark:text-[#9EACA3]'
-          }`}
-        >
-          <ListFilter className="w-3.5 h-3.5" />
-          <span>Antrean ({filteredReports.length})</span>
+      <div className="lg:hidden">
+        <div role="tablist" aria-label="Bagian layar" className="titik-pill-track w-full">
+        <button type="button" role="tab" aria-selected={mobileTab === 'queue'} onClick={() => setMobileTab('queue')} className={`flex-1 titik-pill-tab ${mobileTab === 'queue' ? 'active' : ''}`}>
+          Antrean ({filteredReports.length})
         </button>
-        <button
-          type="button"
-          onClick={() => setMobileTab('detail')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            mobileTab === 'detail'
-              ? 'bg-white dark:bg-[#26352E] text-[#101913] dark:text-[#F3F6F4] shadow-xs'
-              : 'text-[#4F5A52] dark:text-[#9EACA3]'
-          }`}
-        >
-          <FileText className="w-3.5 h-3.5" />
-          <span>Detail {selectedReport ? `(${selectedReport.publicReference})` : ''}</span>
+        <button type="button" role="tab" aria-selected={mobileTab === 'detail'} onClick={() => setMobileTab('detail')} className={`flex-1 titik-pill-tab ${mobileTab === 'detail' ? 'active' : ''}`}>
+          Detail{selectedReport ? ` ${selectedReport.publicReference}` : ''}
         </button>
+        </div>
       </div>
 
-      {/* 2-column triage layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-6 items-start">
         <ReportQueueList
           reports={filteredReports}
           totalReportsCount={reports.length}
@@ -117,59 +89,52 @@ export const AdminValidasi: React.FC<Props> = ({ profile }) => {
           onSearchQueryChange={setSearchQuery}
           sortBy={sortBy}
           onSortByChange={setSortBy}
-          className={`lg:col-span-5 ${mobileTab === 'queue' ? 'block' : 'hidden lg:block'}`}
+          isLoading={isLoadingReports}
+          className={`lg:sticky lg:top-0 lg:max-h-[calc(100dvh-9rem)] ${mobileTab === 'queue' ? 'flex' : 'hidden lg:flex'}`}
         />
 
         {selectedReport ? (
-          <div
-            className={`admin-console-card lg:col-span-7 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 shadow-xs space-y-5 ${
-              mobileTab === 'detail' ? 'block' : 'hidden lg:block'
-            }`}
-          >
-            {/* Mobile back + report ref */}
-            <div className="lg:hidden flex items-center justify-between pb-3 border-b border-[#E3E0D6] dark:border-[#26352E]">
-              <button
-                type="button"
-                onClick={() => setMobileTab('queue')}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1B4332] dark:text-[#34D399] cursor-pointer"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Kembali ke Antrean</span>
+          <article aria-label={`Laporan ${selectedReport.publicReference}`} className={`panel p-5 sm:p-7 space-y-8 min-w-0 ${mobileTab === 'detail' ? 'block' : 'hidden lg:block'}`}>
+            <header className="space-y-3">
+              <button type="button" onClick={() => setMobileTab('queue')} className="lg:hidden inline-flex items-center gap-1.5 text-sm font-semibold text-brand cursor-pointer">
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Kembali ke antrean
               </button>
-              <span className="font-mono text-[11px] font-bold text-[#4F5A52] dark:text-[#9EACA3]">
-                {selectedReport.publicReference}
-              </span>
-            </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span className="titik-id text-sm font-semibold text-ink-2">{selectedReport.publicReference}</span>
+                <StatusLabel status={selectedReport.status} className="text-sm" />
+                <SeverityMark severity={selectedReport.severity} />
+                <span className="text-xs text-ink-3">masuk {ageLabel(selectedReport.createdAt)}</span>
+              </div>
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-ink leading-snug">{selectedReport.title}</h2>
 
-            {/* Send message to reporter button */}
-            {selectedReport.reporterUserId && (
-              <button
-                type="button"
-                onClick={handleMessageReporter}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1B4332] hover:bg-[#15362A] text-white text-xs font-bold transition-colors"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>Kirim Pesan ke Pelapor</span>
-              </button>
-            )}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => messenger.open(selectedReport)}
+                  disabled={messenger.busyId === selectedReport.id || !selectedReport.reporterUserId}
+                  title={selectedReport.reporterUserId ? undefined : 'Laporan anonim, tidak bisa dikirimi pesan'}
+                  className="h-10 px-4 rounded-lg bg-brand text-on-brand text-sm font-semibold hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  {messenger.busyId === selectedReport.id ? 'Membuka percakapan' : 'Kirim pesan ke pelapor'}
+                </button>
+                {!['resolved', 'rejected'].includes(selectedReport.status) && (
+                  <button type="button" onClick={() => setRequestOpen(true)} className="h-10 px-4 rounded-lg bg-surface-2 text-ink text-sm font-semibold hover:bg-line transition-colors cursor-pointer">
+                    Minta info
+                  </button>
+                )}
+              </div>
+              {!selectedReport.reporterUserId && <p className="text-xs text-ink-3">Pelapor anonim: pesan tidak tersedia, tetapi tanggapan publik tetap tampil di halaman pelacakan.</p>}
+              {messenger.error && <Notice kind="error">{messenger.error}</Notice>}
+            </header>
 
-            <EvidenceInspector
-              report={selectedReport}
-              onOpenZoom={openZoom}
-              onVerifyEvidence={handleVerifyEvidence}
-              onRegisterFacility={handleRegisterFacility}
-            />
+            <EvidenceInspector report={selectedReport} onOpenZoom={openZoom} onVerifyEvidence={handleVerifyEvidence} onRegisterFacility={handleRegisterFacility} />
 
             <OfficialResponseComposer
               reportId={selectedReport.id}
               publicResponse={currentDraft.publicResponse}
               internalNote={currentDraft.internalNote}
-              onChangePublicResponse={(val: string) =>
-                updateDraft(selectedReport.id, 'publicResponse', val)
-              }
-              onChangeInternalNote={(val: string) =>
-                updateDraft(selectedReport.id, 'internalNote', val)
-              }
+              onChangePublicResponse={(val: string) => updateDraft(selectedReport.id, 'publicResponse', val)}
+              onChangeInternalNote={(val: string) => updateDraft(selectedReport.id, 'internalNote', val)}
               activeTab={composerTab}
               onTabChange={setComposerTab}
               isUpdating={isUpdating}
@@ -183,36 +148,24 @@ export const AdminValidasi: React.FC<Props> = ({ profile }) => {
               actionSuccess={actionSuccess}
               onApplyTransition={handleApplyTransition}
               onDeleteReport={handleDeleteReport}
+              onRequestInfo={() => setRequestOpen(true)}
             />
 
             <ReportAuditTrail events={selectedReport.events || []} />
-          </div>
+          </article>
         ) : (
-          <div
-            className={`lg:col-span-7 flex items-center justify-center rounded-3xl border border-dashed border-[#E3E0D6] dark:border-[#26352E] p-12 text-center ${
-              mobileTab === 'detail' ? 'block' : 'hidden lg:flex'
-            }`}
-          >
-            <div className="space-y-2">
-              <FileText className="w-8 h-8 text-[#9EACA3] mx-auto" />
-              <p className="text-sm font-bold text-[#4F5A52] dark:text-[#9EACA3]">
-                Pilih laporan dari antrean
-              </p>
-              <p className="text-xs text-[#9EACA3]">
-                {isLoadingReports ? 'Memuat antrean...' : `${reports.length} laporan tersedia`}
-              </p>
-            </div>
+          <div className={`panel px-6 py-16 text-center ${mobileTab === 'detail' ? 'block' : 'hidden lg:block'}`}>
+            <FileText className="w-8 h-8 mx-auto text-ink-3" aria-hidden="true" />
+            <p className="mt-3 font-display text-lg font-semibold text-ink">Pilih laporan dari antrean</p>
+            <p className="mt-1 text-sm text-ink-2">{isLoadingReports ? 'Memuat antrean' : `${reports.length} laporan tersedia`}</p>
           </div>
         )}
       </div>
 
-      {zoomMedia && (
-        <EvidenceZoomModal
-          media={zoomMedia}
-          onClose={closeZoom}
-        />
+      {requestOpen && selectedReport && (
+        <RequestInfoDialog report={selectedReport} isSending={isUpdating} onSubmit={handleRequestInfo} onClose={() => setRequestOpen(false)} />
       )}
+      {zoomMedia && <EvidenceZoomModal media={zoomMedia} onClose={closeZoom} />}
     </div>
   );
 };
-

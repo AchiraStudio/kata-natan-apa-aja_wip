@@ -8,6 +8,7 @@ import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { RejectedReportEdits } from '../services/adapters/types';
 import { Report, ReportStatus } from '../types/domain';
 import { getReportMediaType } from '../utils/reportEvidence';
+import { getLocalAnonymousReports } from '../utils/localReports';
 
 const STATUS_LABELS: Record<ReportStatus, string> = {
   submitted: 'Terkirim',
@@ -19,6 +20,24 @@ const STATUS_LABELS: Record<ReportStatus, string> = {
   resolved: 'Selesai',
   rejected: 'Ditolak',
 };
+
+/**
+ * Reports tied to the account, plus anonymous ones this device remembers.
+ * Anonymous reports carry no account id on the server, so they are fetched through
+ * their reference and secret token instead.
+ */
+async function loadAllMyReports(userId: string): Promise<Report[]> {
+  const accountReports = await dataService.getMyReports(userId);
+  const known = new Set(accountReports.map((report) => report.id));
+  const remembered = getLocalAnonymousReports(userId);
+  const anonymous = await Promise.all(
+    remembered.map((entry) => dataService.verifyReportTracking(entry.reference, entry.token).catch(() => null))
+  );
+  const extra = anonymous.filter((report): report is Report => Boolean(report) && !known.has((report as Report).id));
+  return [...accountReports, ...extra].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
 
 export const MyReportsView: React.FC = () => {
   const navigate = useNavigate();
@@ -41,7 +60,7 @@ export const MyReportsView: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     const load = () => {
-      dataService.getMyReports(profile.id).then((result) => {
+      loadAllMyReports(profile.id).then((result) => {
         if (isMounted) setLoadedReports({ userId: profile.id, reports: result });
       }).catch((error: unknown) => {
         console.error('Failed to load the current user reports:', error);
@@ -56,25 +75,36 @@ export const MyReportsView: React.FC = () => {
 
     load();
 
-    let channel: any = null;
+    // A report submitted from the composer, or a return to this tab, reloads the list.
+    // Realtime alone is not enough: it only works when replication is enabled for `reports`.
+    const onSubmitted = () => load();
+    const onVisible = () => {
+      if (!document.hidden) load();
+    };
+    window.addEventListener('titik-report-submitted', onSubmitted);
+    document.addEventListener('visibilitychange', onVisible);
+
+    let channel: ReturnType<typeof supabase.channel> | null = null;
     if (isSupabaseConfigured) {
-      channel = supabase
-        .channel(`user-reports-${profile.id}`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'reports' },
-          (payload) => {
-            const row: any = payload.new || payload.old;
-            if (row && (row.reporter_user_id === profile.id || row.id)) {
-              load();
-            }
-          }
-        )
-        .subscribe();
+      try {
+        // Unique topic per mount: a reused topic throws when `.on()` is called after subscribe.
+        channel = supabase
+          .channel(`user-reports-${profile.id}-${Math.random().toString(36).slice(2, 8)}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'reports', filter: `reporter_user_id=eq.${profile.id}` },
+            () => load()
+          )
+          .subscribe();
+      } catch (realtimeError) {
+        console.warn('Realtime updates for reports are unavailable:', realtimeError);
+      }
     }
 
     return () => {
       isMounted = false;
+      window.removeEventListener('titik-report-submitted', onSubmitted);
+      document.removeEventListener('visibilitychange', onVisible);
       if (channel) {
         supabase.removeChannel(channel);
       }
@@ -106,7 +136,7 @@ export const MyReportsView: React.FC = () => {
     setResubmitSuccess('');
     try {
       await dataService.resubmitRejectedReport(report.id, profile.id, editValues);
-      const updatedReports = await dataService.getMyReports(profile.id);
+      const updatedReports = await loadAllMyReports(profile.id);
       setLoadedReports({ userId: profile.id, reports: updatedReports });
       setEditingReportId('');
       setEditValues(null);
@@ -129,7 +159,7 @@ export const MyReportsView: React.FC = () => {
 
     try {
       await dataService.submitAdditionalInfo(reportId, profile.id, additionalInfoText.trim());
-      const updatedReports = await dataService.getMyReports(profile.id);
+      const updatedReports = await loadAllMyReports(profile.id);
       setLoadedReports({ userId: profile.id, reports: updatedReports });
       setRespondingReportId('');
       setAdditionalInfoText('');
@@ -144,24 +174,24 @@ export const MyReportsView: React.FC = () => {
 
   return (
     <>
-      <main className="flex-1 h-screen overflow-y-auto no-scrollbar p-4 lg:p-8 w-full max-w-5xl pb-24 lg:pb-12 min-w-0">
+      <main className="flex-1 min-w-0 w-full mx-auto max-w-5xl px-4 sm:px-6 lg:px-10 pt-5 lg:pt-10 pb-32 lg:pb-14">
         <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
-            <div className="inline-flex items-center gap-2 text-xs font-semibold text-[#1B4332] dark:text-[#34D399]">
+            <div className="inline-flex items-center gap-2 text-xs font-semibold text-brand">
               <FileText className="w-4 h-4" />
               Ruang pribadi • {profile.displayName}
             </div>
-            <h1 className="text-2xl font-extrabold text-[#101913] dark:text-[#F3F6F4] mt-1">
+            <h1 className="text-2xl font-extrabold text-ink mt-1">
               Laporan Saya
             </h1>
-            <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] mt-1">
-              Hanya laporan yang dikirim dari akun ini yang ditampilkan.
+            <p className="text-xs text-ink-2 mt-1">
+              Laporan dari akun ini, termasuk laporan anonim yang dikirim dari perangkat ini.
             </p>
           </div>
           <button
             type="button"
             onClick={openReportModal}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] text-xs font-bold"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-on-brand text-xs font-bold"
           >
             <Plus className="w-4 h-4" />
             Buat Laporan
@@ -169,7 +199,7 @@ export const MyReportsView: React.FC = () => {
         </header>
 
         {isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-sm text-[#4F5A52] dark:text-[#9EACA3]">
+          <div className="flex items-center justify-center gap-2 py-16 text-sm text-ink-2">
             <RefreshCw className="w-4 h-4 animate-spin" />
             Memuat laporan Anda...
           </div>
@@ -178,16 +208,16 @@ export const MyReportsView: React.FC = () => {
             {loadError}
           </p>
         ) : reports.length === 0 ? (
-          <div className="rounded-3xl border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] p-10 text-center">
-            <FileText className="w-9 h-9 mx-auto text-[#1B4332] dark:text-[#34D399]" />
-            <h2 className="mt-3 font-bold text-[#101913] dark:text-[#F3F6F4]">Belum ada laporan dari akun ini</h2>
-            <p className="mt-1 text-xs text-[#4F5A52] dark:text-[#9EACA3]">
+          <div className="rounded-3xl border border-line bg-surface p-10 text-center">
+            <FileText className="w-9 h-9 mx-auto text-brand" />
+            <h2 className="mt-3 font-bold text-ink">Belum ada laporan dari akun ini</h2>
+            <p className="mt-1 text-xs text-ink-2">
               Laporan yang Anda kirim akan tersimpan di sini.
             </p>
             <button
               type="button"
               onClick={openReportModal}
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#1B4332] px-4 py-2.5 text-xs font-bold text-white"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-bold text-on-brand"
             >
               <Plus className="w-4 h-4" />
               Buat laporan pertama
@@ -198,7 +228,7 @@ export const MyReportsView: React.FC = () => {
             {reports.map((report) => (
               <article
                 key={report.id}
-                className="rounded-3xl border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] p-4 sm:p-5"
+                className="rounded-3xl border border-line bg-surface p-4 sm:p-5"
               >
                 {report.status === 'needs_info' && (() => {
                   const infoEvent = [...report.events]
@@ -216,8 +246,8 @@ export const MyReportsView: React.FC = () => {
                         <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
                         <h3 className="text-sm font-bold">Verifikator Memerlukan Informasi Tambahan</h3>
                       </div>
-                      <div className="p-3 bg-white/90 dark:bg-[#131916]/90 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4]">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 block mb-1">
+                      <div className="p-3 bg-surface/90 dark:bg-surface-2/90 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs text-ink">
+                        <span className="text-[10px] font-bold text-rose-700 dark:text-rose-400 block mb-1">
                           Catatan dari Verifikator / Dinas:
                         </span>
                         <p className="italic leading-relaxed">&ldquo;{adminMessage}&rdquo;</p>
@@ -248,7 +278,7 @@ export const MyReportsView: React.FC = () => {
                           onSubmit={(e) => handleSendAdditionalInfo(e, report.id)}
                           className="space-y-3 pt-1"
                         >
-                          <label className="block text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
+                          <label className="block text-xs font-bold text-ink">
                             Tuliskan Tanggapan / Penjelasan Tambahan:
                           </label>
                           <textarea
@@ -257,13 +287,13 @@ export const MyReportsView: React.FC = () => {
                             value={additionalInfoText}
                             onChange={(e) => setAdditionalInfoText(e.target.value)}
                             placeholder="Contoh: Lokasi tepat berada di samping tiang listrik nomor 12 dekat pos ronda RT 03..."
-                            className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-rose-300 dark:border-rose-800 bg-white dark:bg-[#131916] text-[#101913] dark:text-[#F3F6F4] focus:outline-none focus:ring-2 focus:ring-rose-500 shadow-2xs resize-none"
+                            className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-rose-300 dark:border-rose-800 bg-surface dark:bg-surface-2 text-ink focus:outline-none focus:ring-2 focus:ring-rose-500 shadow-2xs resize-none"
                           />
                           <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
                               onClick={() => setRespondingReportId('')}
-                              className="px-3 py-1.5 rounded-xl border border-[#E3E0D6] dark:border-[#26352E] text-xs font-bold text-[#4F5A52] dark:text-[#9EACA3]"
+                              className="px-3 py-1.5 rounded-xl border border-line text-xs font-bold text-ink-2"
                             >
                               Batal
                             </button>
@@ -305,34 +335,34 @@ export const MyReportsView: React.FC = () => {
                       ) : editValues && (
                         <form onSubmit={(event) => handleResubmit(event, report)} className="mt-4 space-y-3">
                           <div>
-                            <label htmlFor={`${report.id}-edit-title`} className="mb-1 block text-xs font-semibold text-[#101913] dark:text-[#F3F6F4]">Judul laporan</label>
+                            <label htmlFor={`${report.id}-edit-title`} className="mb-1 block text-xs font-semibold text-ink">Judul laporan</label>
                             <input
                               id={`${report.id}-edit-title`}
                               required
                               value={editValues.title}
                               onChange={(event) => setEditValues({ ...editValues, title: event.target.value })}
-                              className="w-full rounded-xl border border-[#E3E0D6] bg-white px-3 py-2 text-xs text-[#101913] dark:border-[#26352E] dark:bg-[#131916] dark:text-[#F3F6F4]"
+                              className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink dark:bg-surface-2"
                             />
                           </div>
                           <div>
-                            <label htmlFor={`${report.id}-edit-description`} className="mb-1 block text-xs font-semibold text-[#101913] dark:text-[#F3F6F4]">Deskripsi dan kronologi</label>
+                            <label htmlFor={`${report.id}-edit-description`} className="mb-1 block text-xs font-semibold text-ink">Deskripsi dan kronologi</label>
                             <textarea
                               id={`${report.id}-edit-description`}
                               required
                               rows={4}
                               value={editValues.description}
                               onChange={(event) => setEditValues({ ...editValues, description: event.target.value })}
-                              className="w-full rounded-xl border border-[#E3E0D6] bg-white px-3 py-2 text-xs text-[#101913] dark:border-[#26352E] dark:bg-[#131916] dark:text-[#F3F6F4]"
+                              className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink dark:bg-surface-2"
                             />
                           </div>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div>
-                              <label htmlFor={`${report.id}-edit-category`} className="mb-1 block text-xs font-semibold text-[#101913] dark:text-[#F3F6F4]">Kategori</label>
+                              <label htmlFor={`${report.id}-edit-category`} className="mb-1 block text-xs font-semibold text-ink">Kategori</label>
                               <select
                                 id={`${report.id}-edit-category`}
                                 value={editValues.category}
                                 onChange={(event) => setEditValues({ ...editValues, category: event.target.value })}
-                                className="w-full rounded-xl border border-[#E3E0D6] bg-white px-3 py-2 text-xs text-[#101913] dark:border-[#26352E] dark:bg-[#131916] dark:text-[#F3F6F4]"
+                                className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink dark:bg-surface-2"
                               >
                                 {!['Infrastruktur', 'Lingkungan', 'Pendidikan', 'Kesehatan', 'Lainnya'].includes(editValues.category) && (
                                   <option value={editValues.category}>{editValues.category}</option>
@@ -342,7 +372,7 @@ export const MyReportsView: React.FC = () => {
                               </select>
                             </div>
                             <div>
-                              <label htmlFor={`${report.id}-edit-severity`} className="mb-1 block text-xs font-semibold text-[#101913] dark:text-[#F3F6F4]">Tingkat urgensi</label>
+                              <label htmlFor={`${report.id}-edit-severity`} className="mb-1 block text-xs font-semibold text-ink">Tingkat urgensi</label>
                               <select
                                 id={`${report.id}-edit-severity`}
                                 value={editValues.severity}
@@ -350,7 +380,7 @@ export const MyReportsView: React.FC = () => {
                                   ...editValues,
                                   severity: event.target.value as RejectedReportEdits['severity'],
                                 })}
-                                className="w-full rounded-xl border border-[#E3E0D6] bg-white px-3 py-2 text-xs text-[#101913] dark:border-[#26352E] dark:bg-[#131916] dark:text-[#F3F6F4]"
+                                className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink dark:bg-surface-2"
                               >
                                 <option value="low">Rendah</option>
                                 <option value="medium">Sedang</option>
@@ -360,13 +390,13 @@ export const MyReportsView: React.FC = () => {
                             </div>
                           </div>
                           <div>
-                            <label htmlFor={`${report.id}-edit-address`} className="mb-1 block text-xs font-semibold text-[#101913] dark:text-[#F3F6F4]">Alamat lokasi</label>
+                            <label htmlFor={`${report.id}-edit-address`} className="mb-1 block text-xs font-semibold text-ink">Alamat lokasi</label>
                             <input
                               id={`${report.id}-edit-address`}
                               required
                               value={editValues.address}
                               onChange={(event) => setEditValues({ ...editValues, address: event.target.value })}
-                              className="w-full rounded-xl border border-[#E3E0D6] bg-white px-3 py-2 text-xs text-[#101913] dark:border-[#26352E] dark:bg-[#131916] dark:text-[#F3F6F4]"
+                              className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink dark:bg-surface-2"
                             />
                           </div>
                           {resubmitError && <p role="alert" className="text-xs text-rose-700 dark:text-rose-300">{resubmitError}</p>}
@@ -374,7 +404,7 @@ export const MyReportsView: React.FC = () => {
                             <button
                               type="submit"
                               disabled={savingReportId === report.id}
-                              className="inline-flex items-center gap-2 rounded-xl bg-[#1B4332] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+                              className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-xs font-bold text-on-brand disabled:opacity-50"
                             >
                               <Send className="h-3.5 w-3.5" />
                               {savingReportId === report.id ? 'Mengirim...' : 'Kirim ulang untuk ditinjau'}
@@ -382,42 +412,45 @@ export const MyReportsView: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => { setEditingReportId(''); setEditValues(null); setResubmitError(''); }}
-                              className="rounded-xl border border-[#D5D8D2] px-4 py-2 text-xs font-semibold text-[#41443D] dark:border-[#37493F] dark:text-[#D5DDD7]"
+                              className="rounded-xl border border-line px-4 py-2 text-xs font-semibold text-ink-2 dark:text-line"
                             >
                               Batal
                             </button>
                           </div>
                         </form>
                       )}
-                      {resubmitSuccess && <p role="status" className="mt-3 text-xs font-semibold text-emerald-800 dark:text-emerald-300">{resubmitSuccess}</p>}
+                      {resubmitSuccess && <p role="status" className="mt-3 text-xs font-semibold text-lime-800 dark:text-lime-300">{resubmitSuccess}</p>}
                     </section>
                   );
                 })()}
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <span className="font-mono text-[11px] font-bold text-[#4F5A52] dark:text-[#9EACA3]">
+                    <span className="font-mono text-[11px] font-bold text-ink-2">
                       {report.publicReference}
+                      {report.reporterType === 'anonymous' && (
+                        <span className="ml-2 font-sans font-semibold text-ink-3">Anonim, hanya tercatat di perangkat ini</span>
+                      )}
                     </span>
-                    <h2 className="mt-1 text-base font-bold text-[#101913] dark:text-[#F3F6F4]">
+                    <h2 className="mt-1 text-base font-bold text-ink">
                       {report.title}
                     </h2>
-                    <p className="mt-1 flex items-start gap-1.5 text-xs text-[#4F5A52] dark:text-[#9EACA3]">
+                    <p className="mt-1 flex items-start gap-1.5 text-xs text-ink-2">
                       <MapPin className="w-3.5 h-3.5 shrink-0 text-rose-600" />
                       {report.location.address}
                     </p>
                   </div>
-                  <span className="rounded-full border border-[#D9DEC9] bg-[#F7F8F2] px-3 py-1 text-[11px] font-semibold text-[#1B4332]">
+                  <span className="rounded-full border border-brand-soft bg-surface px-3 py-1 text-[11px] font-semibold text-brand">
                     {STATUS_LABELS[report.status] ?? report.status}
                   </span>
                 </div>
 
-                <p className="mt-3 text-xs leading-relaxed text-[#41443D] dark:text-[#D5DDD7]">
+                <p className="mt-3 text-xs leading-relaxed text-ink-2 dark:text-line">
                   {report.description}
                 </p>
 
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   {report.mediaUrls.map((url, index) => (
-                    <div key={`${report.id}-media-${index}`} className="overflow-hidden rounded-xl border border-[#E3E0D6] dark:border-[#26352E] bg-black">
+                    <div key={`${report.id}-media-${index}`} className="overflow-hidden rounded-xl border border-line bg-black">
                       {getReportMediaType(url) === 'video' ? (
                         <video
                           src={url}
@@ -437,14 +470,14 @@ export const MyReportsView: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#E3E0D6] dark:border-[#26352E] pt-3">
-                  <span className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+                  <span className="text-[11px] text-ink-2">
                     {report.category} • {new Date(report.createdAt).toLocaleDateString('id-ID')}
                   </span>
                   <button
                     type="button"
                     onClick={() => navigate(`/report/${encodeURIComponent(report.publicReference)}`)}
-                    className="text-xs font-bold text-[#1B4332] dark:text-[#34D399] hover:underline"
+                    className="text-xs font-bold text-brand hover:underline"
                   >
                     Lihat detail
                   </button>
@@ -453,27 +486,27 @@ export const MyReportsView: React.FC = () => {
                 {report.events.length > 0 && (
                   <section
                     aria-label={`Riwayat penanganan ${report.publicReference}`}
-                    className="mt-4 border-t border-[#E3E0D6] dark:border-[#26352E] pt-3"
+                    className="mt-4 border-t border-line pt-3"
                   >
-                    <h3 className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
+                    <h3 className="text-xs font-bold text-ink">
                       Riwayat penanganan admin
                     </h3>
                     <ol className="mt-2 space-y-2">
                       {[...report.events].reverse().map((event) => (
                         <li
                           key={event.id}
-                          className="rounded-xl bg-[#F7F5EF] dark:bg-[#131916] p-3 text-xs"
+                          className="rounded-xl bg-canvas dark:bg-surface-2 p-3 text-xs"
                         >
                           <div className="flex flex-wrap items-center justify-between gap-1">
-                            <span className="font-semibold text-[#101913] dark:text-[#F3F6F4]">
+                            <span className="font-semibold text-ink">
                               {event.newStatus ? STATUS_LABELS[event.newStatus] : event.eventType}
                             </span>
-                            <time className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3]">
+                            <time className="text-[10px] text-ink-2">
                               {event.timestamp}
                             </time>
                           </div>
-                          <p className="mt-1 text-[#41443D] dark:text-[#D5DDD7]">{event.description}</p>
-                          <p className="mt-1 text-[10px] text-[#4F5A52] dark:text-[#9EACA3]">
+                          <p className="mt-1 text-ink-2 dark:text-line">{event.description}</p>
+                          <p className="mt-1 text-[10px] text-ink-2">
                             Oleh: {event.actorName}
                           </p>
                         </li>

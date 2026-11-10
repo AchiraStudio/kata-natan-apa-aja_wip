@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resolveAvatarUrl } from '../../utils/avatar';
 
 export interface UserAvatarProps {
   src?: string | null;
@@ -51,7 +52,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     setImageError(false);
   }, [src]);
 
-  const hasValidSrc = Boolean(src && typeof src === 'string' && src.trim().length > 0);
+  const hasValidSrc = resolveAvatarUrl(src).length > 0;
 
   if (!hasValidSrc || imageError) {
     const initials = getInitials(name || alt);
@@ -59,7 +60,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     const roleColors =
       role === 'admin'
         ? 'bg-[#92400E] text-[#FDE68A]'
-        : 'bg-[#1B4332] text-[#34D399]';
+        : 'bg-brand-soft text-brand';
 
     return (
       <div
@@ -67,7 +68,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         aria-label={alt || name || 'User avatar'}
         title={title || alt || name}
         onClick={onClick}
-        className={`${className} inline-flex items-center justify-center font-bold select-none uppercase tracking-wider shrink-0 ${fontSizeClass} ${roleColors}`}
+        className={`${className} inline-flex items-center justify-center font-bold select-none shrink-0 ${fontSizeClass} ${roleColors}`}
       >
         <span>{initials}</span>
       </div>

@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Image, Video, MapPin, X, AlertCircle, Loader2, Link2, Sparkles } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ImagePlus, Video, MapPin, X, Loader2 } from 'lucide-react';
 import { useMediaUpload, uploadFileToSupabase } from './useMediaUpload';
 import { useComposerDraft } from './useComposerDraft';
 import { useAuth } from '../../context/AuthContext';
@@ -8,27 +8,33 @@ import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 import { Post, PostMedia } from '../../types/domain';
 import { generatePostId } from '../../utils/idGenerator';
 import { UserAvatar } from '../common/UserAvatar';
+import { Field, Segmented, FormFooter, PrimaryButton, GhostButton, ErrorNote, INPUT_CLASS } from './ui';
 
 interface PostComposerProps {
   onSuccess: (newPost: Post) => void;
   onCancel: () => void;
+  /** True while there is text or media that closing would lose. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel }) => {
+export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel, onDirtyChange }) => {
   const { user, profile, isAuthenticated } = useAuth();
-  const { facilities, refreshFeed } = useTitik();
+  const { refreshFeed } = useTitik();
   const { draft, updateDraft, clearDraft } = useComposerDraft();
   const { items, isProcessing, uploadError, addFiles, removeItem, clearAll } = useMediaUpload(4);
 
   const [postType, setPostType] = useState<'citizen_report' | 'community_discussion' | 'official_update'>(
     profile.role === 'admin' ? 'official_update' : 'community_discussion'
   );
-  const [selectedFacilityId, setSelectedFacilityId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const MAX_CHARS = 2000;
+  const isDirty = draft.caption.trim().length > 0 || items.length > 0;
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
   const remainingChars = MAX_CHARS - draft.caption.length;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,221 +144,130 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel 
     }
   };
 
+  const typeOptions: Array<{ value: typeof postType; label: string }> = [
+    { value: 'community_discussion', label: 'Diskusi warga' },
+    { value: 'citizen_report', label: 'Kabar lapangan' },
+    ...(profile.role === 'admin' ? [{ value: 'official_update' as const, label: 'Pembaruan resmi' }] : []),
+  ];
+  const nearLimit = remainingChars <= 200;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Post Type Selector */}
-      <div className="flex items-center gap-2 p-1 bg-[#E3E0D6]/50 dark:bg-[#1A221E] rounded-xl text-xs font-semibold">
-        <button
-          type="button"
-          onClick={() => setPostType('community_discussion')}
-          className={`flex-1 py-1.5 px-3 rounded-lg transition-all ${
-            postType === 'community_discussion'
-              ? 'bg-white dark:bg-[#26352E] text-[#1B4332] dark:text-[#34D399] shadow-xs'
-              : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4]'
-          }`}
-        >
-          Diskusi Warga
-        </button>
-        <button
-          type="button"
-          onClick={() => setPostType('citizen_report')}
-          className={`flex-1 py-1.5 px-3 rounded-lg transition-all ${
-            postType === 'citizen_report'
-              ? 'bg-white dark:bg-[#26352E] text-[#1B4332] dark:text-[#34D399] shadow-xs'
-              : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4]'
-          }`}
-        >
-          Kabar Lapangan
-        </button>
-        {profile.role === 'admin' && (
-          <button
-            type="button"
-            onClick={() => setPostType('official_update')}
-            className={`flex-1 py-1.5 px-3 rounded-lg transition-all ${
-              postType === 'official_update'
-                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 shadow-xs'
-                : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4]'
-            }`}
-          >
-            Pembaruan Resmi
-          </button>
-        )}
-      </div>
+    <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5 space-y-5">
+        <div className="flex items-center gap-3">
+          <UserAvatar src={profile.avatarUrl} alt={profile.displayName} name={profile.displayName} role={profile.role} className="w-10 h-10 rounded-full object-cover shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-ink truncate">{profile.displayName}</p>
+            <p className="text-xs text-ink-3 truncate">
+              @{profile.username}
+              {profile.district ? ` / ${profile.district}` : ''}
+            </p>
+          </div>
+        </div>
 
-      {/* Author Preview */}
-      <div className="flex items-center gap-3">
-        <UserAvatar
-          src={profile.avatarUrl}
-          alt={profile.displayName}
-          name={profile.displayName}
-          role={profile.role}
-          className="w-9 h-9 rounded-full object-cover ring-1 ring-[#E3E0D6] dark:ring-[#26352E]"
+        <Segmented
+          label="Jenis postingan"
+          value={postType}
+          onChange={setPostType}
+          options={typeOptions}
         />
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4] truncate">
-            {profile.displayName}
-          </p>
-          <p className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] truncate">
-            @{profile.username}{profile.district ? ` • ${profile.district}` : ''}
-          </p>
-        </div>
-      </div>
 
-      {/* Main Textarea */}
-      <div className="relative">
-        <textarea
-          rows={4}
-          value={draft.caption}
-          onChange={(e) => updateDraft({ caption: e.target.value })}
-          placeholder="Bagikan situasi fasilitas publik, kondisi jalan, atau tanggapan Anda..."
-          className="w-full p-3.5 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-sm text-[#101913] dark:text-[#F3F6F4] placeholder:text-[#4F5A52] focus:outline-hidden focus:ring-2 focus:ring-[#1B4332] dark:focus:ring-[#10B981] transition-all resize-none"
-          maxLength={MAX_CHARS}
-          required
-        />
-        <div className="flex items-center justify-between mt-1 px-1">
-          <span className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
-            Privasi: Terbuka untuk umum di linimasa TITIK
-          </span>
-          <span
-            className={`text-[11px] font-mono tabular-nums ${
-              remainingChars < 100
-                ? 'text-rose-600 font-bold'
-                : 'text-[#4F5A52] dark:text-[#9EACA3]'
-            }`}
-          >
-            {remainingChars} / {MAX_CHARS}
-          </span>
-        </div>
-      </div>
+        <Field label="Isi postingan" htmlFor="post-body" hint="Tampil terbuka di linimasa TITIK. Jangan cantumkan data pribadi orang lain.">
+          <textarea
+            id="post-body"
+            autoFocus
+            rows={6}
+            value={draft.caption}
+            onChange={(e) => updateDraft({ caption: e.target.value })}
+            placeholder="Ceritakan kondisi fasilitas publik, jalan, atau tanggapan Anda."
+            className="titik-pill-input px-3.5 py-3 text-base sm:text-sm leading-relaxed resize-y min-h-36"
+            maxLength={MAX_CHARS}
+            required
+          />
+        </Field>
 
-      {/* Location Input */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl">
-        <MapPin className="w-4 h-4 text-[#1B4332] dark:text-[#34D399] shrink-0" />
-        <input
-          type="text"
-          value={draft.locationTag}
-          onChange={(e) => updateDraft({ locationTag: e.target.value })}
-          placeholder="Lokasi (contoh: Bogor Tengah, Jl. Pajajaran)"
-          className="w-full bg-transparent text-xs text-[#101913] dark:text-[#F3F6F4] placeholder:text-[#4F5A52] focus:outline-hidden"
-        />
-      </div>
+        <Field label="Lokasi" htmlFor="post-location">
+          <div className="relative">
+            <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3 pointer-events-none" aria-hidden="true" />
+            <input
+              id="post-location"
+              type="text"
+              value={draft.locationTag}
+              onChange={(e) => updateDraft({ locationTag: e.target.value })}
+              placeholder="Contoh: Bogor Tengah, Jl. Pajajaran"
+              className={`${INPUT_CLASS} pl-10`}
+            />
+          </div>
+        </Field>
 
-      {/* Optional Linked Facility */}
-      {facilities.length > 0 && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl">
-          <Link2 className="w-4 h-4 text-[#4F5A52] dark:text-[#9EACA3] shrink-0" />
-          <select
-            value={selectedFacilityId}
-            onChange={(e) => setSelectedFacilityId(e.target.value)}
-            className="w-full bg-transparent text-xs text-[#101913] dark:text-[#F3F6F4] focus:outline-hidden"
-          >
-            <option value="">Hubungkan dengan fasilitas publik (opsional)...</option>
-            {facilities.map((fac) => (
-              <option key={fac.id} value={fac.id} className="dark:bg-[#1A221E]">
-                {fac.name} ({fac.category})
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Media Previews */}
-      {items.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="relative aspect-square rounded-xl overflow-hidden bg-black/5 dark:bg-black/30 border border-[#E3E0D6] dark:border-[#26352E] group"
-            >
-              {item.type === 'video' ? (
-                <div className="w-full h-full flex items-center justify-center bg-black/60 text-white">
-                  <Video className="w-6 h-6" />
-                </div>
-              ) : (
-                <img
-                  src={item.dataUrl}
-                  alt="Bukti media"
-                  className="w-full h-full object-cover"
-                />
-              )}
-              <button
-                type="button"
-                onClick={() => removeItem(item.id)}
-                className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/60 text-white hover:bg-rose-600 transition-colors cursor-pointer"
-                aria-label="Hapus media"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Error Notices */}
-      {(uploadError || submitError) && (
-        <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{uploadError || submitError}</span>
-        </div>
-      )}
-
-      {/* Action Footer */}
-      <div className="pt-2 flex items-center justify-between border-t border-[#E3E0D6] dark:border-[#26352E]">
-        <div className="flex items-center gap-2">
+        <Field label="Foto atau video" optional hint="Sampai 4 berkas, masing-masing maksimal 10 MB.">
           <input
             ref={fileInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
             multiple
             onChange={handleFileChange}
-            className="hidden"
+            className="sr-only"
             id="post-media-input"
             disabled={items.length >= 4 || isProcessing}
           />
-          <label
-            htmlFor="post-media-input"
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E3E0D6] dark:border-[#26352E] text-xs font-semibold cursor-pointer transition-colors ${
-              items.length >= 4 || isProcessing
-                ? 'opacity-50 cursor-not-allowed bg-transparent text-[#4F5A52]'
-                : 'hover:bg-white dark:hover:bg-[#1A221E] text-[#1B4332] dark:text-[#34D399]'
-            }`}
-          >
-            {isProcessing ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Image className="w-3.5 h-3.5" />
+          <ul className="grid grid-cols-4 gap-2">
+            {items.map((item) => (
+              <li key={item.id} className="relative aspect-square rounded-lg overflow-hidden bg-surface-2">
+                {item.type === 'video' ? (
+                  <span className="w-full h-full flex items-center justify-center text-ink-2">
+                    <Video className="w-6 h-6" aria-hidden="true" />
+                  </span>
+                ) : (
+                  <img src={item.dataUrl} alt="Foto yang dilampirkan" className="w-full h-full object-cover" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => removeItem(item.id)}
+                  className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-st-ditolak transition-colors cursor-pointer"
+                  aria-label="Hapus lampiran"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </li>
+            ))}
+            {items.length < 4 && (
+              <li>
+                <label
+                  htmlFor="post-media-input"
+                  className={`aspect-square rounded-lg border border-dashed border-line flex flex-col items-center justify-center gap-1 text-ink-2 transition-colors focus-within:outline-2 ${
+                    isProcessing ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:border-brand hover:text-brand'
+                  }`}
+                >
+                  {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <ImagePlus className="w-5 h-5" aria-hidden="true" />}
+                  <span className="text-[11px] font-medium tabular-nums">{items.length}/4</span>
+                </label>
+              </li>
             )}
-            <span>Tambah Foto/Video ({items.length}/4)</span>
-          </label>
-        </div>
+          </ul>
+        </Field>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 text-xs font-semibold text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] transition-colors cursor-pointer"
-          >
-            Batal
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting || !draft.caption.trim()}
-            className="inline-flex items-center gap-2 px-5 py-2 bg-[#1B4332] dark:bg-[#10B981] hover:bg-[#14352A] dark:hover:bg-[#34D399] text-white dark:text-[#0A1610] rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Menerbitkan...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Terbitkan</span>
-              </>
-            )}
-          </button>
-        </div>
+        {(uploadError || submitError) && <ErrorNote>{uploadError || submitError}</ErrorNote>}
       </div>
+
+      <FormFooter
+        start={
+          <span className={`tabular-nums ${nearLimit ? 'font-semibold text-st-baru' : ''}`} aria-live="polite">
+            {nearLimit ? `${remainingChars} karakter tersisa` : `${draft.caption.length}/${MAX_CHARS}`}
+          </span>
+        }
+      >
+        <GhostButton onClick={onCancel}>Batal</GhostButton>
+        <PrimaryButton type="submit" disabled={isSubmitting || isProcessing || !draft.caption.trim()}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Menerbitkan
+            </>
+          ) : (
+            'Terbitkan'
+          )}
+        </PrimaryButton>
+      </FormFooter>
     </form>
   );
 };

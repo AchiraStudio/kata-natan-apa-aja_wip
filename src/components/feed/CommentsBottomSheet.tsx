@@ -1,21 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { X, Heart, Send, MessageSquare, Loader2, RotateCw, CheckCircle2, BadgeCheck } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { X, Send, RotateCw, BadgeCheck } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
 import { FeedComment } from '../../services/adapters/types';
-import { sortCommentsForUser, isCommentAuthoredByUser } from '../../utils/commentSorting';
 import { UserAvatar } from '../common/UserAvatar';
+import { groupCommentThreads } from '../../utils/commentSorting';
 
 export type CommentItem = FeedComment;
-
-const getCommentAuthorTarget = (authorId?: string, authorName?: string): string => {
-  if (authorId) {
-    return authorId.replace(/^@+/, '').trim();
-  }
-  const name = authorName || 'warga';
-  return name.replace(/^@+/, '').trim().toLowerCase().replace(/[^a-z0-9_.#]/g, '_');
-};
 
 interface CommentsBottomSheetProps {
   isOpen: boolean;
@@ -26,6 +18,20 @@ interface CommentsBottomSheetProps {
   onCommentsCountChange?: (count: number) => void;
 }
 
+interface ReplyTarget {
+  /** Top-level comment the reply is attached to. */
+  parentId: string;
+  /** Person being answered, shown in the composer. */
+  authorName: string;
+  mention: string;
+}
+
+const profileLinkFor = (c: CommentItem): string | null => {
+  const handle = (c.authorUsername || '').replace(/^@+/, '').trim();
+  return handle ? `/u/${encodeURIComponent(handle)}` : null;
+};
+
+/** Threaded comments for one post. Replies attach to the top-level comment they answer. */
 export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
   isOpen,
   onClose,
@@ -35,189 +41,158 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
   onCommentsCountChange,
 }) => {
   const { getComments, addComment } = useTitik();
-  const { profile } = useAuth();
+  const { profile, isAuthenticated } = useAuth();
 
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
-  const [newCommentText, setNewCommentText] = useState('');
-  const [replyTarget, setReplyTarget] = useState<{ id: string; authorName: string } | null>(null);
+  const [draft, setDraft] = useState('');
+  const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [likedCommentIds, setLikedCommentIds] = useState<Set<string>>(new Set());
-  const [likesDeltaMap, setLikesDeltaMap] = useState<Record<string, number>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const commentsListRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const countChangeRef = useRef(onCommentsCountChange);
+  const knownCountRef = useRef(commentsCount);
 
-  const navigate = useNavigate();
-
-  const handleAuthorClick = (e: React.MouseEvent, target: string) => {
-    e.preventDefault();
-    onClose();
-    navigate(`/u/${target}`);
-  };
-
-  // Native non-passive wheel isolation: stop propagation at the DOM level so FeedContainer never intercepts
   useEffect(() => {
-    const sheetEl = sheetRef.current;
-    if (!sheetEl || !isOpen) return;
+    countChangeRef.current = onCommentsCountChange;
+    knownCountRef.current = commentsCount;
+  }, [onCommentsCountChange, commentsCount]);
 
-    const stopWheel = (e: WheelEvent) => {
-      e.stopPropagation();
-    };
+  const fetchComments = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(false);
+    try {
+      const loaded = (await getComments(postId)) || [];
+      setComments(loaded);
+      setHasFetched(true);
+      if (loaded.length !== knownCountRef.current) countChangeRef.current?.(loaded.length);
+    } catch (err) {
+      console.error('Failed to load comments:', err);
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [postId, getComments]);
 
-    sheetEl.addEventListener('wheel', stopWheel, { passive: false });
-    return () => {
-      sheetEl.removeEventListener('wheel', stopWheel);
-    };
-  }, [isOpen]);
-
-  const onCommentsCountChangeRef = useRef(onCommentsCountChange);
-  useEffect(() => {
-    onCommentsCountChangeRef.current = onCommentsCountChange;
-  }, [onCommentsCountChange]);
-
-  const fetchComments = useCallback(
-    async (isRefreshAction = false) => {
-      if (isRefreshAction) {
-        setIsRefreshing(true);
-      } else {
-        setIsLoading(true);
-      }
-      try {
-        const loaded = await getComments(postId);
-        const list = loaded || [];
-        setComments(list);
-        setHasFetched(true);
-        if (list.length !== commentsCount) {
-          onCommentsCountChangeRef.current?.(list.length);
-        }
-      } catch (err) {
-        console.error('Failed to load comments:', err);
-      } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
-      }
-    },
-    [postId, getComments, commentsCount]
-  );
-
-  // Load comments when sheet opens or postId changes (isolated from re-render loops)
+  // Load when opened or when the post changes; reset the composer between posts
   useEffect(() => {
     if (!isOpen) return;
-    fetchComments(false);
-  }, [isOpen, postId]); // eslint-disable-line react-hooks/exhaustive-deps
+    setReplyTarget(null);
+    setSubmitError(null);
+    fetchComments();
+  }, [isOpen, postId, fetchComments]);
 
-  // Handle ESC key to dismiss
+  // Escape closes; the nav bar and feed hotkeys listen for this state
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    document.body.dataset.commentsOpen = 'true';
+    window.dispatchEvent(new CustomEvent('titik-comments-toggle', { detail: { open: true } }));
+    const focusTimer = setTimeout(() => inputRef.current?.focus(), 300);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      clearTimeout(focusTimer);
+      delete document.body.dataset.commentsOpen;
+      window.dispatchEvent(new CustomEvent('titik-comments-toggle', { detail: { open: false } }));
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Dispatch comments open/close event for bottom nav hiding & global isolation
+  // The feed intercepts wheel events for post-to-post paging: keep scrolling inside the sheet
   useEffect(() => {
-    if (isOpen) {
-      document.body.dataset.commentsOpen = 'true';
-      window.dispatchEvent(new CustomEvent('titik-comments-toggle', { detail: { open: true } }));
-    } else {
-      delete document.body.dataset.commentsOpen;
-      window.dispatchEvent(new CustomEvent('titik-comments-toggle', { detail: { open: false } }));
-    }
-    return () => {
-      delete document.body.dataset.commentsOpen;
-      window.dispatchEvent(new CustomEvent('titik-comments-toggle', { detail: { open: false } }));
-    };
+    const el = sheetRef.current;
+    if (!el || !isOpen) return;
+    const stop = (e: WheelEvent) => e.stopPropagation();
+    el.addEventListener('wheel', stop, { passive: false });
+    return () => el.removeEventListener('wheel', stop);
   }, [isOpen]);
 
-  // Focus input when opened
-  useEffect(() => {
-    if (isOpen) {
-      const timer = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 350);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
+  const threads = useMemo(() => groupCommentThreads(comments), [comments]);
+
+  const startReply = (root: CommentItem, target: CommentItem) => {
+    setReplyTarget({ parentId: root.id, authorName: target.authorName, mention: target.authorName });
+    setSubmitError(null);
+    inputRef.current?.focus();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = newCommentText.trim();
-    if (!trimmed || isSubmitting) return;
+    const body = draft.trim();
+    if (!body || isSubmitting || !isAuthenticated) return;
 
     setIsSubmitting(true);
-    const authorName = profile?.displayName || profile?.username || 'Warga Anda';
-    const avatarUrl =
-      profile?.avatarUrl ||
-      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
-
-    const targetParentId = replyTarget?.id;
-
+    setSubmitError(null);
+    const authorName = profile?.displayName || profile?.username || 'Warga';
     try {
-      const created = await addComment(postId, trimmed, authorName, avatarUrl, targetParentId);
-      if (created) {
-        setComments((prev) => [created, ...prev]);
-      } else {
-        // Fallback optimistic comment
-        const optimistic: CommentItem = {
-          id: `c-${Date.now()}`,
-          authorName,
-          avatarUrl,
-          body: trimmed,
-          timeAgo: 'Baru saja',
-          likes: 0,
-          ...(targetParentId ? { parentId: targetParentId } : {}),
-        };
-        setComments((prev) => [optimistic, ...prev]);
-      }
-
-      setNewCommentText('');
-      setReplyTarget(null);
+      const created = await addComment(postId, body, authorName, profile?.avatarUrl, replyTarget?.parentId);
+      if (!created) throw new Error('empty response');
+      const mine: CommentItem = { ...created, authorRole: profile?.role, authorUsername: profile?.username };
+      setComments((prev) => [...prev, mine]);
+      setDraft('');
       onCommentAdded?.();
-
-      if (targetParentId) {
-        // When replying to a comment, maintain scroll at that comment instead of jumping to top!
-        setTimeout(() => {
-          const targetEl = commentsListRef.current?.querySelector(`[data-comment-id="${targetParentId}"]`);
-          if (targetEl) {
-            targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        }, 80);
-      } else {
-        // Only brand-new top-level comments scroll to top where the comment was prepended
-        if (commentsListRef.current) {
-          commentsListRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      }
+      const parentId = replyTarget?.parentId;
+      setReplyTarget(null);
+      setTimeout(() => {
+        const anchor = parentId ? listRef.current?.querySelector(`[data-comment-id="${CSS.escape(created.id)}"]`) : null;
+        if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        else listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
+      }, 60);
     } catch (err) {
       console.error('Failed to add comment:', err);
+      setSubmitError('Komentar belum terkirim. Periksa koneksi, lalu coba lagi.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const toggleLike = (commentId: string) => {
-    const isCurrentlyLiked = likedCommentIds.has(commentId);
-    setLikedCommentIds((prev) => {
-      const next = new Set(prev);
-      if (isCurrentlyLiked) {
-        next.delete(commentId);
-      } else {
-        next.add(commentId);
-      }
-      return next;
-    });
-    setLikesDeltaMap((prev) => ({
-      ...prev,
-      [commentId]: (prev[commentId] || 0) + (isCurrentlyLiked ? -1 : 1),
-    }));
+  const renderComment = (c: CommentItem, root: CommentItem, isReply: boolean) => {
+    const href = profileLinkFor(c);
+    const isOfficial = c.authorRole === 'admin';
+    const name = href ? (
+      <Link to={href} onClick={onClose} className="font-semibold text-ink hover:underline truncate">
+        {c.authorName}
+      </Link>
+    ) : (
+      <span className="font-semibold text-ink truncate">{c.authorName}</span>
+    );
+    return (
+      <li key={c.id} data-comment-id={c.id} className="flex gap-3 scroll-mt-2">
+        <UserAvatar
+          src={c.avatarUrl}
+          alt={c.authorName}
+          name={c.authorName}
+          role={c.authorRole}
+          className={`${isReply ? 'w-7 h-7' : 'w-9 h-9'} rounded-full object-cover shrink-0`}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 text-[13px] min-w-0">
+            {name}
+            {isOfficial && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand shrink-0">
+                <BadgeCheck className="w-3.5 h-3.5" /> Respons resmi
+              </span>
+            )}
+            <span className="text-[11px] text-ink-3 shrink-0">{c.timeAgo}</span>
+          </div>
+          <p className={`mt-0.5 text-sm whitespace-pre-wrap break-words ${isOfficial ? 'text-ink' : 'text-ink-2'}`}>{c.body}</p>
+          <button
+            type="button"
+            onClick={() => startReply(root, c)}
+            className="mt-1 text-xs font-semibold text-ink-3 hover:text-ink cursor-pointer"
+          >
+            Balas
+          </button>
+        </div>
+      </li>
+    );
   };
+
+  const total = hasFetched ? comments.length : commentsCount;
 
   return (
     <div
@@ -226,335 +201,146 @@ export const CommentsBottomSheet: React.FC<CommentsBottomSheetProps> = ({
         e.stopPropagation();
         onClose();
       }}
-      className={`absolute inset-0 z-50 flex flex-col justify-end bg-black/65 backdrop-blur-xs transition-opacity duration-300 ${
+      className={`absolute inset-0 z-50 flex flex-col justify-end bg-[var(--scrim)] transition-opacity duration-200 ${
         isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
     >
-      {/* Bottom Sheet Container */}
       <div
         ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Komentar warga"
+        aria-hidden={!isOpen}
         data-scroll-isolated="true"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
-        onWheel={(e) => e.stopPropagation()}
-        className={`w-full max-h-[75%] h-[70%] bg-[#151916] border-t border-white/10 rounded-t-[28px] sm:rounded-t-3xl flex flex-col shadow-2xl overscroll-y-contain transition-transform duration-300 ease-out ${
+        className={`w-full h-[72%] flex flex-col bg-surface text-ink rounded-t-2xl overscroll-y-contain transition-transform duration-300 ease-out ${
           isOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
-        {/* Drag Handle & Header */}
-        <div className="pt-2.5 pb-2 px-4 border-b border-white/10 flex flex-col shrink-0">
-          <div className="w-10 h-1 rounded-full bg-white/25 mx-auto mb-2" />
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold tracking-tight text-white/95">
-                Komentar Warga
-              </h3>
-              <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/80 font-mono text-[11px] font-semibold">
-                {hasFetched ? comments.length : commentsCount}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  fetchComments(true);
-                }}
-                disabled={isLoading || isRefreshing}
-                className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer disabled:opacity-40"
-                title="Segarkan komentar"
-                aria-label="Segarkan komentar"
-              >
-                <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClose();
-                }}
-                className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
-                aria-label="Tutup komentar"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Scrollable Comments List */}
-        <div
-          ref={commentsListRef}
-          data-scroll-isolated="true"
-          className="flex-1 overflow-y-auto px-4 py-3 space-y-4 no-scrollbar overscroll-y-contain touch-pan-y"
-        >
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-white/40 space-y-2">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="text-xs">Memuat tanggapan warga...</span>
-            </div>
-          ) : comments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-3">
-                <MessageSquare className="w-5 h-5 text-white/40" />
-              </div>
-              <p className="text-sm font-semibold text-white/90">Belum ada komentar warga</p>
-              <p className="text-xs text-white/50 mt-1 max-w-[240px]">
-                Sampaikan kesaksian, kondisi terkini, atau tanggapan Anda mengenai titik laporan ini.
-              </p>
-              <button
-                type="button"
-                onClick={() => fetchComments(true)}
-                disabled={isRefreshing}
-                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 text-xs text-white/80 hover:text-white transition-colors cursor-pointer disabled:opacity-40"
-              >
-                <RotateCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
-                <span>Cek Komentar Baru</span>
-              </button>
-            </div>
-          ) : (
-            sortCommentsForUser(comments.filter((item) => !item.parentId), profile).map((item) => {
-              const isMyComment = isCommentAuthoredByUser(item, profile);
-              const isLiked = likedCommentIds.has(item.id);
-              const delta = likesDeltaMap[item.id] || 0;
-              const currentLikes = Math.max(0, (item.likes || 0) + delta);
-              const replies = sortCommentsForUser(comments.filter((comment) => comment.parentId === item.id), profile);
-
-              const isAgencyOfficial =
-                item.authorName.toLowerCase().includes('admin') ||
-                item.authorName.toLowerCase().includes('pupr') ||
-                item.authorName.toLowerCase().includes('dinas') ||
-                item.authorName.toLowerCase().includes('pemkot');
-
-              return (
-                <div
-                  key={item.id}
-                  data-comment-id={item.id}
-                  className={`flex flex-col gap-2 group scroll-mt-2 rounded-2xl transition-all ${
-                    isAgencyOfficial
-                      ? 'bg-[#1B4332]/35 border-l-[3px] border-l-[#34D399] border border-[#2D6A4F]/40 p-3 shadow-md'
-                      : ''
-                  }`}
-                >
-                  {isAgencyOfficial && (
-                    <div className="flex items-center justify-between pb-1.5 border-b border-white/10">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1B4332] text-[#34D399] border border-[#34D399]/40">
-                        <CheckCircle2 className="w-3 h-3 text-[#34D399]" />
-                        <span>Respons Resmi · Pemerintah Kota Bogor</span>
-                      </span>
-                      <span className="text-[10px] font-mono text-white/50">
-                        Terverifikasi
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex items-start gap-3">
-                    {(() => {
-                      const authorTarget = getCommentAuthorTarget(item.authorId, item.authorName);
-                      return (
-                        <a
-                          href={`/u/${authorTarget}`}
-                          onClick={(e) => handleAuthorClick(e, authorTarget)}
-                          className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity"
-                          title={`Lihat profil ${item.authorName}`}
-                        >
-                          <UserAvatar
-                            src={item.avatarUrl}
-                            alt={item.authorName}
-                            name={item.authorName}
-                            role={isAgencyOfficial ? 'admin' : 'citizen'}
-                            className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-white/15 hover:scale-105 transition-transform"
-                          />
-                        </a>
-                      );
-                    })()}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        {(() => {
-                          const authorTarget = getCommentAuthorTarget(item.authorId, item.authorName);
-                          return (
-                            <a
-                              href={`/u/${authorTarget}`}
-                              onClick={(e) => handleAuthorClick(e, authorTarget)}
-                              className="font-semibold text-xs text-white/95 hover:text-emerald-400 hover:underline transition-colors cursor-pointer truncate flex items-center gap-1"
-                            >
-                              <span>{item.authorName}</span>
-                              {isAgencyOfficial && (
-                                <BadgeCheck className="w-3.5 h-3.5 text-[#34D399] shrink-0" />
-                              )}
-                            </a>
-                          );
-                        })()}
-                        {isMyComment && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
-                          Anda
-                        </span>
-                      )}
-                      <span className="text-[10px] text-white/45 font-mono shrink-0">
-                        • {item.timeAgo}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-white/85 leading-relaxed mt-0.5 whitespace-pre-wrap break-words">
-                      {item.body}
-                    </p>
-
-                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-white/50">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReplyTarget({ id: item.id, authorName: item.authorName });
-                          inputRef.current?.focus();
-                          const el = commentsListRef.current?.querySelector(`[data-comment-id="${item.id}"]`);
-                          el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                        }}
-                        className="text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer transition-colors"
-                      >
-                        Balas
-                      </button>
-                    </div>
-
-                    {replies.length > 0 && (
-                      <div className="mt-3 ml-1 pl-3 border-l border-white/15 space-y-3">
-                        {replies.map((reply) => {
-                          const isReplyLiked = likedCommentIds.has(reply.id);
-                          const replyDelta = likesDeltaMap[reply.id] || 0;
-                          const currentReplyLikes = Math.max(0, (reply.likes || 0) + replyDelta);
-                          const replyTarget = getCommentAuthorTarget(reply.authorId, reply.authorName);
-
-                          return (
-                            <div key={reply.id} data-comment-id={reply.id} className="flex items-start gap-2 justify-between scroll-mt-2">
-                              <div className="flex items-start gap-2 min-w-0 flex-1">
-                                <a
-                                  href={`/u/${replyTarget}`}
-                                  onClick={(e) => handleAuthorClick(e, replyTarget)}
-                                  className="shrink-0 cursor-pointer block hover:opacity-80 transition-opacity"
-                                  title={`Lihat profil ${reply.authorName}`}
-                                >
-                                  <UserAvatar
-                                    src={reply.avatarUrl}
-                                    alt={reply.authorName}
-                                    name={reply.authorName}
-                                    role={reply.authorName.toLowerCase().includes('admin') || reply.authorName.toLowerCase().includes('pupr') ? 'admin' : 'citizen'}
-                                    className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-white/15 hover:scale-105 transition-transform"
-                                  />
-                                </a>
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5">
-                                    <a
-                                      href={`/u/${replyTarget}`}
-                                      onClick={(e) => handleAuthorClick(e, replyTarget)}
-                                      className="font-semibold text-[11px] text-white/90 hover:text-emerald-400 hover:underline transition-colors cursor-pointer truncate"
-                                    >
-                                      {reply.authorName}
-                                    </a>
-                                    {isCommentAuthoredByUser(reply, profile) && (
-                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
-                                        Anda
-                                      </span>
-                                    )}
-                                    <span className="text-[10px] text-white/45 font-mono shrink-0">
-                                      • {reply.timeAgo}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-white/80 leading-relaxed mt-0.5 whitespace-pre-wrap break-words">
-                                    {reply.body}
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => toggleLike(reply.id)}
-                                className="flex flex-col items-center gap-0.5 p-1 text-white/50 hover:text-white transition-colors cursor-pointer shrink-0 active:scale-90"
-                                title={isReplyLiked ? 'Batal suka' : 'Suka balasan'}
-                              >
-                                <Heart
-                                  className={`w-3.5 h-3.5 transition-colors ${
-                                    isReplyLiked ? 'fill-red-500 text-red-500' : ''
-                                  }`}
-                                />
-                                <span className="text-[9px] font-mono">{currentReplyLikes}</span>
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => toggleLike(item.id)}
-                    className="flex flex-col items-center gap-0.5 p-1 text-white/50 hover:text-white transition-colors cursor-pointer shrink-0 active:scale-90"
-                    title={isLiked ? 'Batal suka' : 'Suka komentar'}
-                  >
-                    <Heart
-                      className={`w-4 h-4 transition-colors ${
-                        isLiked ? 'fill-red-500 text-red-500' : ''
-                      }`}
-                    />
-                    <span className="text-[10px] font-mono">{currentLikes}</span>
-                  </button>
-                </div>
-              </div>
-            );
-            })
-          )}
-        </div>
-
-        {/* Sticky Input Bar at Bottom */}
-        <form
-          onSubmit={handleSubmit}
-          className="p-3 sm:p-4 pb-[max(1rem,env(safe-area-inset-bottom,16px))] bg-[#111412]/95 backdrop-blur-md border-t border-white/10 shrink-0 relative z-10"
-        >
-          {replyTarget && (
-            <div className="flex items-center justify-between mb-2 px-1 text-[11px] text-white/55">
-              <span>Balas ke <span className="text-emerald-300">@{replyTarget.authorName}</span></span>
-              <button
-                type="button"
-                onClick={() => setReplyTarget(null)}
-                className="text-white/60 hover:text-white cursor-pointer"
-                aria-label="Batalkan balasan"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-          <div className="flex items-center gap-2.5">
-            <UserAvatar
-              src={profile?.avatarUrl}
-              alt={profile?.displayName || 'Profil Anda'}
-              name={profile?.displayName}
-              role={profile?.role}
-              className="w-8 h-8 rounded-full object-cover border border-white/20 shrink-0"
-            />
-            <input
-              ref={inputRef}
-              type="text"
-              value={newCommentText}
-              onChange={(e) => setNewCommentText(e.target.value)}
-              placeholder={replyTarget ? `Balas ke @${replyTarget.authorName}...` : 'Tulis komentar...'}
-              className="flex-1 bg-white/10 border border-white/10 focus:border-emerald-400/60 focus:bg-white/15 rounded-full px-4 py-2 text-xs text-white placeholder-white/40 outline-none transition-all"
-            />
+        <header className="shrink-0 flex items-center justify-between gap-2 px-4 h-14 border-b border-line-soft">
+          <h3 className="text-[15px] font-bold">
+            Komentar <span className="text-ink-3 font-medium tabular-nums">{total}</span>
+          </h3>
+          <div className="flex items-center gap-1">
             <button
-              type="submit"
-              disabled={!newCommentText.trim() || isSubmitting}
-              className="w-8 h-8 rounded-full bg-emerald-500 text-black flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-emerald-400 transition-all shrink-0 active:scale-95 cursor-pointer shadow-md"
-              title={replyTarget ? 'Kirim balasan' : 'Kirim komentar'}
+              type="button"
+              onClick={fetchComments}
+              disabled={isLoading}
+              aria-label="Muat ulang komentar"
+              title="Muat ulang"
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-ink-2 hover:text-ink hover:bg-surface-2 disabled:opacity-40 cursor-pointer"
             >
-              {isSubmitting ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Send className="w-3.5 h-3.5" />
-              )}
+              <RotateCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Tutup komentar"
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-ink-2 hover:text-ink hover:bg-surface-2 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
             </button>
           </div>
-        </form>
+        </header>
+
+        <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 no-scrollbar">
+          {isLoading && !hasFetched ? (
+            <p role="status" className="py-12 text-center text-sm text-ink-2">
+              Memuat komentar
+            </p>
+          ) : loadError ? (
+            <div role="alert" className="py-12 text-center space-y-3">
+              <p className="text-sm text-ink-2">Komentar belum dapat dimuat.</p>
+              <button type="button" onClick={fetchComments} className="titik-pill-btn titik-pill-btn-secondary">
+                Coba lagi
+              </button>
+            </div>
+          ) : threads.length === 0 ? (
+            <div className="py-12 text-center space-y-1">
+              <p className="font-display text-base font-semibold">Belum ada komentar</p>
+              <p className="text-sm text-ink-2">Bagikan kesaksian atau informasi tambahan dari lokasi.</p>
+            </div>
+          ) : (
+            <ul className="space-y-5">
+              {threads.map(({ root, replies }) => (
+                <React.Fragment key={root.id}>
+                  {renderComment(root, root, false)}
+                  {replies.length > 0 && (
+                    <li>
+                      <ul className="ml-12 space-y-4 pl-3 border-l border-line">
+                        {replies.map((r) => renderComment(r, root, true))}
+                      </ul>
+                    </li>
+                  )}
+                </React.Fragment>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="shrink-0 border-t border-line-soft px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          {isAuthenticated ? (
+            <form onSubmit={handleSubmit} className="space-y-2">
+              {replyTarget && (
+                <div className="flex items-center justify-between gap-2 text-xs text-ink-2">
+                  <span className="truncate">
+                    Membalas <strong className="text-ink">{replyTarget.authorName}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setReplyTarget(null)}
+                    aria-label="Batalkan balasan"
+                    className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-surface-2 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+              {submitError && (
+                <p role="alert" className="text-xs text-st-ditolak">
+                  {submitError}
+                </p>
+              )}
+              <div className="flex items-center gap-2">
+                <UserAvatar
+                  src={profile?.avatarUrl}
+                  alt={profile?.displayName || 'Anda'}
+                  name={profile?.displayName}
+                  className="w-8 h-8 rounded-full object-cover shrink-0"
+                />
+                <input
+                  ref={inputRef}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder={replyTarget ? `Balas ${replyTarget.mention}` : 'Tulis komentar'}
+                  aria-label="Tulis komentar"
+                  maxLength={1000}
+                  autoComplete="off"
+                  className="titik-pill-input flex-1 px-3.5 min-h-11"
+                />
+                <button
+                  type="submit"
+                  disabled={!draft.trim() || isSubmitting}
+                  aria-label="Kirim komentar"
+                  className="w-11 h-11 rounded-lg bg-brand text-on-brand flex items-center justify-center hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Send className="w-[18px] h-[18px]" />
+                </button>
+              </div>
+            </form>
+          ) : (
+            <p className="text-sm text-ink-2 text-center py-1">
+              <Link to="/login" className="font-semibold text-ink underline underline-offset-2">
+                Masuk
+              </Link>{' '}
+              untuk menulis atau membalas komentar.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
 };
-

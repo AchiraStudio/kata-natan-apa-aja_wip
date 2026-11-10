@@ -1,65 +1,44 @@
 ---
-name: TITIK. Botani Civic-Ledger Design System
-version: 2.5.0
-description: "Precision Civic-Tech & Bogor City Telemetry design system for TITIK. Grounded in 'Setiap masalah adalah titik' (Every problem is a point/dot that appears, pulses, travels, and settles)."
-colors:
-  paper: "#F7F5EF"
-  surface: "#FFFFFF"
-  ink: "#101913"
-  muted: "#4F5A52"
-  line: "#E3E0D6"
-  botani-900: "#1B4332"
-  botani-700: "#2D6A4F"
-  botani-subtle: "#E7EBDD"
-  hujan-600: "#2E5E8C"
-  status-baru: "#B45309"
-  status-diverifikasi: "#2563EB"
-  status-ditindak: "#2E5E8C"
-  status-tuntas: "#2D6A4F"
-  status-ditolak: "#B3261E"
-  dark-canvas: "#0C100E"
-  dark-surface: "#1A221E"
-  dark-line: "#26352E"
-  dark-ink: "#F3F6F4"
-  dark-muted: "#9EACA3"
-typography:
-  display: "Plus Jakarta Sans, system-ui, sans-serif"
-  body: "Plus Jakarta Sans, system-ui, sans-serif"
-  mono-id: "IBM Plex Mono, JetBrains Mono, monospace"
-  tabular: "tabular-nums"
+name: TITIK. Kebun Raya
+version: 4.0.0
+description: "Botani green identity for TITIK. Deep forest green is the brand and the sidebar, sage-tinted paper carries the surfaces, one lime accent marks active and live states. Glass only on layers that float over media."
 ---
 
-# TITIK. Design Specification (v2.5 — Botani Civic-Ledger)
+# TITIK. Design System: Kebun Raya
 
-## 1. Brand Concept: "Setiap Masalah Adalah Titik"
-Every civic report is a **titik** (point/dot in Indonesian). A titik has a clear lifecycle:
-1. **Muncul (Appears)**: Warga melapor, titik terdaftar dengan ID monospaced unik (`TIK-2026-XXXX`).
-2. **Berdenyut (Pulses)**: Menandakan laporan aktif dan sedang dihimpun dukungannya (`.titik-live`).
-3. **Ditindak (Moves)**: Dinas terkait menugaskan tim lapangan beserta status alokasi APBD.
-4. **Tuntas (Settles)**: Masalah terselesaikan dengan bukti foto penuntasan dan tandatangan verifikasi dinas.
+Brings back the Botani green of the original brand (Kebun Raya Bogor) and replaces the grey-beige "Warm Slate" pass, which lost the identity. Dials: ENERGY 2 / RHYTHM 2 / MOTION 1.
 
-## 2. Bogor Identity & Telemetry
-- **Kota Hujan (Rain City)**: Telemetri presipitasi & curah hujan real-time pada header direktori dan peta geospatial.
-- **Botani Green Palette**: Formalisasi hijau Kebun Raya Bogor (`#1B4332`, `#2D6A4F`) di atas kanvas kertas hangat (`#F7F5EF`).
-- **Pemerintah Kota Bogor Co-Branding**: Elemen institusional yang mempertegas bahwa TITIK adalah kanal tindak nyata resmi berpartner dengan dinas terkait (PUPR, DLH, Dishub).
+## Principles
+1. **Green is the brand.** The sidebar is deep forest (`--side`) in both themes, buttons are forest green (`--brand`), neutrals are tinted toward sage, never grey or beige.
+2. **One accent.** Lime (`--lime`) marks the active nav icon, the primary "Buat Laporan" action on the sidebar, and live dots. It is not used for body UI.
+3. **Solid by default, glass by exception.** `.glass*` only for layers that float over media or content: video-feed controls, mobile bars, dialogs, sheets.
+4. **Status is semantic.** `--st-baru`, `--st-ditindak`, `--st-tuntas`, `--st-ditolak`. They always ship with words, never color alone.
+5. **Real data only.** No seeded people, budgets, statistics or simulated replies. Empty, loading and error states exist for every list.
 
-## 3. The Trust Layer
-1. **4-Stage Status System**:
-   - `Baru` (Amber `#B45309`) -> `Diverifikasi` (Cobalt `#2563EB`) -> `Ditindak` (Hujan `#2E5E8C`) -> `Tuntas` (Botani `#2D6A4F`).
-2. **Official Agency Response ("Respons Resmi")**:
-   - Background tinted Botani (`#1B4332` 4-6% opacity).
-   - Border kiri 3px warna instansi.
-   - Badge "Respons Resmi", logo resmi dinas, dan checklist verifikasi akun dinas.
-3. **Absolute Timestamps**:
-   - Format standar: `"31 Okt 2026, 14:20 WIB"` agar memiliki kekuatan arsip hukum dan akuntabilitas sipil.
-4. **Alokasi APBD Terbuka**:
-   - Informasi anggaran ditampilkan langsung pada kartu detail laporan: *"Dialokasikan Rp 250 jt · APBD 2026 · Status serapan: 62%"*.
+## Tokens (see `src/index.css`)
+- Surfaces: `canvas`, `surface`, `surface-2`, `line`, `line-soft`
+- Text: `ink`, `ink-2`, `ink-3` (all >= 4.5:1 on their surfaces)
+- Brand: `brand`, `brand-hover`, `brand-soft`, `on-brand`; accent `lime`, `on-lime`
+- Sidebar: `side`, `side-2`, `side-ink`, `side-ink-2`, `side-line`
+- Use the Tailwind names (`bg-surface`, `text-ink-2`, `bg-side`), never raw hex.
+- Radius: controls 10px, panels 14 to 20px, sheets 20 to 28px. Pills only for avatars and dots.
+- Legacy `.titik-pill-*` primitives live in `@layer components`, so a utility class on the element always overrides them.
 
-## 4. Motion & Micro-Interactions
-- **Signature Move**: `.titik-live` (ripple pulse 2.4s).
-- **Easing**: `--ease-out: cubic-bezier(0.22, 1, 0.36, 1)`, `--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1)`.
-- **Like Burst**: 8-dot radial burst (titik partikel, bukan hati biasa).
-- **Tuntas Celebration**: Ripple burst dan animasi status saat masalah terselesaikan.
-- **Chip & Tabs**: Sliding active indicator pill (`layoutId`).
-- **Physical Feel**: Tombol memiliki micro-scale tap feedback (`active:scale-[0.98]`).
-- **Accessibility**: Mendukung penuh `prefers-reduced-motion: reduce`.
+## Type
+- Display: Bricolage Grotesque (headings, numbers). UI: Figtree. Report IDs: IBM Plex Mono.
+- Sentence-case labels. No wide-tracked uppercase.
+
+## Layout
+- Sidebar flush left: icon rail from `lg`, labelled from `xl`. On Beranda, Jelajah and Laporan Saya it is wider (320px at `xl`, 496px at `2xl`) and uses the room for a hint under each destination and a live city summary counted from loaded reports.
+- One scroll container only: the viewport. Never give `html` and `body` their own overflow. `body` uses `overflow-x: clip`.
+- Scrollbars are slim with a transparent track (global rule in `index.css`).
+- Scrolling pages use `PageShell` / `PageHeader`. `/pesan` and `/admin` are viewport-locked workspaces.
+- Report details are a page (`/laporan/:id`), never a drawer.
+- Admin portal: header with section tabs (Ringkasan, Validasi, Disposisi, Rekap APBD, Pengguna). The open report is `?r=<id>` so links and reloads land on it.
+
+## Messaging
+- Direct messages use the server tables when they exist. When they do not (migration `20261101000001` not applied), threads and messages are kept in `localStorage` (`titik_local_messages_v1`) and the page says so. Local thread ids start with `conv-`.
+- "Minta info" (admin) moves a report to `needs_info` and delivers the same note as an `info_request` message.
+
+## Motion
+- The pulsing dot (`.titik-live`) marks live states. Everything else is short transitions. `prefers-reduced-motion` is respected globally.

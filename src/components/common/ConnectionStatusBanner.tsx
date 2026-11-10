@@ -37,7 +37,7 @@ export const ConnectionStatusBanner: React.FC<ConnectionStatusBannerProps> = ({
       className={`w-full z-40 transition-all duration-200 border-b ${
         runtimeError || isUnconfigured
           ? 'bg-amber-50 dark:bg-[#1E180A] border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200'
-          : 'bg-[#EBF2EE] dark:bg-[#0E1A14] border-[#C8DCD1] dark:border-[#1F3E2F] text-[#1E3A2B] dark:text-[#A7D7BC]'
+          : 'bg-surface-2 dark:bg-surface-2 border-ink-2 dark:border-line text-[#1E3A2B] dark:text-brand'
       } ${className}`}
     >
       <div className="max-w-7xl mx-auto px-4 py-2.5 sm:px-6 flex flex-col gap-1.5 text-xs">

@@ -1,19 +1,6 @@
-import React, { useState } from 'react';
-import {
-  MapPin,
-  CheckCircle2,
-  Copy,
-  Check,
-  AlertTriangle,
-  ArrowRight,
-  ArrowLeft,
-  Shield,
-  Upload,
-  Building,
-  Sparkles,
-  ShieldAlert,
-  Loader2,
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MapPin, CheckCircle2, Copy, Check, ArrowRight, ArrowLeft, ImagePlus, Video, X, Loader2 } from 'lucide-react';
 import { useTitik } from '../../context/useTitik';
 import { useAuth } from '../../context/AuthContext';
 import { NewReportInput, ReportSubmitResult } from '../../services/adapters/types';
@@ -21,6 +8,7 @@ import { ReportAttachment } from '../../types/domain';
 import { hasExplicitAIGenerationMarker, hasRequiredReportEvidence } from '../../utils/reportEvidence';
 import { stripExifAndCleanImage, uploadFileToSupabase } from './useMediaUpload';
 import { isSupabaseConfigured } from '../../services/supabaseClient';
+import { Field, Segmented, FormFooter, PrimaryButton, GhostButton, ErrorNote, INPUT_CLASS } from './ui';
 
 interface SelectedEvidence {
   fileName: string;
@@ -31,9 +19,12 @@ interface SelectedEvidence {
 interface ReportFormProps {
   onSuccess: (result: ReportSubmitResult) => void;
   onCancel: () => void;
+  /** True while there are entries that closing would lose. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel }) => {
+export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel, onDirtyChange }) => {
+  const navigate = useNavigate();
   const { submitReport, facilities: contextFacilities } = useTitik();
   const { profile, isAuthenticated } = useAuth();
   const availableFacilities = contextFacilities || [];
@@ -54,7 +45,9 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel }) =
   const [estimatedCost, setEstimatedCost] = useState('');
   const [supportingDocuments, setSupportingDocuments] = useState<ReportAttachment[]>([]);
   const [documentError, setDocumentError] = useState('');
-  const [reporterType, setReporterType] = useState<'anonymous' | 'verified_citizen'>('anonymous');
+  const [reporterType, setReporterType] = useState<'anonymous' | 'verified_citizen'>(
+    isAuthenticated ? 'verified_citizen' : 'anonymous'
+  );
   const [reporterDisplayName, setReporterDisplayName] = useState('');
   const [photoEvidence, setPhotoEvidence] = useState<SelectedEvidence | null>(null);
   const [videoEvidence, setVideoEvidence] = useState<SelectedEvidence | null>(null);
@@ -63,7 +56,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel }) =
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionResult, setSubmissionResult] = useState<ReportSubmitResult | null>(null);
   const [submissionError, setSubmissionError] = useState('');
-  const [tokenCopied, setTokenCopied] = useState(false);
+  const [referenceCopied, setReferenceCopied] = useState(false);
   
   const categories = [
     'Infrastruktur',
@@ -346,530 +339,391 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel }) =
     }
   };
 
-  const handleCopyToken = () => {
-    if (submissionResult?.secretFollowUpToken) {
-      navigator.clipboard.writeText(submissionResult.secretFollowUpToken);
-      setTokenCopied(true);
-      setTimeout(() => setTokenCopied(false), 2500);
+  const handleCopyReference = async () => {
+    if (!submissionResult?.publicReference) return;
+    try {
+      await navigator.clipboard.writeText(submissionResult.publicReference);
+      setReferenceCopied(true);
+      window.setTimeout(() => setReferenceCopied(false), 2500);
+    } catch {
+      // clipboard blocked: the number is selectable on screen
     }
   };
 
+  // Only ask before closing when there is something to lose (never on the success screen)
+  const isDirty = step < 4 && Boolean(title.trim() || description.trim() || address.trim() || photoEvidence || videoEvidence || supportingDocuments.length > 0);
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  const STEPS = ['Masalah', 'Lokasi', 'Konfirmasi'] as const;
+
   return (
-    <div className="space-y-4">
-      {/* Progress Bar */}
+    <div className="flex-1 min-h-0 flex flex-col">
       {step < 4 && (
-        <div className="flex items-center justify-between pb-3 border-b border-[#E3E0D6] dark:border-[#26352E]">
-          <div className="flex items-center gap-2">
-            {[1, 2, 3].map((s) => (
-              <div
-                key={s}
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                  step === s
-                    ? 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610]'
-                    : step > s
-                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-[#E3E0D6]/60 dark:bg-[#1A221E] text-[#4F5A52]'
-                }`}
-              >
-                {step > s ? '✓' : s}
-              </div>
-            ))}
-          </div>
-          <span className="text-xs font-semibold text-[#4F5A52] dark:text-[#9EACA3]">
-            Langkah {step} dari 3
-          </span>
+        <div className="shrink-0 px-4 sm:px-6 pt-4 pb-3">
+          <ol className="flex items-center gap-2" aria-label="Langkah pelaporan">
+            {STEPS.map((name, i) => {
+              const n = (i + 1) as 1 | 2 | 3;
+              const done = step > n;
+              const current = step === n;
+              return (
+                <li key={name} aria-current={current ? 'step' : undefined} className="flex-1 min-w-0">
+                  <span className={`block h-1 rounded-full ${done || current ? 'bg-brand' : 'bg-surface-2'}`} aria-hidden="true" />
+                  <span className={`mt-1.5 flex items-center gap-1.5 text-xs ${current ? 'font-semibold text-ink' : done ? 'text-ink-2' : 'text-ink-3'}`}>
+                    <span className="tabular-nums">{n}</span>
+                    <span className="truncate">{name}</span>
+                    {done && <Check className="w-3 h-3 text-brand shrink-0" aria-hidden="true" />}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
         </div>
       )}
 
-      {/* Step 1: Basic Info & Mandatory Evidence */}
+      {/* Step 1: the problem and its evidence */}
       {step === 1 && (
-        <form onSubmit={handleNextStep1} className="space-y-3.5">
-          <div>
-            <label className="block text-xs font-bold text-[#101913] dark:text-[#F3F6F4] mb-1">
-              Judul Masalah
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Contoh: Aspal Amblas Berbahaya di Depan Halte"
-              className="w-full px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4] focus:outline-hidden focus:ring-2 focus:ring-[#1B4332] dark:focus:ring-[#10B981]"
-              required
-            />
-          </div>
+        <form onSubmit={handleNextStep1} className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 space-y-5">
+            <Field label="Judul masalah" htmlFor="report-title">
+              <input
+                id="report-title"
+                type="text"
+                autoFocus
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Contoh: Aspal amblas di depan halte"
+                className={INPUT_CLASS}
+                maxLength={120}
+                required
+              />
+            </Field>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs font-bold text-[#101913] dark:text-[#F3F6F4] mb-1">
-                Kategori
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4] focus:outline-hidden"
-              >
+            <Field label="Kategori" htmlFor="report-category">
+              <select id="report-category" value={category} onChange={(e) => setCategory(e.target.value)} className={INPUT_CLASS}>
                 {categories.map((c) => (
-                  <option key={c} value={c} className="dark:bg-[#1A221E]">
+                  <option key={c} value={c}>
                     {c}
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-[#101913] dark:text-[#F3F6F4] mb-1">
-                Tingkat Keparahan
-              </label>
-              <select
+            </Field>
+
+            <Field label="Seberapa parah?">
+              <Segmented
+                label="Tingkat keparahan"
+                variant="cards"
+                columns={4}
                 value={severity}
-                onChange={(e) => setSeverity(e.target.value as any)}
-                className="w-full px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4] focus:outline-hidden"
-              >
-                <option value="low">Rendah (Gangguan kecil)</option>
-                <option value="medium">Sedang (Perlu perbaikan)</option>
-                <option value="high">Tinggi (Mendesak)</option>
-                <option value="critical">Kritis (Membahayakan nyawa)</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-[#101913] dark:text-[#F3F6F4] mb-1">
-              Deskripsi Lapangan
-            </label>
-            <textarea
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Jelaskan kondisi secara faktual: kronologi, ukuran kerusakan, dampak terhadap warga sekitar..."
-              className="w-full px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4] focus:outline-hidden focus:ring-2 focus:ring-[#1B4332] dark:focus:ring-[#10B981] resize-none"
-              required
-            />
-          </div>
-
-          {/* Mandatory Photo + Video Evidence */}
-          <div className="p-3 bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
-                Bukti Wajib: 1 Foto + 1 Video
-              </span>
-              <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold">
-                Bebas AI
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => handleEvidenceFile('photo', e.target.files?.[0])}
-                  className="hidden"
-                  id="report-photo-input"
-                />
-                <label
-                  htmlFor="report-photo-input"
-                  className={`flex flex-col items-center justify-center p-2.5 rounded-lg border border-dashed text-center cursor-pointer transition-colors ${
-                    photoEvidence
-                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400'
-                      : 'border-[#E3E0D6] dark:border-[#26352E] hover:border-[#1B4332] text-[#4F5A52]'
-                  }`}
-                >
-                  <Upload className="w-4 h-4 mb-1" />
-                  <span className="text-[11px] font-bold truncate max-w-[120px]">
-                    {photoEvidence ? photoEvidence.fileName : 'Unggah Foto'}
-                  </span>
-                </label>
-              </div>
-
-              <div>
-                <input
-                  type="file"
-                  accept="video/mp4,video/webm,video/quicktime"
-                  onChange={(e) => handleEvidenceFile('video', e.target.files?.[0])}
-                  className="hidden"
-                  id="report-video-input"
-                />
-                <label
-                  htmlFor="report-video-input"
-                  className={`flex flex-col items-center justify-center p-2.5 rounded-lg border border-dashed text-center cursor-pointer transition-colors ${
-                    videoEvidence
-                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400'
-                      : 'border-[#E3E0D6] dark:border-[#26352E] hover:border-[#1B4332] text-[#4F5A52]'
-                  }`}
-                >
-                  <Upload className="w-4 h-4 mb-1" />
-                  <span className="text-[11px] font-bold truncate max-w-[120px]">
-                    {videoEvidence ? videoEvidence.fileName : 'Unggah Video'}
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {evidenceError && (
-              <p className="text-[11px] text-rose-600 font-medium">{evidenceError}</p>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-4 py-2 text-xs font-semibold text-[#4F5A52] hover:text-[#101913] dark:hover:text-[#F3F6F4]"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-xl text-xs font-bold hover:bg-[#14352A]"
-            >
-              <span>Lanjut</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* Step 2: Location & Context */}
-      {step === 2 && (
-        <form onSubmit={handleNextStep2} className="space-y-3.5">
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
-                Alamat / Patokan Lokasi
-              </label>
-              <button
-                type="button"
-                onClick={handleUseCurrentLocation}
-                disabled={isLocating}
-                className="text-[11px] font-bold text-[#1B4332] dark:text-[#34D399] hover:underline inline-flex items-center gap-1 cursor-pointer"
-              >
-                <MapPin className="w-3 h-3" />
-                <span>{isLocating ? 'Mencari GPS...' : 'Gunakan GPS Saya'}</span>
-              </button>
-            </div>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Contoh: Jl. Pajajaran No. 42 depan RS Mulia"
-              className="w-full px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4] focus:outline-hidden focus:ring-2 focus:ring-[#1B4332]"
-              required
-            />
-            {locationError && (
-              <p className="text-[11px] text-rose-600 mt-1">{locationError}</p>
-            )}
-          </div>
-
-          {/* Tier 2: Public Facility Selection (Cascading from Tier 1 Category) */}
-          <div className="p-3.5 bg-[#F7F5EF]/80 dark:bg-[#131916]/80 rounded-2xl border border-[#E3E0D6] dark:border-[#26352E] space-y-2.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4] flex items-center gap-1.5">
-                <Building className="w-3.5 h-3.5 text-[#1B4332] dark:text-[#34D399]" />
-                <span>Fasilitas Publik Terkait di Kota Bogor</span>
-              </label>
-              <span className="text-[10px] font-mono text-[#1B4332] dark:text-[#34D399] font-bold">
-                Kategori: {category}
-              </span>
-            </div>
-
-            <select
-              value={selectedFacilityValue}
-              onChange={(e) => handleSelectFacility(e.target.value)}
-              className="w-full px-3 py-2.5 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4] focus:outline-hidden focus:ring-2 focus:ring-[#1B4332] dark:focus:ring-[#10B981]"
-            >
-              <option value="">
-                {sectorFacilities.length > 0
-                  ? `-- Pilih Fasilitas Publik Terdaftar (${sectorFacilities.length} Tersedia) --`
-                  : '-- Belum ada fasilitas terdaftar dalam kategori ini --'}
-              </option>
-              {sectorFacilities.map((f) => (
-                <option key={f.id} value={f.name}>
-                  {f.name} — {f.responsibleAgency}
-                </option>
-              ))}
-              <option value="__other__">➕ Lainnya / Fasilitas Belum Terdaftar di Sistem...</option>
-            </select>
-
-            {/* If a registered facility is selected */}
-            {selectedRegisteredFacility && (
-              <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 flex items-start gap-2 text-xs text-emerald-800 dark:text-emerald-300">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-                <div className="space-y-0.5 min-w-0">
-                  <div className="font-bold truncate">{selectedRegisteredFacility.name}</div>
-                  <div className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80">
-                    Instansi Pengampu: {selectedRegisteredFacility.responsibleAgency}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* If 'Other' / Custom Facility is selected */}
-            {selectedFacilityValue === '__other__' && (
-              <div className="space-y-2 pt-1 border-t border-[#E3E0D6] dark:border-[#26352E]">
-                <label className="block text-[11px] font-bold text-[#101913] dark:text-[#F3F6F4]">
-                  Nama Fasilitas Baru / Patokan Spesifik Warga
-                </label>
-                <input
-                  type="text"
-                  value={customFacilityName}
-                  onChange={(e) => handleCustomFacilityChange(e.target.value)}
-                  placeholder="Contoh: Jembatan Gantung RT 03, Saluran Air Gang Kelor..."
-                  className="w-full px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4] focus:outline-hidden focus:ring-2 focus:ring-[#1B4332]"
-                  required={selectedFacilityValue === '__other__'}
-                />
-
-                {/* Edge Case 1: Fuzzy Suggestion Pill */}
-                {fuzzyMatch && (
-                  <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-200">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      <span className="truncate">Apakah maksud Anda: <strong>{fuzzyMatch.name}</strong>?</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectFacility(fuzzyMatch.name)}
-                      className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] shrink-0 cursor-pointer shadow-xs transition-colors"
-                    >
-                      Pilih Ini
-                    </button>
-                  </div>
-                )}
-
-                {/* Admin Review Badge Notice */}
-                <div className="flex items-center gap-1.5 text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
-                  <ShieldAlert className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>Fasilitas baru ini akan diverifikasi oleh admin Pemkot Bogor untuk penambahan katalog resmi.</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Taksiran Biaya (Opsional) */}
-          <div>
-            <label className="block text-xs font-bold text-[#101913] dark:text-[#F3F6F4] mb-1">
-              Taksiran Biaya / RAB (Rp) — Opsional
-            </label>
-            <input
-              type="number"
-              value={estimatedCost}
-              onChange={(e) => setEstimatedCost(e.target.value)}
-              placeholder="Opsional (contoh: 25000000)"
-              className="w-full px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4] focus:outline-hidden"
-            />
-          </div>
-
-          {/* Supporting Docs */}
-          <div>
-            <label className="block text-xs font-bold text-[#101913] dark:text-[#F3F6F4] mb-1">
-              Dokumen Pendukung Tambahan (Opsional)
-            </label>
-            <input
-              type="file"
-              multiple
-              accept="application/pdf,image/jpeg,image/png"
-              onChange={(e) => handleSupportingDocuments(e.target.files)}
-              className="text-xs text-[#4F5A52] file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-[#E3E0D6] file:text-[#101913]"
-            />
-            {documentError && (
-              <p className="text-[11px] text-rose-600 mt-1">{documentError}</p>
-            )}
-            {supportingDocuments.length > 0 && (
-              <p className="text-[11px] text-emerald-600 font-semibold mt-1">
-                {supportingDocuments.length} dokumen dilampirkan.
-              </p>
-            )}
-          </div>
-
-          <div className="flex justify-between items-center pt-2">
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[#4F5A52] hover:text-[#101913]"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Kembali</span>
-            </button>
-            <button
-              type="submit"
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-xl text-xs font-bold hover:bg-[#14352A]"
-            >
-              <span>Lanjut</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* Step 3: Identity & Confirmation */}
-      {step === 3 && (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-[#101913] dark:text-[#F3F6F4] mb-1">
-              Opsi Anonimitas Pelapor
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setReporterType('anonymous')}
-                className={`p-3 rounded-xl border text-left transition-all ${
-                  reporterType === 'anonymous'
-                    ? 'border-[#1B4332] dark:border-[#10B981] bg-emerald-50/50 dark:bg-emerald-950/20'
-                    : 'border-[#E3E0D6] dark:border-[#26352E]'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <Shield className="w-4 h-4 text-[#1B4332] dark:text-[#34D399]" />
-                  <span className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
-                    Anonim
-                  </span>
-                </div>
-                <p className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
-                  Identitas dirahasiakan 100%. Lacak laporan via token rahasia.
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setReporterType('verified_citizen')}
-                className={`p-3 rounded-xl border text-left transition-all ${
-                  reporterType === 'verified_citizen'
-                    ? 'border-[#1B4332] dark:border-[#10B981] bg-emerald-50/50 dark:bg-emerald-950/20'
-                    : 'border-[#E3E0D6] dark:border-[#26352E]'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle2 className="w-4 h-4 text-[#1B4332] dark:text-[#34D399]" />
-                  <span className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4]">
-                    Warga Terdaftar
-                  </span>
-                </div>
-                <p className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
-                  Tampilkan nama terverifikasi Anda untuk kredibilitas laporan.
-                </p>
-              </button>
-            </div>
-          </div>
-
-          {reporterType === 'verified_citizen' && (
-            <div>
-              <label className="block text-xs font-bold text-[#101913] dark:text-[#F3F6F4] mb-1">
-                Nama Tampilan Pelapor
-              </label>
-              <input
-                type="text"
-                value={reporterDisplayName || profile.displayName}
-                onChange={(e) => setReporterDisplayName(e.target.value)}
-                placeholder="Nama Anda"
-                className="w-full px-3 py-2 bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4]"
+                onChange={setSeverity}
+                options={[
+                  { value: 'low', label: 'Rendah', hint: 'Gangguan kecil' },
+                  { value: 'medium', label: 'Sedang', hint: 'Perlu perbaikan' },
+                  { value: 'high', label: 'Tinggi', hint: 'Mendesak' },
+                  { value: 'critical', label: 'Kritis', hint: 'Membahayakan nyawa' },
+                ]}
               />
-            </div>
-          )}
+            </Field>
 
-          {/* Summary Box */}
-          <div className="p-3 bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs space-y-1.5">
-            <p className="font-bold text-[#101913] dark:text-[#F3F6F4] truncate">{title}</p>
-            <p className="text-[#4F5A52] dark:text-[#9EACA3] line-clamp-2">{description}</p>
-            <p className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
-              📍 {address} • {category} {facilityName ? `• 🏛️ ${facilityName}` : ''} • Prioritas: {severity}
-            </p>
+            <Field label="Yang terjadi di lapangan" htmlFor="report-description" hint="Tulis faktanya: sejak kapan, ukuran kerusakan, siapa yang terdampak.">
+              <textarea
+                id="report-description"
+                rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="titik-pill-input px-3.5 py-3 text-base sm:text-sm leading-relaxed resize-y min-h-28"
+                required
+              />
+            </Field>
+
+            <Field label="Bukti" hint="Wajib 1 foto dan 1 video asli. Berkas dengan penanda alat AI ditolak.">
+              <div className="grid grid-cols-2 gap-3">
+                <EvidenceSlot
+                  id="report-photo-input"
+                  kind="photo"
+                  label="Foto"
+                  accept="image/jpeg,image/png,image/webp"
+                  evidence={photoEvidence}
+                  onPick={(f) => handleEvidenceFile('photo', f)}
+                  onClear={() => setPhotoEvidence(null)}
+                />
+                <EvidenceSlot
+                  id="report-video-input"
+                  kind="video"
+                  label="Video"
+                  accept="video/mp4,video/webm,video/quicktime"
+                  evidence={videoEvidence}
+                  onPick={(f) => handleEvidenceFile('video', f)}
+                  onClear={() => setVideoEvidence(null)}
+                />
+              </div>
+              {evidenceError && (
+                <p role="alert" className="mt-2 text-sm text-st-ditolak">
+                  {evidenceError}
+                </p>
+              )}
+            </Field>
           </div>
+          <FormFooter start="Langkah 1 dari 3">
+            <GhostButton onClick={onCancel}>Batal</GhostButton>
+            <PrimaryButton type="submit">
+              Lanjut <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            </PrimaryButton>
+          </FormFooter>
+        </form>
+      )}
 
-          {submissionError && (
-            <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300">
-              {submissionError}
-            </div>
-          )}
+      {/* Step 2: where, and which facility */}
+      {step === 2 && (
+        <form onSubmit={handleNextStep2} className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 space-y-5">
+            <Field
+              label="Alamat atau patokan"
+              htmlFor="report-address"
+              action={
+                <button type="button" onClick={handleUseCurrentLocation} disabled={isLocating} className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline underline-offset-2 disabled:opacity-60 cursor-pointer">
+                  {isLocating ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> : <MapPin className="w-3 h-3" aria-hidden="true" />}
+                  {isLocating ? 'Mencari GPS' : 'Pakai lokasi saya'}
+                </button>
+              }
+            >
+              <input
+                id="report-address"
+                type="text"
+                autoFocus
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Contoh: Jl. Pajajaran No. 42, depan RS Mulia"
+                className={INPUT_CLASS}
+                required
+              />
+              {locationError && (
+                <p role="alert" className="mt-1.5 text-sm text-st-ditolak">
+                  {locationError}
+                </p>
+              )}
+            </Field>
 
-          <div className="flex justify-between items-center pt-2">
-            <button
-              type="button"
-              onClick={() => setStep(2)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[#4F5A52] hover:text-[#101913]"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Kembali</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-xs disabled:opacity-50 cursor-pointer"
-            >
+            <Field label="Fasilitas publik terkait" htmlFor="report-facility" optional hint={`Daftar disaring menurut kategori ${category}.`}>
+              <select id="report-facility" value={selectedFacilityValue} onChange={(e) => handleSelectFacility(e.target.value)} className={INPUT_CLASS}>
+                <option value="">{sectorFacilities.length > 0 ? `Pilih dari ${sectorFacilities.length} fasilitas terdaftar` : 'Belum ada fasilitas terdaftar di kategori ini'}</option>
+                {sectorFacilities.map((f) => (
+                  <option key={f.id} value={f.name}>
+                    {f.name} / {f.responsibleAgency}
+                  </option>
+                ))}
+                <option value="__other__">Fasilitas lain yang belum terdaftar</option>
+              </select>
+
+              {selectedRegisteredFacility && (
+                <p className="mt-2 rounded-lg bg-brand-soft px-3.5 py-2.5 text-sm text-ink">
+                  <span className="font-semibold">{selectedRegisteredFacility.name}</span>
+                  <span className="block text-xs text-ink-2">Dikelola {selectedRegisteredFacility.responsibleAgency}</span>
+                </p>
+              )}
+
+              {selectedFacilityValue === '__other__' && (
+                <div className="mt-3 space-y-2">
+                  <input
+                    type="text"
+                    value={customFacilityName}
+                    onChange={(e) => handleCustomFacilityChange(e.target.value)}
+                    placeholder="Nama fasilitas, mis. Jembatan Gantung RT 03"
+                    aria-label="Nama fasilitas baru"
+                    className={INPUT_CLASS}
+                    required
+                  />
+                  {fuzzyMatch && (
+                    <p className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3.5 py-2.5 text-sm text-ink">
+                      <span className="min-w-0 truncate">
+                        Maksud Anda <strong>{fuzzyMatch.name}</strong>?
+                      </span>
+                      <button type="button" onClick={() => handleSelectFacility(fuzzyMatch.name)} className="shrink-0 h-8 px-3 rounded-lg bg-brand text-on-brand text-xs font-semibold hover:bg-brand-hover cursor-pointer">
+                        Pilih ini
+                      </button>
+                    </p>
+                  )}
+                  <p className="text-xs text-ink-3">Fasilitas baru diperiksa admin sebelum masuk katalog resmi.</p>
+                </div>
+              )}
+            </Field>
+
+            <Field label="Taksiran biaya perbaikan (Rp)" htmlFor="report-cost" optional>
+              <input id="report-cost" type="number" inputMode="numeric" min={0} value={estimatedCost} onChange={(e) => setEstimatedCost(e.target.value)} placeholder="25000000" className={INPUT_CLASS} />
+            </Field>
+
+            <Field label="Dokumen pendukung" htmlFor="report-docs" optional hint="PDF, JPG, atau PNG, maksimal 5 MB per berkas.">
+              <input
+                id="report-docs"
+                type="file"
+                multiple
+                accept="application/pdf,image/jpeg,image/png"
+                onChange={(e) => handleSupportingDocuments(e.target.files)}
+                className="block w-full text-sm text-ink-2 file:mr-3 file:h-9 file:px-3.5 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-surface-2 file:text-ink file:cursor-pointer"
+              />
+              {documentError && (
+                <p role="alert" className="mt-1.5 text-sm text-st-ditolak">
+                  {documentError}
+                </p>
+              )}
+              {supportingDocuments.length > 0 && <p className="mt-1.5 text-xs font-semibold text-ink-2">{supportingDocuments.length} dokumen dilampirkan.</p>}
+            </Field>
+          </div>
+          <FormFooter start="Langkah 2 dari 3">
+            <GhostButton onClick={() => setStep(1)}>
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Kembali
+            </GhostButton>
+            <PrimaryButton type="submit">
+              Lanjut <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            </PrimaryButton>
+          </FormFooter>
+        </form>
+      )}
+
+      {/* Step 3: who is reporting, and a last look */}
+      {step === 3 && (
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 space-y-5">
+            <Field label="Tampil sebagai">
+              <Segmented
+                label="Identitas pelapor"
+                variant="cards"
+                value={reporterType}
+                onChange={setReporterType}
+                options={[
+                  { value: 'anonymous', label: 'Anonim', hint: 'Nama tidak tampil. Laporan hanya tercatat di Laporan Saya pada perangkat ini.' },
+                  { value: 'verified_citizen', label: 'Nama saya', hint: 'Tampilkan nama untuk menambah kredibilitas.' },
+                ]}
+              />
+            </Field>
+
+            {reporterType === 'verified_citizen' && (
+              <Field label="Nama yang ditampilkan" htmlFor="report-name">
+                <input id="report-name" type="text" value={reporterDisplayName || profile.displayName} onChange={(e) => setReporterDisplayName(e.target.value)} className={INPUT_CLASS} />
+              </Field>
+            )}
+
+            <section aria-label="Ringkasan laporan" className="rounded-xl border border-line-soft p-4">
+              <h3 className="font-sans text-sm font-semibold text-ink">{title}</h3>
+              <p className="mt-1 text-sm text-ink-2 line-clamp-3">{description}</p>
+              <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+                <dt className="text-ink-3">Lokasi</dt>
+                <dd className="text-ink break-words">{address}</dd>
+                <dt className="text-ink-3">Kategori</dt>
+                <dd className="text-ink">{category}</dd>
+                {facilityName && (
+                  <>
+                    <dt className="text-ink-3">Fasilitas</dt>
+                    <dd className="text-ink">{facilityName}</dd>
+                  </>
+                )}
+                <dt className="text-ink-3">Keparahan</dt>
+                <dd className="text-ink">{{ low: 'Rendah', medium: 'Sedang', high: 'Tinggi', critical: 'Kritis' }[severity]}</dd>
+              </dl>
+            </section>
+
+            {submissionError && <ErrorNote>{submissionError}</ErrorNote>}
+          </div>
+          <FormFooter start="Langkah 3 dari 3">
+            <GhostButton onClick={() => setStep(2)} disabled={isSubmitting}>
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Kembali
+            </GhostButton>
+            <PrimaryButton type="button" onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Mengirim Laporan...</span>
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Mengirim
                 </>
               ) : (
-                <span>Kirim Laporan Resmi</span>
+                'Kirim laporan'
               )}
-            </button>
-          </div>
+            </PrimaryButton>
+          </FormFooter>
         </div>
       )}
 
-      {/* Step 4: Submission Success */}
+      {/* Step 4: the report number is the one thing to keep */}
       {step === 4 && submissionResult && (
-        <div className="text-center py-4 space-y-4">
-          <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-7 h-7" />
-          </div>
-
-          <div>
-            <h3 className="text-base font-bold text-[#101913] dark:text-[#F3F6F4]">
-              Laporan Berhasil Diajukan!
-            </h3>
-            <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] mt-1">
-              Nomor tiket resmi:{' '}
-              <span className="font-mono font-bold text-[#1B4332] dark:text-[#34D399]">
-                {submissionResult.publicReference}
-              </span>
-            </p>
-          </div>
-
-          {/* Secret Follow-Up Token Box */}
-          <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-left space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 dark:text-amber-200">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>Simpan Token Pelacakan Rahasia Anda!</span>
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-8 sm:py-10">
+          <div className="max-w-md mx-auto text-center space-y-6">
+            <div className="w-14 h-14 rounded-full bg-brand-soft text-brand flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-8 h-8" aria-hidden="true" />
             </div>
-            <p className="text-[11px] text-amber-800 dark:text-amber-300">
-              Token ini hanya ditampilkan satu kali. Anda membutuhkannya untuk melacak status laporan
-              secara anonim.
-            </p>
-            <div className="flex items-center justify-between p-2 bg-white dark:bg-[#1A221E] border border-amber-300 dark:border-amber-700 rounded-lg">
-              <span className="font-mono text-xs font-bold text-[#101913] dark:text-[#F3F6F4] select-all">
-                {submissionResult.secretFollowUpToken}
-              </span>
-              <button
-                type="button"
-                onClick={handleCopyToken}
-                className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#1B4332] text-white rounded text-[11px] font-semibold hover:bg-[#14352A] cursor-pointer"
-              >
-                {tokenCopied ? (
-                  <>
-                    <Check className="w-3 h-3 text-emerald-400" />
-                    <span>Disalin!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3 h-3" />
-                    <span>Salin</span>
-                  </>
-                )}
+            <div>
+              <h3 className="font-display text-2xl font-bold text-ink">Laporan terkirim</h3>
+              <p className="mt-1 text-sm text-ink-2">Petugas akan memeriksa bukti Anda. Statusnya bisa dipantau kapan saja.</p>
+            </div>
+
+            <div className="rounded-xl bg-surface-2 p-4">
+              <p className="text-xs text-ink-3">Nomor laporan</p>
+              <p className="mt-1 titik-id text-2xl font-semibold text-ink select-all break-all">{submissionResult.publicReference}</p>
+              <button type="button" onClick={handleCopyReference} className="mt-3 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-surface text-ink text-sm font-semibold border border-line-soft hover:bg-brand-soft transition-colors cursor-pointer">
+                {referenceCopied ? <Check className="w-4 h-4 text-brand" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
+                {referenceCopied ? 'Tersalin' : 'Salin nomor'}
               </button>
             </div>
-          </div>
+            <p className="text-xs text-ink-3">Simpan nomor ini. Dengan nomor ini, status laporan bisa dicek di halaman Lacak Laporan tanpa perlu masuk akun.</p>
 
-          <button
-            type="button"
-            onClick={onCancel}
-            className="w-full py-2.5 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-xl text-xs font-bold hover:bg-[#14352A] cursor-pointer"
-          >
-            Selesai & Tutup
-          </button>
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-center">
+              <GhostButton onClick={onCancel} className="sm:min-w-28">
+                Selesai
+              </GhostButton>
+              <PrimaryButton
+                onClick={() => {
+                  onCancel();
+                  navigate(`/track?ref=${encodeURIComponent(submissionResult.publicReference)}`);
+                }}
+              >
+                Lihat status laporan
+              </PrimaryButton>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 };
+
+interface EvidenceSlotProps {
+  id: string;
+  kind: 'photo' | 'video';
+  label: string;
+  accept: string;
+  evidence: SelectedEvidence | null;
+  onPick: (file?: File) => void;
+  onClear: () => void;
+}
+
+/** One evidence upload tile: empty (dashed), or a preview with a remove button. */
+const EvidenceSlot: React.FC<EvidenceSlotProps> = ({ id, kind, label, accept, evidence, onPick, onClear }) => (
+  <div>
+    <input
+      type="file"
+      accept={accept}
+      id={id}
+      className="sr-only"
+      onChange={(e) => {
+        onPick(e.target.files?.[0]);
+        e.target.value = '';
+      }}
+    />
+    {evidence ? (
+      <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-surface-2">
+        {kind === 'photo' ? (
+          <img src={evidence.dataUrl} alt="Foto bukti yang dipilih" className="w-full h-full object-cover" />
+        ) : (
+          <video src={evidence.dataUrl} muted playsInline preload="metadata" aria-label="Video bukti yang dipilih" className="w-full h-full object-cover" />
+        )}
+        <span className="absolute inset-x-0 bottom-0 px-2.5 py-1.5 text-xs text-white bg-black/60 truncate">{evidence.fileName}</span>
+        <button type="button" onClick={onClear} aria-label={`Ganti ${label.toLowerCase()}`} className="absolute top-1.5 right-1.5 w-8 h-8 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-st-ditolak transition-colors cursor-pointer">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    ) : (
+      <label htmlFor={id} className="aspect-[4/3] rounded-xl border border-dashed border-line flex flex-col items-center justify-center gap-1.5 text-ink-2 hover:border-brand hover:text-brand transition-colors cursor-pointer focus-within:outline-2">
+        {kind === 'photo' ? <ImagePlus className="w-6 h-6" aria-hidden="true" /> : <Video className="w-6 h-6" aria-hidden="true" />}
+        <span className="text-sm font-semibold">Pilih {label.toLowerCase()}</span>
+      </label>
+    )}
+  </div>
+);

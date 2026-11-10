@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Home,
@@ -7,7 +7,6 @@ import {
   Bookmark,
   FileText,
   Plus,
-  Sparkles,
   Search,
   ShieldAlert,
   LogIn,
@@ -18,30 +17,51 @@ import {
   Landmark,
   Users,
   MessageSquare,
+  Route as RouteIcon,
+  ScanSearch,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useTitik } from '../../context/TitikContext';
 import { useAuth } from '../../context/AuthContext';
 import { TitikLogo } from '../common/TitikLogo';
 import { ThemeToggle } from '../common/ThemeToggle';
 import { UserAvatar } from '../common/UserAvatar';
+import { getStatusMeta } from '../../utils/reportStatus';
 
 interface SidebarProps {
   currentPath?: string;
 }
 
+interface NavEntry {
+  label: string;
+  /** One-line hint shown under the label when the sidebar is in its wide form. */
+  hint?: string;
+  title?: string;
+  icon: LucideIcon;
+  href: string;
+  active: boolean;
+  unread?: boolean;
+  onSelect?: () => void;
+}
+
+/** Pages that show the wide sidebar: the feed, Jelajah, Laporan Saya, Tersimpan and every profile. */
+const WIDE_EXACT = ['/', '/explore', '/laporan-saya', '/tersimpan', '/me'];
+const WIDE_PREFIXES = ['/u/', '/profile/'];
+export const isWideSidebarPath = (path: string) => WIDE_EXACT.includes(path) || WIDE_PREFIXES.some((prefix) => path.startsWith(prefix));
+
+/**
+ * Persistent navigation on a deep forest surface, the brand anchor in both themes.
+ * Icon rail from `lg`, labelled column from `xl`. On the wide pages the column doubles
+ * at 2xl and uses the room for a hint under each destination plus a live city summary.
+ */
 export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = propPath || location.pathname;
+  const isWide = isWideSidebarPath(currentPath);
 
   const { profile, isAuthenticated } = useAuth();
-  const {
-    openComposer,
-    activeFeedTab,
-    setActiveFeedTab,
-    setSearchModalOpen,
-    unreadMessagesCount,
-  } = useTitik();
+  const { openComposer, setActiveFeedTab, setSearchModalOpen, unreadMessagesCount, posts } = useTitik();
 
   const isAdminRoute = currentPath.startsWith('/admin');
   const [manualOpen, setManualOpen] = React.useState<boolean | null>(null);
@@ -52,345 +72,246 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
     setLastAdminRoute(isAdminRoute);
     setManualOpen(null);
   }
-
   const isAdminOpen = manualOpen ?? isAdminRoute;
 
-  const navItems = [
+  const go = (href: string) => {
+    if (location.pathname !== href) navigate(href);
+  };
+
+  // Real numbers only: counted from the reports already loaded for the feed
+  const summary = useMemo(() => {
+    const seen = new Map<string, string>();
+    (posts ?? []).forEach((p) => {
+      if (p.relatedReport && !seen.has(p.relatedReport.id)) seen.set(p.relatedReport.id, p.relatedReport.status);
+    });
+    const counts = { baru: 0, ditindak: 0, tuntas: 0, ditolak: 0 };
+    seen.forEach((status) => {
+      counts[getStatusMeta(status).tone] += 1;
+    });
+    return { total: seen.size, ...counts };
+  }, [posts]);
+
+  const navItems: NavEntry[] = [
     {
-      label: 'Feed Utama',
+      label: 'Beranda',
+      hint: 'Linimasa laporan warga',
       icon: Home,
       href: '/',
-      active: currentPath === '/' && activeFeedTab === 'for_you',
-      onClick: () => {
+      active: currentPath === '/',
+      onSelect: () => {
         setActiveFeedTab('for_you');
-        if (location.pathname !== '/') {
-          navigate('/');
-        }
+        if (location.pathname !== '/') navigate('/');
+        else window.dispatchEvent(new CustomEvent('titik-scroll-top'));
       },
     },
-    {
-      label: 'Eksplorasi Sektor',
-      icon: Compass,
-      href: '/explore',
-      active: currentPath === '/explore',
-      onClick: () => {
-        if (location.pathname !== '/explore') {
-          navigate('/explore');
-        }
-      },
-    },
-    {
-      label: 'Peta Geospasial',
-      icon: MapPin,
-      href: '/map',
-      active: currentPath === '/map',
-      onClick: () => {
-        if (location.pathname !== '/map') {
-          navigate('/map');
-        }
-      },
-    },
+    { label: 'Jelajah', hint: 'Statistik dan daftar laporan', title: 'Jelajah sektor', icon: Compass, href: '/explore', active: currentPath === '/explore' },
+    { label: 'Peta', hint: 'Sebaran laporan di Kota Bogor', title: 'Peta laporan', icon: MapPin, href: '/map', active: currentPath === '/map' },
     {
       label: 'Pesan',
+      hint: 'Percakapan dengan warga dan petugas',
       icon: MessageSquare,
       href: '/pesan',
       unread: (unreadMessagesCount ?? 0) > 0,
       active: currentPath.startsWith('/pesan'),
-      onClick: () => {
-        if (location.pathname !== '/pesan') {
-          navigate('/pesan');
-        }
-      },
     },
-    {
-      label: 'Laporan Tersimpan',
-      icon: Bookmark,
-      href: '/tersimpan',
-      active: currentPath === '/tersimpan',
-      onClick: () => {
-        if (location.pathname !== '/tersimpan') {
-          navigate('/tersimpan');
-        }
-      },
-    },
+    { label: 'Tersimpan', hint: 'Laporan yang Anda tandai', title: 'Laporan tersimpan', icon: Bookmark, href: '/tersimpan', active: currentPath === '/tersimpan' },
     ...(isAuthenticated
-      ? [{
-          label: 'Laporan Saya',
-          icon: FileText,
-          href: '/laporan-saya',
-          active: currentPath === '/laporan-saya',
-          onClick: () => {
-            if (location.pathname !== '/laporan-saya') navigate('/laporan-saya');
-          },
-        }]
+      ? [{ label: 'Laporan Saya', hint: 'Pantau status laporan Anda', icon: FileText, href: '/laporan-saya', active: currentPath === '/laporan-saya' }]
       : []),
   ];
 
-  const utilityLinks = [
-    {
-      label: 'Lacak Status Laporan',
-      icon: Search,
-      href: '/track',
-      active: currentPath === '/track',
-    },
-    {
-      label: 'Alur Akuntabilitas',
-      icon: Sparkles,
-      href: '/alur',
-      active: currentPath === '/alur',
-    },
+  const utilityLinks: NavEntry[] = [
+    { label: 'Lacak Laporan', title: 'Lacak status laporan', icon: ScanSearch, href: '/track', active: currentPath === '/track' },
+    { label: 'Alur Penanganan', title: 'Alur penanganan laporan', icon: RouteIcon, href: '/alur', active: currentPath === '/alur' },
   ];
 
-  const adminSubRoutes = [
+  const adminSubRoutes: NavEntry[] = [
     {
-      label: 'Ringkasan & Metrik',
-      tooltip: 'Ringkasan & Metrik Performa',
+      label: 'Ringkasan',
+      title: 'Ringkasan dan metrik kerja',
       href: '/admin',
-      aliasHref: '/admin/overview',
       icon: LayoutDashboard,
       active: currentPath === '/admin' || currentPath === '/admin/overview',
     },
-    {
-      label: 'Antrean Validasi',
-      tooltip: 'Antrean Validasi & Verifikasi Bukti',
-      href: '/admin/validasi',
-      icon: CheckCircle2,
-      active: currentPath === '/admin/validasi',
-    },
-    {
-      label: 'Disposisi Dinas',
-      tooltip: 'Disposisi & Rute Dinas Instansi',
-      href: '/admin/disposisi',
-      icon: Building2,
-      active: currentPath === '/admin/disposisi',
-    },
-    {
-      label: 'Rekap APBD',
-      tooltip: 'Rekap APBD & Audit Anggaran',
-      href: '/admin/anggaran',
-      icon: Landmark,
-      active: currentPath === '/admin/anggaran',
-    },
-    {
-      label: 'Manajemen Pengguna',
-      tooltip: 'Manajemen Warga & Hak Akses',
-      href: '/admin/pengguna',
-      icon: Users,
-      active: currentPath === '/admin/pengguna',
-    },
+    { label: 'Antrean Validasi', title: 'Antrean validasi dan verifikasi bukti', href: '/admin/validasi', icon: CheckCircle2, active: currentPath === '/admin/validasi' },
+    { label: 'Disposisi Dinas', title: 'Disposisi dan rute dinas', href: '/admin/disposisi', icon: Building2, active: currentPath === '/admin/disposisi' },
+    { label: 'Rekap APBD', title: 'Rekap APBD dan audit anggaran', href: '/admin/anggaran', icon: Landmark, active: currentPath === '/admin/anggaran' },
+    { label: 'Pengguna', title: 'Manajemen warga dan hak akses', href: '/admin/pengguna', icon: Users, active: currentPath === '/admin/pengguna' },
   ];
 
+  const linkClass = (active: boolean, size: 'md' | 'sm') =>
+    `group relative flex items-center gap-3 rounded-lg transition-colors duration-150 justify-center xl:justify-start ${
+      size === 'md' ? (isWide ? 'h-11 2xl:h-[58px] px-3.5 2xl:px-4' : 'h-11 px-3.5') : 'h-9 px-3.5'
+    } ${
+      active
+        ? 'bg-white/12 text-side-ink font-semibold'
+        : 'text-side-ink-2 font-medium hover:bg-white/7 hover:text-side-ink'
+    }`;
+
+  const renderLink = (item: NavEntry, size: 'md' | 'sm' = 'md') => {
+    const Icon = item.icon;
+    const showHint = isWide && size === 'md' && item.hint;
+    return (
+      <a
+        key={item.href}
+        href={item.href}
+        title={item.title || item.label}
+        aria-label={item.label}
+        aria-current={item.active ? 'page' : undefined}
+        onClick={(e) => {
+          e.preventDefault();
+          if (item.onSelect) item.onSelect();
+          else go(item.href);
+        }}
+        className={`${linkClass(item.active, size)} cursor-pointer text-sm`}
+      >
+        <span className="relative shrink-0">
+          <Icon
+            className={`${isWide && size === 'md' ? 'w-[18px] h-[18px] 2xl:w-5 2xl:h-5' : 'w-[18px] h-[18px]'} ${item.active ? 'text-lime' : ''}`}
+            strokeWidth={item.active ? 2.2 : 1.8}
+          />
+          {item.unread && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-lime ring-2 ring-side" />}
+        </span>
+        <span className="hidden xl:flex flex-col min-w-0 leading-tight">
+          <span className={`truncate ${isWide && size === 'md' ? '2xl:text-[15px]' : ''}`}>{item.label}</span>
+          {showHint && <span className="hidden 2xl:block truncate text-xs font-normal text-side-ink-2">{item.hint}</span>}
+        </span>
+      </a>
+    );
+  };
+
+  const isOwnProfile =
+    currentPath === `/u/${encodeURIComponent(profile.username)}` ||
+    currentPath === `/u/${profile.username}` ||
+    currentPath === '/me';
+
+  const widthClass = isWide ? 'w-[76px] xl:w-[320px] 2xl:w-[496px]' : 'w-[76px] xl:w-[248px]';
+  const padClass = isWide ? 'px-3 xl:px-6 2xl:px-12' : 'px-3 xl:px-4';
+
   return (
-    <aside className="w-60 xl:w-64 shrink-0 hidden lg:flex flex-col justify-between h-screen sticky top-0 border-r border-[#E3E0D6] dark:border-[#222E28] px-4 py-5 bg-[#F7F5EF] dark:bg-[#0F1512] select-none z-30 print:hidden">
-      {/* Top Section: Brand + Search + Primary Navigation */}
-      <div className="space-y-5 overflow-y-auto no-scrollbar pr-0.5">
-        {/* Brand Logotype */}
-        <div className="px-1.5">
-          <a
-            href="/"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveFeedTab('for_you');
-              if (location.pathname !== '/') {
-                navigate('/');
-              } else {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
-            }}
-            className="inline-flex items-center gap-2.5 text-xl font-black tracking-tight text-[#101913] dark:text-[#F3F6F4] group cursor-pointer"
-          >
-            <TitikLogo className="w-7 h-7 transition-transform group-hover:scale-105 shrink-0" />
-            <div className="flex items-center">
-              <span>TITIK</span>
-              <span className="w-2 h-2 rounded-full bg-[#1B4332] dark:bg-[#10B981] ml-0.5"></span>
-            </div>
-          </a>
-        </div>
+    <aside
+      aria-label="Sidebar"
+      className={`${widthClass} ${padClass} shrink-0 hidden lg:flex flex-col justify-between h-screen sticky top-0 py-5 bg-side text-side-ink select-none z-30 print:hidden transition-[width] duration-200`}
+    >
+      <div className="space-y-6 overflow-y-auto no-scrollbar min-h-0">
+        {/* Brand */}
+        <a
+          href="/"
+          title="TITIK. Beranda"
+          onClick={(e) => {
+            e.preventDefault();
+            setActiveFeedTab('for_you');
+            if (location.pathname !== '/') navigate('/');
+            else window.dispatchEvent(new CustomEvent('titik-scroll-top'));
+          }}
+          className="flex items-center justify-center xl:justify-start gap-2.5 h-10 xl:px-1.5 cursor-pointer"
+        >
+          <TitikLogo className="w-8 h-8 shrink-0" pinColor="#cde46a" innerColor="var(--side)" dotColor="#eaf3e2" />
+          <span className={`hidden xl:flex items-baseline font-display font-extrabold tracking-tight text-side-ink ${isWide ? 'text-[22px] 2xl:text-[28px]' : 'text-[22px]'}`}>
+            TITIK<span className="text-lime">.</span>
+          </span>
+        </a>
 
-        {/* Global Search Trigger */}
-        <div>
-          <button
-            type="button"
-            onClick={() => setSearchModalOpen(true)}
-            className="w-full flex items-center justify-between px-3 py-2 bg-white/80 dark:bg-[#161F1B] rounded-xl border border-[#E3E0D6] dark:border-[#24322B] text-xs text-[#4F5A52] dark:text-[#9EACA3] hover:border-[#1B4332]/40 dark:hover:border-[#10B981]/50 hover:text-[#101913] dark:hover:text-[#F3F6F4] transition-colors cursor-pointer group"
-          >
-            <div className="flex items-center gap-2 truncate">
-              <Search className="w-3.5 h-3.5 text-[#4F5A52] dark:text-[#9EACA3] group-hover:text-[#101913] dark:group-hover:text-[#F3F6F4] transition-colors shrink-0" />
-              <span className="truncate">Cari laporan, dinas...</span>
-            </div>
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono text-[#4F5A52] dark:text-[#9EACA3] bg-[#F7F5EF] dark:bg-[#0F1512] border border-[#E3E0D6] dark:border-[#24322B] rounded shrink-0">
-              ⌘ K
-            </kbd>
-          </button>
-        </div>
+        {/* Search */}
+        <button
+          type="button"
+          onClick={() => setSearchModalOpen(true)}
+          aria-label="Cari laporan atau dinas"
+          title="Cari laporan atau dinas (Ctrl K)"
+          className="w-full h-10 flex items-center justify-center xl:justify-between gap-2 px-3 rounded-lg bg-white/8 text-side-ink-2 hover:text-side-ink hover:bg-white/12 border border-side-line transition-colors cursor-pointer"
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <Search className="w-4 h-4 shrink-0" />
+            <span className="hidden xl:inline text-sm truncate">Cari</span>
+          </span>
+          <kbd className="hidden xl:inline shrink-0 whitespace-nowrap px-1.5 py-0.5 text-[10px] font-mono text-side-ink-2 border border-side-line rounded">Ctrl K</kbd>
+        </button>
 
-        {/* Primary Navigation */}
-        <nav className="space-y-1" aria-label="Navigasi Utama">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <a
-                key={item.label}
-                href={item.href}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (item.onClick) {
-                    item.onClick();
-                  } else if (item.href && item.href !== '#') {
-                    navigate(item.href);
-                  }
-                }}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all cursor-pointer ${
-                  item.active
-                    ? 'bg-[#E7EBDD] dark:bg-[#192B22] text-[#1B4332] dark:text-[#34D399] font-bold shadow-xs'
-                    : 'text-[#101913]/85 dark:text-[#D5DFD9] font-medium hover:bg-white/70 dark:hover:bg-[#161F1B] hover:text-[#101913] dark:hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative">
-                    <Icon className={`w-4 h-4 shrink-0 ${item.active ? 'text-[#1B4332] dark:text-[#34D399]' : 'text-[#4F5A52] dark:text-[#8FA096]'}`} />
-                    {Boolean((item as any).unread) && (
-                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-[#161F1B] animate-pulse" />
-                    )}
-                  </div>
-                  <span className="truncate">{item.label}</span>
-                </div>
-                {item.active && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#1B4332] dark:bg-[#34D399] titik-live shrink-0 ml-2" />
-                )}
-              </a>
-            );
-          })}
+        {/* Primary navigation */}
+        <nav className="space-y-1" aria-label="Navigasi utama">
+          {navItems.map((item) => renderLink(item))}
         </nav>
 
-        {/* Primary CTA Button */}
-        <div>
-          <button
-            type="button"
-            onClick={() => openComposer('post')}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#08130E] rounded-xl font-bold text-xs hover:bg-[#14352A] dark:hover:bg-[#34D399] active:scale-[0.99] transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4 stroke-[2.6]" />
-            <span>Buat Laporan</span>
-          </button>
-        </div>
+        {/* Primary action */}
+        <button
+          type="button"
+          onClick={() => openComposer('post')}
+          aria-label="Buat laporan atau postingan"
+          title="Buat laporan atau postingan"
+          className="w-full h-11 flex items-center justify-center gap-2 rounded-lg bg-lime text-on-lime text-sm font-bold hover:brightness-105 active:scale-[0.98] transition cursor-pointer"
+        >
+          <Plus className="w-[18px] h-[18px]" strokeWidth={2.6} />
+          <span className="hidden xl:inline">Buat Laporan</span>
+        </button>
 
-        {/* Secondary Accountability Links & Expandable Admin Root */}
-        <div className="pt-3 border-t border-[#E3E0D6]/70 dark:border-[#222E28] space-y-0.5">
-          {utilityLinks.map((link) => {
-            const Icon = link.icon;
-            return (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (location.pathname !== link.href) {
-                    navigate(link.href);
-                  }
-                }}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
-                  link.active
-                    ? 'bg-[#E7EBDD]/80 dark:bg-[#192B22] text-[#1B4332] dark:text-[#34D399] font-semibold'
-                    : 'text-[#4F5A52] dark:text-[#8FA096] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-white/50 dark:hover:bg-[#161F1B]'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{link.label}</span>
-              </a>
-            );
-          })}
+        {/* Live city summary: only on the wide pages, only when real reports are loaded */}
+        {isWide && summary.total > 0 && (
+          <section aria-label="Ringkasan laporan kota" className="hidden 2xl:block rounded-xl bg-black/20 border border-side-line p-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-sans text-xs font-semibold text-side-ink-2">Laporan Kota Bogor</h2>
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-side-ink-2">
+                <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-lime titik-live" />
+                langsung
+              </span>
+            </div>
+            <dl className="mt-3 grid grid-cols-3 gap-3">
+              {(
+                [
+                  ['Menunggu', summary.baru],
+                  ['Ditindak', summary.ditindak],
+                  ['Tuntas', summary.tuntas],
+                ] as const
+              ).map(([label, value]) => (
+                <div key={label}>
+                  <dd className="font-display text-2xl font-bold text-side-ink tabular-nums">{value}</dd>
+                  <dt className="text-[11px] text-side-ink-2">{label}</dt>
+                </div>
+              ))}
+            </dl>
+            <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-white/10" role="img" aria-label={`${summary.tuntas} dari ${summary.total} laporan tuntas`}>
+              <span className="bg-lime" style={{ width: `${(summary.tuntas / summary.total) * 100}%` }} />
+              <span className="bg-lime/45" style={{ width: `${(summary.ditindak / summary.total) * 100}%` }} />
+            </div>
+          </section>
+        )}
+
+        {/* Secondary */}
+        <div className="pt-4 border-t border-side-line space-y-1">
+          {utilityLinks.map((item) => renderLink(item, 'sm'))}
 
           {isAuthenticated && profile.role === 'admin' && (
-            <div className="space-y-1 pt-1">
-              {/* Root Expandable Item: Portal admin */}
-              <div
-                className={`flex items-center justify-between rounded-lg transition-colors ${
-                  isAdminRoute
-                    ? 'bg-[#E7EBDD]/80 dark:bg-[#192B22] text-[#1B4332] dark:text-[#34D399] font-semibold'
-                    : 'text-[#4F5A52] dark:text-[#8FA096] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-white/50 dark:hover:bg-[#161F1B]'
-                }`}
-              >
+            <div className="pt-1 space-y-1">
+              <div className={`flex items-center rounded-lg ${isAdminRoute ? 'bg-white/12 text-side-ink font-semibold' : 'text-side-ink-2 hover:bg-white/7 hover:text-side-ink'}`}>
                 <a
                   href="/admin"
                   onClick={(e) => {
                     e.preventDefault();
                     setManualOpen(true);
-                    if (location.pathname !== '/admin') {
-                      navigate('/admin');
-                    }
+                    go('/admin');
                   }}
-                  className="flex items-center gap-2.5 flex-1 min-w-0 px-3 py-2 text-xs cursor-pointer select-none"
+                  className="flex items-center justify-center xl:justify-start gap-3 flex-1 min-w-0 h-9 px-3.5 text-sm cursor-pointer"
                   title="Portal admin Dinas PUPR"
                 >
-                  <ShieldAlert className="w-3.5 h-3.5 text-[#92400E] dark:text-amber-400 shrink-0" />
-                  <span className="truncate">Portal admin</span>
+                  <ShieldAlert className="w-[18px] h-[18px] text-lime shrink-0" strokeWidth={1.9} />
+                  <span className="hidden xl:inline truncate">Portal admin</span>
                 </a>
-
-                <div className="flex items-center gap-1.5 shrink-0 pr-2">
-                  <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-950/60 text-[#92400E] dark:text-amber-300 rounded border border-amber-300/60 dark:border-amber-700/60">
-                    admin
-                  </span>
+                <div className="hidden xl:flex items-center gap-1.5 shrink-0 pr-1.5">
                   <button
                     type="button"
                     onClick={() => setManualOpen(!isAdminOpen)}
-                    className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 text-inherit transition-transform cursor-pointer"
+                    className="p-1.5 rounded-md hover:bg-white/10 text-inherit cursor-pointer"
                     aria-label={isAdminOpen ? 'Tutup sub-menu admin' : 'Buka sub-menu admin'}
                     aria-expanded={isAdminOpen}
                     aria-controls="admin-subroutes-panel"
                   >
-                    <ChevronDown
-                      className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                        isAdminOpen ? 'rotate-180' : ''
-                      }`}
-                    />
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isAdminOpen ? 'rotate-180' : ''}`} />
                   </button>
                 </div>
               </div>
 
-              {/* Children Sub-Routes Panel */}
               {isAdminOpen && (
-                <div
-                  id="admin-subroutes-panel"
-                  className="pl-3.5 ml-3 border-l-2 border-[#1B4332]/20 dark:border-[#34D399]/20 space-y-0.5 mt-1 transition-all duration-200"
-                  role="group"
-                  aria-label="Sub-menu Portal admin"
-                >
-                  {adminSubRoutes.map((sub) => {
-                    const SubIcon = sub.icon;
-                    return (
-                      <a
-                        key={sub.href}
-                        href={sub.href}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (location.pathname !== sub.href) {
-                            navigate(sub.href);
-                          }
-                        }}
-                        title={sub.tooltip || sub.label}
-                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer group ${
-                          sub.active
-                            ? 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#08130E] font-semibold shadow-xs'
-                            : 'text-[#4F5A52] dark:text-[#8FA096] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-white/60 dark:hover:bg-[#161F1B]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <SubIcon
-                            className={`w-3.5 h-3.5 shrink-0 ${
-                              sub.active
-                                ? 'text-white dark:text-[#08130E]'
-                                : 'text-[#4F5A52] dark:text-[#8FA096] group-hover:text-[#101913] dark:group-hover:text-[#F3F6F4]'
-                            }`}
-                          />
-                          <span className="truncate">{sub.label}</span>
-                        </div>
-                        {sub.active && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-[#08130E] shrink-0 ml-1.5" />
-                        )}
-                      </a>
-                    );
-                  })}
+                <div id="admin-subroutes-panel" role="group" aria-label="Sub-menu Portal admin" className="space-y-0.5 xl:ml-4 xl:pl-2 xl:border-l xl:border-side-line">
+                  {adminSubRoutes.map((item) => renderLink(item, 'sm'))}
                 </div>
               )}
             </div>
@@ -398,73 +319,53 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
         </div>
       </div>
 
-      {/* Bottom Section: Quiet Citizen Profile & Theme Toggle */}
-      <div className="pt-3 border-t border-[#E3E0D6] dark:border-[#222E28] flex items-center gap-2">
+      {/* Account */}
+      <div className="pt-3 mt-3 border-t border-side-line flex flex-col xl:flex-row items-center gap-2">
         {isAuthenticated && profile.id !== 'usr-anon-00' ? (
           <a
             href={`/u/${encodeURIComponent(profile.username)}`}
             onClick={(e) => {
               e.preventDefault();
-              const target = `/u/${encodeURIComponent(profile.username)}`;
-              if (location.pathname !== target) {
-                navigate(target);
-              }
+              go(`/u/${encodeURIComponent(profile.username)}`);
             }}
-            className={`flex min-w-0 flex-1 items-center justify-between px-2.5 py-2 rounded-xl transition-colors cursor-pointer group ${
-              currentPath === `/u/${encodeURIComponent(profile.username)}` || currentPath === `/u/${profile.username}` || currentPath === '/me'
-                ? 'bg-[#E7EBDD] dark:bg-[#192B22]'
-                : 'hover:bg-white/80 dark:hover:bg-[#161F1B]'
-            }`}
+            className={`flex min-w-0 xl:flex-1 items-center justify-center xl:justify-start gap-2.5 p-1.5 xl:px-2 rounded-lg transition-colors cursor-pointer ${isOwnProfile ? 'bg-white/12' : 'hover:bg-white/7'}`}
             title="Profil Saya"
           >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <UserAvatar
-                src={profile.avatarUrl}
-                alt={profile.displayName}
-                name={profile.displayName}
-                role={profile.role}
-                className="w-8 h-8 rounded-full object-cover border border-[#E3E0D6] dark:border-[#26352E] shrink-0"
-              />
-              <div className="min-w-0">
-                <div className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4] truncate group-hover:text-[#1B4332] dark:group-hover:text-[#34D399]">
-                  {profile.displayName}
-                </div>
-                <div className="text-[10px] text-[#4F5A52] dark:text-[#8FA096] font-medium truncate">
-                  {profile.role === 'admin'
-                    ? 'admin'
-                    : profile.isVerified
-                    ? 'Warga Terverifikasi'
-                    : (profile.district ? `Warga ${profile.district}` : 'Warga')}
-                </div>
-              </div>
-            </div>
+            <UserAvatar
+              src={profile.avatarUrl}
+              alt={profile.displayName}
+              name={profile.displayName}
+              role={profile.role}
+              className="w-8 h-8 rounded-full object-cover shrink-0"
+            />
+            <span className="hidden xl:block min-w-0">
+              <span className="block text-[13px] font-semibold text-side-ink truncate">{profile.displayName}</span>
+              <span className="block text-[11px] text-side-ink-2 truncate">
+                {profile.role === 'admin'
+                  ? 'admin'
+                  : profile.isVerified
+                  ? 'Warga Terverifikasi'
+                  : profile.district
+                  ? `Warga ${profile.district}`
+                  : 'Warga'}
+              </span>
+            </span>
           </a>
         ) : (
           <a
             href="/login"
             onClick={(e) => {
               e.preventDefault();
-              if (location.pathname !== '/login') {
-                navigate('/login');
-              }
+              go('/login');
             }}
-            className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2 rounded-xl bg-white dark:bg-[#161F1B] border border-[#E3E0D6] dark:border-[#24322B] hover:border-[#1B4332]/40 dark:hover:border-[#10B981]/50 text-[#101913] dark:text-[#F3F6F4] transition-colors cursor-pointer group"
-            title="Masuk ke Akun"
+            className="flex min-w-0 xl:flex-1 items-center justify-center xl:justify-start gap-2.5 h-10 px-2.5 rounded-lg bg-lime text-on-lime font-bold text-sm hover:brightness-105 transition cursor-pointer"
+            title="Masuk ke akun"
           >
-            <div className="w-7 h-7 rounded-full bg-[#E7EBDD] dark:bg-[#192B22] text-[#1B4332] dark:text-[#34D399] flex items-center justify-center shrink-0">
-              <LogIn className="w-3.5 h-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4] truncate group-hover:text-[#1B4332] dark:group-hover:text-[#34D399]">
-                Masuk / Daftar Akun
-              </div>
-              <div className="text-[10px] text-[#4F5A52] dark:text-[#8FA096] font-medium truncate">
-                Belum masuk sesi
-              </div>
-            </div>
+            <LogIn className="w-4 h-4 shrink-0" />
+            <span className="hidden xl:inline truncate">Masuk atau Daftar</span>
           </a>
         )}
-        <ThemeToggle className="shrink-0" />
+        <ThemeToggle variant="side" className="shrink-0" />
       </div>
     </aside>
   );

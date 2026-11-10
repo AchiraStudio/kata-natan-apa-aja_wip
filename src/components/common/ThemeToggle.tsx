@@ -4,9 +4,16 @@ import { useTheme } from '../../context/ThemeContext';
 
 interface ThemeToggleProps {
   className?: string;
+  /** `side` for use on the forest sidebar, `default` for page surfaces. */
+  variant?: 'default' | 'side';
 }
 
-export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
+const VARIANT_CLASS = {
+  default: 'border-line-soft bg-surface-2 text-ink-2 hover:text-ink',
+  side: 'border-side-line bg-white/8 text-side-ink-2 hover:text-side-ink hover:bg-white/14',
+} as const;
+
+export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '', variant = 'default' }) => {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -17,7 +24,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
       aria-label={isDark ? 'Beralih ke mode terang' : 'Beralih ke mode gelap'}
       aria-pressed={isDark}
       title={isDark ? 'Mode terang' : 'Mode gelap'}
-      className={`inline-flex w-10 h-10 items-center justify-center rounded-full border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#1B4332] dark:text-[#34D399] hover:bg-[#F7F5EF] dark:hover:bg-[#24302A] dark:hover:border-[#10B981]/40 transition-colors cursor-pointer ${className}`}
+      className={`inline-flex w-10 h-10 items-center justify-center rounded-lg border transition-colors cursor-pointer ${VARIANT_CLASS[variant]} ${className}`}
     >
       {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
     </button>

@@ -24,8 +24,77 @@ function isTableMissingError(error: any): boolean {
   );
 }
 
-// In-memory / session store for local/fallback conversation messages
-const localMessagesStore = new Map<string, Message[]>();
+// ---------------------------------------------------------------------------
+// Device-local store. Used whenever the server tables are not available (migration not run,
+// Supabase not configured). It lives in localStorage so threads and messages survive reloads.
+// Server conversation ids are UUIDs; local ones always start with "conv-".
+// ---------------------------------------------------------------------------
+const LOCAL_KEY = 'titik_local_messages_v1';
+const LOCAL_EVENT = 'titik-local-messages';
+
+interface LocalDb {
+  conversations: Conversation[];
+  messages: Record<string, Message[]>;
+}
+
+const isLocalConversationId = (id: string) => id.startsWith('conv-');
+
+function readLocal(): LocalDb {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(LOCAL_KEY) : null;
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<LocalDb>;
+      return { conversations: parsed.conversations ?? [], messages: parsed.messages ?? {} };
+    }
+  } catch {
+    // corrupt or unavailable storage: start empty
+  }
+  return { conversations: [], messages: {} };
+}
+
+function writeLocal(db: LocalDb) {
+  try {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(db));
+  } catch {
+    // storage full or blocked: the in-flight message is still returned to the caller
+  }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(LOCAL_EVENT));
+    window.dispatchEvent(new Event('titik-unread-refresh'));
+  }
+}
+
+/** Runs `callback` when local messages change, in this tab or in another one. */
+function onLocalChange(callback: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === LOCAL_KEY || e.key === null) callback();
+  };
+  window.addEventListener('storage', onStorage);
+  window.addEventListener(LOCAL_EVENT, callback);
+  return () => {
+    window.removeEventListener('storage', onStorage);
+    window.removeEventListener(LOCAL_EVENT, callback);
+  };
+}
+
+function appendLocalMessage(conversationId: string, message: Message) {
+  const db = readLocal();
+  db.messages[conversationId] = [...(db.messages[conversationId] ?? []), message];
+  db.conversations = db.conversations.map((c) =>
+    c.id === conversationId ? { ...c, updated_at: message.created_at } : c
+  );
+  writeLocal(db);
+}
+
+function newLocalMessageId() {
+  return `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** True once we know the server cannot store messages, so threads are kept on this device. */
+export function isMessagingLocalOnly(): boolean {
+  return !isSupabaseConfigured || isConversationsTableAvailable === false || isMessagesTableAvailable === false;
+}
 
 // ---------------------------------------------------------------------------
 // Profile helper — fetch a single profile by user id
@@ -47,11 +116,41 @@ async function fetchProfile(userId: string): Promise<UserProfile | undefined> {
   };
 }
 
+/** Public profile summary for one user, used to label a brand-new thread. */
+export const getProfileSummary = fetchProfile;
+
 // ---------------------------------------------------------------------------
 // getConversations
 // ---------------------------------------------------------------------------
 export async function getConversations(userId: string): Promise<Conversation[]> {
-  if (!isSupabaseConfigured || !userId || isConversationsTableAvailable === false) return [];
+  if (!userId) return [];
+  const [remote, local] = await Promise.all([getRemoteConversations(userId), getLocalConversations(userId)]);
+  const remoteIds = new Set(remote.map((c) => c.id));
+  return [...remote, ...local.filter((c) => !remoteIds.has(c.id))].sort((a, b) =>
+    (b.updated_at || '').localeCompare(a.updated_at || '')
+  );
+}
+
+async function getLocalConversations(userId: string): Promise<Conversation[]> {
+  const db = readLocal();
+  const mine = db.conversations.filter((c) => c.participant_ids.includes(userId));
+  return Promise.all(
+    mine.map(async (conv) => {
+      const thread = db.messages[conv.id] ?? [];
+      const otherId = conv.participant_ids.find((id) => id !== userId);
+      const other = otherId ? await fetchProfile(otherId).catch(() => undefined) : undefined;
+      return {
+        ...conv,
+        other_participant: other ?? conv.other_participant,
+        last_message: thread[thread.length - 1],
+        unread_count: thread.filter((m) => m.sender_id !== userId && !m.read_at).length,
+      };
+    })
+  );
+}
+
+async function getRemoteConversations(userId: string): Promise<Conversation[]> {
+  if (!isSupabaseConfigured || isConversationsTableAvailable === false) return [];
 
   try {
     const { data, error } = await supabase
@@ -176,11 +275,12 @@ export async function getMessages(
   conversationId: string,
   participantIds?: string[]
 ): Promise<Message[]> {
-  if (!isSupabaseConfigured || !conversationId) return [];
+  if (!conversationId) return [];
+  const local = () => readLocal().messages[conversationId] ?? [];
 
-  // Demo conversations or when messages table is unavailable return local messages
-  if (conversationId.startsWith('conv-demo') || isMessagesTableAvailable === false) {
-    return localMessagesStore.get(conversationId) ?? [];
+  // Device-local threads, or the server cannot store messages
+  if (isLocalConversationId(conversationId) || !isSupabaseConfigured || isMessagesTableAvailable === false) {
+    return local();
   }
 
   try {
@@ -194,7 +294,7 @@ export async function getMessages(
       if (isTableMissingError(error)) {
         isMessagesTableAvailable = false;
       }
-      return localMessagesStore.get(conversationId) ?? [];
+      return local();
     }
     if (!data) return [];
     isMessagesTableAvailable = true;
@@ -257,10 +357,9 @@ export async function sendMessage(
 ): Promise<Message> {
   const trimmed = content.trim();
 
-  // If demo conversation, Supabase unconfigured, or messages table unavailable, handle locally
-  if (conversationId.startsWith('conv-demo') || !isSupabaseConfigured || isMessagesTableAvailable === false) {
+  const sendLocal = (): Message => {
     const localMsg: Message = {
-      id: `msg-${Date.now()}`,
+      id: newLocalMessageId(),
       conversation_id: conversationId,
       sender_id: senderId,
       content: trimmed,
@@ -269,9 +368,13 @@ export async function sendMessage(
       created_at: new Date().toISOString(),
       read_at: null,
     };
-    const existing = localMessagesStore.get(conversationId) ?? [];
-    localMessagesStore.set(conversationId, [...existing, localMsg]);
+    appendLocalMessage(conversationId, localMsg);
     return localMsg;
+  };
+
+  // Device-local threads, or the server cannot store messages: keep it on this device
+  if (isLocalConversationId(conversationId) || !isSupabaseConfigured || isMessagesTableAvailable === false) {
+    return sendLocal();
   }
 
   let participants = participantIds;
@@ -313,19 +416,7 @@ export async function sendMessage(
     if (error) {
       if (isTableMissingError(error)) {
         isMessagesTableAvailable = false;
-        const localMsg: Message = {
-          id: `msg-${Date.now()}`,
-          conversation_id: conversationId,
-          sender_id: senderId,
-          content: trimmed,
-          message_type: messageType,
-          attachments: [],
-          created_at: new Date().toISOString(),
-          read_at: null,
-        };
-        const existing = localMessagesStore.get(conversationId) ?? [];
-        localMessagesStore.set(conversationId, [...existing, localMsg]);
-        return localMsg;
+        return sendLocal();
       }
       throw new Error(error.message ?? 'Gagal mengirim pesan.');
     }
@@ -353,22 +444,10 @@ export async function sendMessage(
       created_at: data.created_at,
       read_at: data.read_at,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (isTableMissingError(err)) {
       isMessagesTableAvailable = false;
-      const localMsg: Message = {
-        id: `msg-${Date.now()}`,
-        conversation_id: conversationId,
-        sender_id: senderId,
-        content: trimmed,
-        message_type: messageType,
-        attachments: [],
-        created_at: new Date().toISOString(),
-        read_at: null,
-      };
-      const existing = localMessagesStore.get(conversationId) ?? [];
-      localMessagesStore.set(conversationId, [...existing, localMsg]);
-      return localMsg;
+      return sendLocal();
     }
     throw err;
   }
@@ -380,11 +459,33 @@ export async function sendMessage(
 export async function createConversation(
   reportId: string | null,
   adminId: string,
-  citizenId: string
+  citizenId: string,
+  reportReference?: string
 ): Promise<Conversation> {
-  if (!isSupabaseConfigured) throw new Error('Supabase tidak terkonfigurasi.');
-
   const participantIds = [adminId, citizenId].sort();
+
+  /** Thread kept on this device. Stable id, so reopening the same pair returns the same thread. */
+  const createLocal = (): Conversation => {
+    const db = readLocal();
+    const id = `conv-local-${participantIds.join('_')}-${reportId ?? 'direct'}`.replace(/[^a-zA-Z0-9_-]/g, '');
+    const existing = db.conversations.find((c) => c.id === id);
+    if (existing) return existing;
+    const now = new Date().toISOString();
+    const conv: Conversation = {
+      id,
+      report_id: reportId,
+      participant_ids: participantIds,
+      created_at: now,
+      updated_at: now,
+      report_reference: reportReference,
+    };
+    db.conversations = [conv, ...db.conversations];
+    writeLocal(db);
+    return conv;
+  };
+
+  if (!isSupabaseConfigured || isConversationsTableAvailable === false) return createLocal();
+
 
   // Check if conversation already exists for this report + participants
   if (reportId) {
@@ -451,15 +552,11 @@ export async function createConversation(
   }
 
   if (error || !data) {
-    // Graceful fallback for local/demo/unmigrated table
-    return {
-      id: `conv-user-${adminId.slice(0, 8)}-${citizenId.slice(0, 8)}`,
-      report_id: reportId,
-      participant_ids: participantIds,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    if (isTableMissingError(error)) isConversationsTableAvailable = false;
+    // Keep the thread on this device so it survives reloads
+    return createLocal();
   }
+  isConversationsTableAvailable = true;
 
   // Send initial system message
   if (reportId) {
@@ -519,7 +616,16 @@ export async function markAsRead(messageId: string): Promise<void> {
 // markConversationRead — mark all unread messages in a conversation as read
 // ---------------------------------------------------------------------------
 export async function markConversationRead(conversationId: string, currentUserId: string): Promise<void> {
-  if (!isSupabaseConfigured || !conversationId || conversationId.startsWith('conv-demo') || isMessagesTableAvailable === false) return;
+  if (!conversationId) return;
+  if (isLocalConversationId(conversationId) || !isSupabaseConfigured || isMessagesTableAvailable === false) {
+    const db = readLocal();
+    const thread = db.messages[conversationId] ?? [];
+    if (!thread.some((m) => m.sender_id !== currentUserId && !m.read_at)) return;
+    const now = new Date().toISOString();
+    db.messages[conversationId] = thread.map((m) => (m.sender_id !== currentUserId && !m.read_at ? { ...m, read_at: now } : m));
+    writeLocal(db);
+    return;
+  }
   try {
     const { error } = await supabase
       .from('messages')
@@ -541,16 +647,42 @@ export async function markConversationRead(conversationId: string, currentUserId
 export function subscribeToMessages(
   conversationId: string,
   callback: (msg: Message) => void,
-  participantIds?: string[]
+  participantIds?: string[],
+  /** Called when an existing message changes, e.g. the recipient read it. */
+  onUpdate?: (update: { id: string; read_at: string | null }) => void
 ) {
-  if (!isSupabaseConfigured || !conversationId || conversationId.startsWith('conv-demo') || isMessagesTableAvailable === false) {
-    return { unsubscribe: () => {} };
+  if (!conversationId) return { unsubscribe: () => {} };
+
+  if (isLocalConversationId(conversationId) || !isSupabaseConfigured || isMessagesTableAvailable === false) {
+    // Another tab (or another account in this browser) wrote to the same device store
+    const known = new Map((readLocal().messages[conversationId] ?? []).map((m) => [m.id, m.read_at]));
+    const stop = onLocalChange(() => {
+      (readLocal().messages[conversationId] ?? []).forEach((m) => {
+        if (!known.has(m.id)) callback(m);
+        else if (known.get(m.id) !== m.read_at) onUpdate?.({ id: m.id, read_at: m.read_at });
+        known.set(m.id, m.read_at);
+      });
+    });
+    return { unsubscribe: stop };
   }
 
   let cachedParticipants = participantIds;
 
   const channel = supabase
     .channel(`messages-${conversationId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      (payload) => {
+        const row = payload.new as Record<string, unknown>;
+        onUpdate?.({ id: row.id as string, read_at: (row.read_at as string | null) ?? null });
+      }
+    )
     .on(
       'postgres_changes',
       {
@@ -609,7 +741,8 @@ export function subscribeToConversations(
   userId: string,
   callback: () => void
 ) {
-  if (!isSupabaseConfigured || isConversationsTableAvailable === false) return { unsubscribe: () => {} };
+  const stopLocal = onLocalChange(callback);
+  if (!isSupabaseConfigured || isConversationsTableAvailable === false) return { unsubscribe: stopLocal };
 
   const channel = supabase
     .channel(`conversations-${userId}`)
@@ -627,6 +760,7 @@ export function subscribeToConversations(
 
   return {
     unsubscribe: () => {
+      stopLocal();
       supabase.removeChannel(channel);
     },
   };
@@ -679,9 +813,130 @@ export function formatAdminReportMessage(
   };
 }
 
+/**
+ * Delivers an admin's "please complete your report" note to the reporter as an info_request message,
+ * opening the direct thread first when it does not exist yet. Returns the thread it landed in.
+ */
+export async function sendInfoRequest(
+  report: { id: string; publicReference: string; reporterUserId?: string },
+  adminId: string,
+  note: string
+): Promise<Conversation> {
+  if (!report.reporterUserId) throw new Error('Laporan ini tidak punya pelapor yang bisa dikirimi pesan.');
+  const text = note.trim();
+  if (!text) throw new Error('Isi permintaan tidak boleh kosong.');
+  const conv = await createConversation(report.id, adminId, report.reporterUserId, report.publicReference);
+  const body = formatAdminReportMessage(report.id, report.publicReference, 'request_info', text).body;
+  await sendMessage(conv.id, adminId, body, 'info_request', conv.participant_ids);
+  return conv;
+}
+
 export function formatUnreadBadge(count: number): string {
   if (count <= 0) return '';
   if (count > 99) return '99+';
   return String(count);
 }
 
+
+// ---------------------------------------------------------------------------
+// Unread count across all of the user's conversations (drives the nav badge)
+// ---------------------------------------------------------------------------
+export async function getUnreadMessageCount(userId: string): Promise<number> {
+  if (!userId) return 0;
+  const db = readLocal();
+  const localUnread = db.conversations
+    .filter((c) => c.participant_ids.includes(userId))
+    .reduce((sum, c) => sum + (db.messages[c.id] ?? []).filter((m) => m.sender_id !== userId && !m.read_at).length, 0);
+  return localUnread + (await getRemoteUnreadCount(userId));
+}
+
+async function getRemoteUnreadCount(userId: string): Promise<number> {
+  if (!isSupabaseConfigured || isMessagesTableAvailable === false) return 0;
+  try {
+    const { count, error } = await supabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .neq('sender_id', userId)
+      .is('read_at', null);
+    if (error) {
+      if (isTableMissingError(error)) isMessagesTableAvailable = false;
+      return 0;
+    }
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Fires whenever any visible message is inserted or changes (new mail, read receipts). */
+export function subscribeToUnreadChanges(userId: string, callback: () => void) {
+  if (!userId) return { unsubscribe: () => {} };
+  const stopLocal = onLocalChange(callback);
+  if (!isSupabaseConfigured || isMessagesTableAvailable === false) return { unsubscribe: stopLocal };
+  const channel = supabase
+    .channel(`unread-${userId}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, callback)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, callback)
+    .subscribe();
+  return {
+    unsubscribe: () => {
+      stopLocal();
+      supabase.removeChannel(channel);
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// People search for starting a new conversation
+// ---------------------------------------------------------------------------
+export async function searchProfiles(query: string, excludeUserId?: string): Promise<UserProfile[]> {
+  const q = query.trim().replace(/[%,()]/g, '');
+  if (!isSupabaseConfigured || q.length < 2) return [];
+  try {
+    let request = supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url, role')
+      .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
+      .limit(8);
+    if (excludeUserId) request = request.neq('id', excludeUserId);
+    const { data, error } = await request;
+    if (error || !data) return [];
+    return data.map((row) => ({
+      id: row.id,
+      username: row.username ?? '',
+      displayName: row.display_name ?? row.username ?? '',
+      avatarUrl: row.avatar_url ?? '',
+      role: row.role ?? 'citizen',
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Typing indicator: ephemeral broadcast, nothing is stored
+// ---------------------------------------------------------------------------
+export function createTypingChannel(
+  conversationId: string,
+  currentUserId: string,
+  onOtherTyping: () => void
+) {
+  if (!isSupabaseConfigured || !conversationId || conversationId.startsWith('conv-')) {
+    return { sendTyping: () => {}, unsubscribe: () => {} };
+  }
+  const channel = supabase
+    .channel(`typing-${conversationId}`)
+    .on('broadcast', { event: 'typing' }, (payload) => {
+      if (payload?.payload?.userId && payload.payload.userId !== currentUserId) onOtherTyping();
+    })
+    .subscribe();
+
+  return {
+    sendTyping: () => {
+      channel.send({ type: 'broadcast', event: 'typing', payload: { userId: currentUserId } });
+    },
+    unsubscribe: () => {
+      supabase.removeChannel(channel);
+    },
+  };
+}

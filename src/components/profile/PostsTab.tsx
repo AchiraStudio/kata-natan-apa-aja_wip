@@ -16,17 +16,17 @@ export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
         <div>
           {posts.length === 0 ? (
             isOwnProfile ? (
-              <div className="bg-white dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
+              <div className="bg-surface dark:bg-surface-2 border border-line rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
                 {/* Milestone Journey Header */}
                 <div className="text-center max-w-md mx-auto space-y-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBF2EE] dark:bg-[#1A2E24] text-[#1B4332] dark:text-[#34D399] text-[11px] font-bold tracking-wide">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-2 dark:bg-brand-soft text-brand text-[11px] font-bold tracking-wide">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Inisiasi Perjalanan Warga</span>
                   </div>
-                  <h4 className="text-base sm:text-lg font-black text-[#101913] dark:text-[#F3F6F4]">
+                  <h4 className="text-base sm:text-lg font-extrabold text-ink">
                     Perjalanan titikmu dimulai di sini.
                   </h4>
-                  <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] leading-relaxed">
+                  <p className="text-xs text-ink-2 leading-relaxed">
                     Setiap laporan warga adalah satu titik yang hidup: tercatat, diverifikasi oleh dinas, dan dipantau bersama hingga tuntas.
                   </p>
                 </div>
@@ -34,19 +34,19 @@ export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
                 {/* 3 Milestone Steps Connected with Dotted Line */}
                 <div className="relative max-w-xl mx-auto py-2">
                   {/* Desktop Dotted Connecting Line */}
-                  <div className="hidden sm:block absolute top-7 left-12 right-12 h-0.5 border-t-2 border-dashed border-[#C5D9CE] dark:border-[#2D4537] z-0" />
+                  <div className="hidden sm:block absolute top-7 left-12 right-12 h-0.5 border-t-2 border-dashed border-ink-2 dark:border-line z-0" />
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 relative z-10">
                     {/* Step 1 */}
                     <div className="flex sm:flex-col items-start sm:items-center gap-3 sm:text-center group">
-                      <div className="w-12 h-12 rounded-2xl bg-[#1B4332] text-white flex items-center justify-center shrink-0 shadow-md ring-4 ring-[#EBF2EE] dark:ring-[#1E2E25]">
-                        <MapPin className="w-5 h-5 text-[#34D399]" />
+                      <div className="w-12 h-12 rounded-2xl bg-brand text-on-brand flex items-center justify-center shrink-0 shadow-md ring-4 ring-surface-2 dark:ring-line">
+                        <MapPin className="w-5 h-5 text-brand" />
                       </div>
                       <div className="space-y-1">
-                        <div className="text-xs font-black text-[#101913] dark:text-[#F3F6F4]">
+                        <div className="text-xs font-extrabold text-ink">
                           1. Buat Titik Laporan
                         </div>
-                        <p className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] leading-snug">
+                        <p className="text-[11px] text-ink-2 leading-snug">
                           Foto jalan berlubang, drainase tersumbat, atau fasilitas umum di sekitarmu.
                         </p>
                       </div>
@@ -54,14 +54,14 @@ export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
 
                     {/* Step 2 */}
                     <div className="flex sm:flex-col items-start sm:items-center gap-3 sm:text-center group">
-                      <div className="w-12 h-12 rounded-2xl bg-[#F7F5EF] dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] text-[#1B4332] dark:text-[#34D399] flex items-center justify-center shrink-0 shadow-xs ring-4 ring-white dark:ring-[#131916]">
+                      <div className="w-12 h-12 rounded-2xl bg-canvas dark:bg-surface border border-line text-brand flex items-center justify-center shrink-0 shadow-xs ring-4 ring-white dark:ring-surface-2">
                         <Building className="w-5 h-5" />
                       </div>
                       <div className="space-y-1">
-                        <div className="text-xs font-black text-[#101913] dark:text-[#F3F6F4]">
+                        <div className="text-xs font-extrabold text-ink">
                           2. Respons Resmi Dinas
                         </div>
-                        <p className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] leading-snug">
+                        <p className="text-[11px] text-ink-2 leading-snug">
                           PUPR, Dishub, atau DLH Pemkot Bogor memberikan disposisi dan jadwal tindak lanjut.
                         </p>
                       </div>
@@ -69,14 +69,14 @@ export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
 
                     {/* Step 3 */}
                     <div className="flex sm:flex-col items-start sm:items-center gap-3 sm:text-center group">
-                      <div className="w-12 h-12 rounded-2xl bg-[#F7F5EF] dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-xs ring-4 ring-white dark:ring-[#131916]">
+                      <div className="w-12 h-12 rounded-2xl bg-canvas dark:bg-surface border border-line text-lime-600 dark:text-lime-400 flex items-center justify-center shrink-0 shadow-xs ring-4 ring-white dark:ring-surface-2">
                         <CheckCircle2 className="w-5 h-5" />
                       </div>
                       <div className="space-y-1">
-                        <div className="text-xs font-black text-[#101913] dark:text-[#F3F6F4]">
+                        <div className="text-xs font-extrabold text-ink">
                           3. Kawal Hingga Tuntas
                         </div>
-                        <p className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] leading-snug">
+                        <p className="text-[11px] text-ink-2 leading-snug">
                           Verifikasi bukti penyelesaian fisik dan serapan alokasi anggaran APBD.
                         </p>
                       </div>
@@ -89,7 +89,7 @@ export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
                   <button
                     type="button"
                     onClick={() => openComposer('report')}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-xl text-xs font-bold hover:bg-[#14352A] dark:hover:bg-[#34D399] transition-all shadow-sm cursor-pointer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand text-on-brand rounded-xl text-xs font-bold hover:bg-brand-hover dark:hover:bg-brand transition-all shadow-sm cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Laporkan Masalah Fasilitas</span>
@@ -97,20 +97,20 @@ export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
                   <button
                     type="button"
                     onClick={() => openComposer('post')}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#101913] dark:text-[#F3F6F4] rounded-xl text-xs font-bold hover:bg-[#F7F5EF] dark:hover:bg-[#26352E] transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 border border-line bg-surface text-ink rounded-xl text-xs font-bold hover:bg-canvas dark:hover:bg-line transition-colors cursor-pointer"
                   >
-                    <MessageSquare className="w-4 h-4 text-[#4F5A52]" />
+                    <MessageSquare className="w-4 h-4 text-ink-2" />
                     <span>Mulai Diskusi Warga</span>
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="bg-white dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-2xl p-8 text-center space-y-3">
-                <MessageSquare className="w-8 h-8 text-[#4F5A52] dark:text-[#9EACA3] mx-auto opacity-40" />
-                <h4 className="text-sm font-bold text-[#101913] dark:text-[#F3F6F4]">
+              <div className="bg-surface dark:bg-surface-2 border border-line rounded-2xl p-8 text-center space-y-3">
+                <MessageSquare className="w-8 h-8 text-ink-2 mx-auto opacity-40" />
+                <h4 className="text-sm font-bold text-ink">
                   Belum Ada Postingan
                 </h4>
-                <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] max-w-xs mx-auto">
+                <p className="text-xs text-ink-2 max-w-xs mx-auto">
                   Pengguna ini belum membagikan postingan publik.
                 </p>
               </div>
@@ -121,7 +121,7 @@ export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
                 <Link
                   key={post.id}
                   to={`/post/${post.id}`}
-                  className="group bg-white dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-2xl overflow-hidden hover:border-[#1B4332]/40 dark:hover:border-[#10B981]/40 transition-all shadow-xs flex flex-col justify-between"
+                  className="group bg-surface dark:bg-surface-2 border border-line rounded-2xl overflow-hidden hover:border-brand/40 transition-all shadow-xs flex flex-col justify-between"
                 >
                   <div>
                     {/* Media Preview if available */}
@@ -141,20 +141,20 @@ export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
                     )}
 
                     <div className="p-4 space-y-2">
-                      <div className="flex items-center justify-between text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
-                        <span className="font-semibold text-[#1B4332] dark:text-[#34D399]">
+                      <div className="flex items-center justify-between text-[11px] text-ink-2">
+                        <span className="font-semibold text-brand">
                           {post.locationTag || 'Kota Bogor'}
                         </span>
                         <span>{formatIndonesianTimeAgo(post.createdAt)}</span>
                       </div>
-                      <p className="text-xs text-[#101913] dark:text-[#F3F6F4] line-clamp-3 leading-relaxed">
+                      <p className="text-xs text-ink line-clamp-3 leading-relaxed">
                         {post.body}
                       </p>
                     </div>
                   </div>
 
                   {/* Card Footer */}
-                  <div className="px-4 py-3 bg-[#F7F5EF]/50 dark:bg-[#1A221E]/50 border-t border-[#E3E0D6]/60 dark:border-[#26352E]/60 flex items-center justify-between text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
+                  <div className="px-4 py-3 bg-canvas/50 dark:bg-surface/50 border-t border-line/60 flex items-center justify-between text-[11px] text-ink-2">
                     <div className="flex items-center gap-3">
                       <span className="inline-flex items-center gap-1">
                         <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500/20" />
@@ -165,7 +165,7 @@ export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
                         <span>{post.commentsCount || 0}</span>
                       </span>
                     </div>
-                    <span className="text-[10px] font-bold group-hover:text-[#1B4332] dark:group-hover:text-[#34D399] transition-colors flex items-center gap-1">
+                    <span className="text-[10px] font-bold group-hover:text-brand transition-colors flex items-center gap-1">
                       <span>Buka Selengkapnya</span>
                       <ArrowRight className="w-3 h-3" />
                     </span>

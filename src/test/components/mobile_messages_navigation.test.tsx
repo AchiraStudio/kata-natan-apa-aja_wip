@@ -144,36 +144,7 @@ describe('Mobile Messages Navigation & E2EE Safety Invariants', () => {
     expect(html).toContain('Bagikan Profil');
   });
 
-  it('MessagesView renders "Halo," greeting, filter pills, FAB button, and E2EE active status', () => {
-    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
-      profile: mockCitizen,
-      isAuthenticated: true,
-      isLoading: false,
-      loginWithPassword: vi.fn(),
-      registerCitizen: vi.fn(),
-      logout: vi.fn(),
-      updateProfile: vi.fn(),
-    } as any);
-
-    const html = renderToStaticMarkup(
-      <ThemeProvider>
-        <TitikContextModule.TitikProvider>
-          <MemoryRouter initialEntries={['/pesan?conversation_id=conv-demo-01']}>
-            <MessagesView />
-          </MemoryRouter>
-        </TitikContextModule.TitikProvider>
-      </ThemeProvider>
-    );
-
-    // Inspiration styling elements
-    expect(html).toContain('Halo,');
-    expect(html).toContain('Online &amp; E2EE Aktif (AES-GCM-256)');
-    expect(html).toContain('Semua');
-    expect(html).toContain('Belum Dibaca');
-    expect(html).toContain('aria-label="Mulai Percakapan Baru"');
-  });
-
-  it('MessagesView on direct navigation to "/pesan" shows the conversation list first without auto-opening Budi Santoso', () => {
+  it('MessagesView on /pesan shows the inbox first, with search, filters, and the new-conversation button', () => {
     vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
       profile: mockCitizen,
       isAuthenticated: true,
@@ -194,12 +165,17 @@ describe('Mobile Messages Navigation & E2EE Safety Invariants', () => {
       </ThemeProvider>
     );
 
-    // Conversation list must remain visible (flex, not hidden on mobile)
-    expect(html).toContain('w-full md:w-[280px]');
-    expect(html).toContain('Halo,');
-    expect(html).toContain('Pesan Masuk');
-    expect(html).toContain('Kontak Terkini');
-    expect(html).toContain('Pilih percakapan di bilah kiri');
+    expect(html).toContain('>Pesan<');
+    expect(html).toContain('Semua');
+    expect(html).toContain('Belum Dibaca');
+    expect(html).toContain('aria-label="Mulai Percakapan Baru"');
+    expect(html).toContain('aria-label="Cari percakapan"');
+    // The inbox is visible on phones and no thread is opened automatically
+    expect(html).toContain('block w-full md:w-[340px]');
+    expect(html).toContain('Pilih percakapan');
+    // Nothing fabricated: no seeded contacts
+    expect(html).not.toContain('Budi Santoso');
+    expect(html).not.toContain('Siti Rahma');
   });
 
   it('demo conversations return cleanly without throwing or spamming Supabase', async () => {

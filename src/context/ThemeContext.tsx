@@ -12,9 +12,9 @@ const THEME_STORAGE_KEY = 'titik_theme_v1';
 
 function getInitialTheme(): Theme {
   try {
-    return localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
+    return localStorage.getItem(THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark';
   } catch {
-    return 'light';
+    return 'dark';
   }
 }
 

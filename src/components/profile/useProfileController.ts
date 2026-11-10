@@ -7,6 +7,7 @@ import { UserProfile, Post, Report } from '../../types/domain';
 import { stripExifAndCleanImage, uploadFileToSupabase } from '../../components/composer/useMediaUpload';
 import { THEME_OPTIONS } from './profileThemes';
 import { createConversation } from '../../services/messagesService';
+import { resolveAvatarUrl } from '../../utils/avatar';
 
 export function useProfileController() {
   const { username } = useParams<{ username?: string }>();
@@ -151,13 +152,21 @@ export function useProfileController() {
     loadProfileData();
   }, [loadProfileData]);
 
+  useEffect(() => {
+    const onSubmitted = () => {
+      loadProfileData();
+    };
+    window.addEventListener('titik-report-submitted', onSubmitted);
+    return () => window.removeEventListener('titik-report-submitted', onSubmitted);
+  }, [loadProfileData]);
+
   const handleOpenEdit = () => {
     if (!profile) return;
     setEditDisplayName(profile.displayName || '');
     setEditUsername(profile.username || '');
     setEditBio(profile.bio || '');
     setEditDistrict(profile.district || '');
-    setEditAvatarUrl(profile.avatarUrl || '');
+    setEditAvatarUrl(resolveAvatarUrl(profile.avatarUrl));
     setEditBannerUrl(profile.bannerUrl || '');
     setEditBackgroundTheme(profile.backgroundTheme || 'editorial_forest');
     setEditWebsiteUrl(profile.websiteUrl || '');
@@ -295,7 +304,7 @@ export function useProfileController() {
         username: cleanUsername,
         bio: editBio.trim(),
         district: editDistrict.trim(),
-        avatarUrl: editAvatarUrl || undefined,
+        avatarUrl: editAvatarUrl,
         bannerUrl: editBannerUrl,
         backgroundTheme: editBackgroundTheme,
         websiteUrl: editWebsiteUrl.trim(),

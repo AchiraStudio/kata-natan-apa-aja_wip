@@ -259,6 +259,9 @@ export async function fetchRealProfileAndRole(
       if (data.is_demo === true) {
         return null;
       }
+      if (data.role === 'admin') {
+        role = 'admin';
+      }
       const rawBio = typeof data.bio === 'string' ? data.bio.trim() : '';
       const rawDistrict = typeof data.district === 'string' ? data.district.trim() : '';
 
@@ -584,9 +587,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const lowerInput = normalizedEmail.toLowerCase();
     if (!normalizedEmail.includes('@')) {
       if (lowerInput === 'admin' || lowerInput === 'admin.pupr') {
-        normalizedEmail = 'admin@titik.id';
-      } else if (lowerInput === 'warga' || lowerInput === 'budi.santoso' || lowerInput === 'sahabatbogor') {
-        normalizedEmail = 'warga@titik.id';
+        normalizedEmail = 'admin@titik.com';
       }
     }
 

@@ -40,6 +40,9 @@ export interface FeedComment {
   likes: number;
   parentId?: string;
   authorId?: string;
+  /** Account role from the profiles table. Only 'admin' may be shown as an official response. */
+  authorRole?: 'citizen' | 'admin';
+  authorUsername?: string;
 }
 
 export interface IDataAdapter {

@@ -2,7 +2,14 @@ import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
+import { MobileTopBar } from './MobileTopBar';
+import { UnreadMessagesSync } from './UnreadMessagesSync';
 
+/**
+ * App shell. The sidebar sits flush left at every width; page content fills the rest and
+ * each page centers its own reading column (see PageShell). /admin and /pesan are
+ * viewport-locked workspaces that manage their own scrolling.
+ */
 export const AppLayout: React.FC = () => {
   const location = useLocation();
   const isViewportLocked =
@@ -10,11 +17,9 @@ export const AppLayout: React.FC = () => {
 
   return (
     <div
-      className={
-        isViewportLocked
-          ? 'h-[100dvh] max-h-[100dvh] overflow-hidden admin-viewport-locked w-full max-w-[1680px] mx-auto bg-[#F7F5EF] dark:bg-[#0C100E] flex flex-col lg:flex-row selection:bg-[#1B4332] dark:selection:bg-[#10B981] selection:text-white dark:selection:text-[#0A1610]'
-          : 'min-h-[100dvh] w-full max-w-[1680px] mx-auto bg-[#F7F5EF] dark:bg-[#0C100E] flex flex-col lg:flex-row selection:bg-[#1B4332] dark:selection:bg-[#10B981] selection:text-white dark:selection:text-[#0A1610]'
-      }
+      className={`w-full flex flex-col lg:flex-row text-ink ${
+        isViewportLocked ? 'h-[100dvh] max-h-[100dvh] overflow-hidden admin-viewport-locked' : 'min-h-[100dvh]'
+      }`}
     >
       <Sidebar />
       {isViewportLocked ? (
@@ -22,9 +27,13 @@ export const AppLayout: React.FC = () => {
           <Outlet />
         </div>
       ) : (
-        <Outlet />
+        <div className="flex-1 min-w-0 flex flex-col">
+          <MobileTopBar />
+          <Outlet />
+        </div>
       )}
       <BottomNav />
+      <UnreadMessagesSync />
     </div>
   );
 };

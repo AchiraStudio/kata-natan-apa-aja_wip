@@ -66,3 +66,16 @@ export function sortCommentsForUser<T extends { authorName: string; authorId?: s
   return [...userComments, ...otherComments];
 }
 
+
+/**
+ * Groups a flat, chronological comment list into threads: every top-level comment with the
+ * replies attached to it. A reply whose parent is missing is promoted to a top-level comment.
+ */
+export function groupCommentThreads<T extends { id: string; parentId?: string }>(
+  comments: T[]
+): Array<{ root: T; replies: T[] }> {
+  const ids = new Set(comments.map((c) => c.id));
+  return comments
+    .filter((c) => !c.parentId || !ids.has(c.parentId))
+    .map((root) => ({ root, replies: comments.filter((c) => c.parentId === root.id) }));
+}

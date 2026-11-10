@@ -1,243 +1,170 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ListFilter,
-  Send,
-  DollarSign,
-  Users,
-  ChevronRight,
-  MessageSquare,
-  TrendingUp,
-  Clock,
-  CheckCircle2,
-} from 'lucide-react';
-import {
-  useAdminWorkspace,
-  AdminHeroBanner,
-  AdminMetricsCards,
-} from '../../components/admin';
-import { UserProfile } from '../../types/domain';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { createConversation } from '../../services/messagesService';
+import { RefreshCw } from 'lucide-react';
+import { useAdminWorkspace, useMessageReporter, SeverityMark, ageLabel, daysSince, EmptyNote, Notice } from '../../components/admin';
+import { StatusLabel } from '../../components/common/StatusLabel';
+import type { Report, ReportSeverity, UserProfile } from '../../types/domain';
 
 interface Props {
   profile: UserProfile;
 }
 
+const SEVERITY_WEIGHT: Record<ReportSeverity, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+const NEEDS_ACTION = new Set(['submitted', 'under_review']);
+const WITH_AGENCY = new Set(['accepted_for_routing', 'forwarded_to_institution', 'institution_responded']);
+const SLA_DAYS = 14;
+
+const firstName = (name: string) => name.trim().split(/\s+/)[0] || 'Petugas';
+
+/** Landing page of the portal: what needs a decision today, and how the rest of the pipeline looks. */
 export const AdminOverview: React.FC<Props> = ({ profile }) => {
-  const navigate = useNavigate();
-  const { profile: authProfile } = useAuth();
-  const {
-    reports,
-    isLoadingReports,
-    refresh,
-    setSelectedReportId,
-    filteredReports,
-    statusFilter,
-    setStatusFilter,
-    metrics,
-  } = useAdminWorkspace();
+  const { reports, isLoadingReports, refresh } = useAdminWorkspace();
+  const messenger = useMessageReporter();
 
-  const recentReports = filteredReports.slice(0, 5);
+  const worklist = useMemo(() => {
+    return reports
+      .filter((r) => NEEDS_ACTION.has(r.status))
+      .sort((a, b) => {
+        const sev = (SEVERITY_WEIGHT[b.severity] || 0) - (SEVERITY_WEIGHT[a.severity] || 0);
+        return sev !== 0 ? sev : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
+  }, [reports]);
 
-  const handleMessageReporter = async (reportId: string, reporterUserId?: string) => {
-    if (!reporterUserId || !authProfile) return;
-    try {
-      const conv = await createConversation(reportId, authProfile.id, reporterUserId);
-      navigate(`/pesan?conversation_id=${conv.id}`);
-    } catch {
-      navigate(`/pesan?report_id=${reportId}`);
-    }
-  };
+  const counts = useMemo(() => {
+    const c = { review: 0, needsInfo: 0, agency: 0, resolved: 0, stale: 0 };
+    reports.forEach((r) => {
+      if (NEEDS_ACTION.has(r.status)) c.review += 1;
+      else if (r.status === 'needs_info') c.needsInfo += 1;
+      else if (WITH_AGENCY.has(r.status)) {
+        c.agency += 1;
+        if (daysSince(r.updatedAt || r.createdAt) > SLA_DAYS) c.stale += 1;
+      } else if (r.status === 'resolved') c.resolved += 1;
+    });
+    return c;
+  }, [reports]);
+
+  const averageWait = worklist.length > 0 ? Math.round(worklist.reduce((sum, r) => sum + daysSince(r.createdAt), 0) / worklist.length) : 0;
+  const rows = worklist.slice(0, 8);
+
+  const rail: Array<{ label: string; value: number; to: string; note?: string }> = [
+    { label: 'Menunggu verifikasi', value: counts.review, to: '/admin/validasi?status=under_review' },
+    { label: 'Butuh info dari warga', value: counts.needsInfo, to: '/admin/validasi?status=needs_info', note: 'menunggu balasan pelapor' },
+    { label: 'Di tangan dinas', value: counts.agency, to: '/admin/disposisi', note: counts.stale > 0 ? `${counts.stale} lewat ${SLA_DAYS} hari tanpa kabar` : undefined },
+    { label: 'Tuntas', value: counts.resolved, to: '/admin/validasi?status=resolved' },
+  ];
 
   return (
     <div className="space-y-6">
-      <AdminHeroBanner onRefresh={refresh} isLoading={isLoadingReports} />
-
-      {/* Live connection badge */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-semibold text-[11px]">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <span>Koneksi Supabase Aktif · Realtime</span>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-2xl font-bold text-ink">Halo, {firstName(profile.displayName)}</h2>
+          <p className="mt-1 text-sm text-ink-2">
+            {isLoadingReports && reports.length === 0
+              ? 'Memuat laporan'
+              : worklist.length === 0
+              ? 'Tidak ada laporan yang menunggu keputusan Anda.'
+              : `${worklist.length} laporan menunggu keputusan, rata-rata sudah ${averageWait} hari.`}
+          </p>
         </div>
-        <span className="text-[11px] font-mono text-[#4F5A52] dark:text-[#9EACA3]">
-          Total: {reports.length} laporan
-        </span>
-      </div>
+        <button type="button" onClick={refresh} disabled={isLoadingReports} aria-label="Segarkan" className="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-surface-2 text-ink text-sm font-semibold hover:bg-line disabled:opacity-60 transition-colors cursor-pointer">
+          <RefreshCw className={`w-4 h-4 ${isLoadingReports ? 'animate-spin' : ''}`} aria-hidden="true" />
+          Segarkan
+        </button>
+      </header>
 
-      {/* KPI Cards */}
-      <AdminMetricsCards
-        metrics={metrics}
-        activeStatus={statusFilter}
-        onSelectStatus={(st) => setStatusFilter(statusFilter === st ? 'all' : st)}
-      />
+      {messenger.error && <Notice kind="error">{messenger.error}</Notice>}
 
-      {/* Quick-nav grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          {
-            to: '/admin/validasi',
-            icon: <ListFilter className="w-5 h-5" />,
-            iconBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-            badge: `${metrics.underReview + metrics.needsInfo} Menunggu`,
-            badgeColor: 'text-amber-600 dark:text-amber-400',
-            title: 'Antrean Validasi',
-            desc: 'Tinjau bukti, verifikasi, dan tentukan status laporan.',
-            cta: 'Buka Antrean',
-          },
-          {
-            to: '/admin/disposisi',
-            icon: <Send className="w-5 h-5" />,
-            iconBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-            badge: `${metrics.forwarded} Diteruskan`,
-            badgeColor: 'text-blue-600 dark:text-blue-400',
-            title: 'Disposisi & Rute Dinas',
-            desc: 'Rute instansi teknis dan pengawasan SLA tindakan.',
-            cta: 'Buka Disposisi',
-          },
-          {
-            to: '/admin/anggaran',
-            icon: <DollarSign className="w-5 h-5" />,
-            iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-            badge: 'APBD Live',
-            badgeColor: 'text-emerald-600 dark:text-emerald-400',
-            title: 'Rekap APBD & Audit',
-            desc: 'Transparansi alokasi dana dan audit realisasi fisik.',
-            cta: 'Buka Audit',
-          },
-          {
-            to: '/admin/pengguna',
-            icon: <Users className="w-5 h-5" />,
-            iconBg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
-            badge: 'Warga Kota',
-            badgeColor: 'text-teal-600 dark:text-teal-400',
-            title: 'Manajemen Pengguna',
-            desc: 'Verifikasi identitas warga dan riwayat kontribusi.',
-            cta: 'Buka Pengguna',
-          },
-        ].map((card) => (
-          <Link
-            key={card.to}
-            to={card.to}
-            className="p-5 rounded-2xl bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] hover:border-[#1B4332] dark:hover:border-[#10B981] transition-all group shadow-xs"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${card.iconBg}`}>
-                {card.icon}
-              </div>
-              <span className={`text-xs font-mono font-bold ${card.badgeColor}`}>{card.badge}</span>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
+        <section aria-label="Perlu keputusan" className="panel overflow-hidden">
+          <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-line-soft">
+            <div>
+              <h3 className="font-sans text-[15px] font-semibold text-ink">Perlu keputusan</h3>
+              <p className="text-xs text-ink-3">Diurutkan dari yang paling parah, lalu yang paling lama menunggu.</p>
             </div>
-            <h3 className="font-bold text-sm text-[#101913] dark:text-[#F3F6F4] group-hover:text-[#1B4332] dark:group-hover:text-[#34D399]">
-              {card.title}
-            </h3>
-            <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] mt-1 line-clamp-2">{card.desc}</p>
-            <div className="mt-3 flex items-center text-xs font-semibold text-[#1B4332] dark:text-[#34D399] gap-1">
-              <span>{card.cta}</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </div>
-          </Link>
-        ))}
-      </div>
+            <Link to="/admin/validasi" className="text-sm font-semibold text-brand underline-offset-2 hover:underline shrink-0">
+              Buka antrean
+            </Link>
+          </div>
 
-      {/* Recent reports with message action */}
-      <div className="bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-[#101913] dark:text-[#F3F6F4]">
-              Laporan Memerlukan Perhatian
-            </h3>
-            <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3]">
-              Antrean teratas dengan prioritas verifikasi atau keparahan tinggi.
+          {isLoadingReports && reports.length === 0 ? (
+            <p role="status" className="px-5 py-12 text-center text-sm text-ink-2">
+              Memuat laporan
             </p>
-          </div>
-          <Link
-            to="/admin/validasi"
-            className="text-xs font-bold text-[#1B4332] dark:text-[#34D399] hover:underline flex items-center gap-1"
-          >
-            <span>Buka Antrean Lengkap</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+          ) : rows.length === 0 ? (
+            <EmptyNote title="Antrean bersih">Laporan baru yang butuh verifikasi akan muncul di sini.</EmptyNote>
+          ) : (
+            <ul className="divide-y divide-line-soft">
+              {rows.map((r) => (
+                <WorkRow key={r.id} report={r} busy={messenger.busyId === r.id} onMessage={() => messenger.open(r)} />
+              ))}
+            </ul>
+          )}
+        </section>
 
-        <div className="divide-y divide-[#E3E0D6] dark:divide-[#26352E]">
-          {isLoadingReports && (
-            <div className="py-8 text-center text-xs text-[#9EACA3] animate-pulse">Memuat laporan...</div>
-          )}
-          {!isLoadingReports && recentReports.length === 0 && (
-            <div className="py-8 text-center text-xs text-[#9EACA3]">Tidak ada laporan aktif saat ini.</div>
-          )}
-          {recentReports.map((r) => (
-            <div key={r.id} className="py-3 flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-[11px] font-bold text-[#4F5A52] dark:text-[#9EACA3]">
-                    {r.publicReference}
-                  </span>
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                      r.severity === 'critical'
-                        ? 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300'
-                        : r.severity === 'high'
-                        ? 'bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300'
-                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                    }`}
-                  >
-                    {r.severity}
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-[#F0F7F4] dark:bg-[#26352E] text-[#1B4332] dark:text-[#34D399]">
-                    {r.status.replace(/_/g, ' ')}
-                  </span>
+        <aside aria-label="Beban kerja" className="space-y-6">
+          <section className="panel p-5">
+            <h3 className="font-sans text-[15px] font-semibold text-ink">Beban kerja</h3>
+            <dl className="mt-3 divide-y divide-line-soft">
+              {rail.map((item) => (
+                <div key={item.label}>
+                  <Link to={item.to} className="flex items-center justify-between gap-3 py-3 -mx-2 px-2 rounded-lg hover:bg-surface-2/60 transition-colors">
+                    <span className="min-w-0">
+                      <dt className="text-sm text-ink">{item.label}</dt>
+                      {item.note && <p className="text-xs text-ink-3">{item.note}</p>}
+                    </span>
+                    <dd className="font-display text-2xl font-bold text-ink tabular-nums">{item.value}</dd>
+                  </Link>
                 </div>
-                <p className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4] truncate mt-0.5">
-                  {r.title}
-                </p>
-                {r.reporterDisplayName && (
-                  <p className="text-[11px] text-[#9EACA3] mt-0.5">oleh {r.reporterDisplayName}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {r.reporterUserId && (
-                  <button
-                    type="button"
-                    onClick={() => handleMessageReporter(r.id, r.reporterUserId)}
-                    className="p-1.5 rounded-xl border border-[#E3E0D6] dark:border-[#26352E] text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#1B4332] dark:hover:text-[#34D399] hover:border-[#1B4332] dark:hover:border-[#34D399] transition-colors"
-                    title="Kirim pesan ke pelapor"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                <Link
-                  to="/admin/validasi"
-                  onClick={() => setSelectedReportId(r.id)}
-                  className="px-3 py-1.5 rounded-xl border border-[#E3E0D6] dark:border-[#26352E] text-xs font-bold text-[#101913] dark:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#26352E] transition-colors"
-                >
-                  Tinjau
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+              ))}
+            </dl>
+            <p className="mt-3 text-xs text-ink-3 tabular-nums">Total {reports.length} laporan tercatat.</p>
+          </section>
 
-      {/* Summary stats strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { icon: <Clock className="w-4 h-4" />, label: 'Menunggu Verifikasi', value: metrics.underReview, color: 'text-amber-600 dark:text-amber-400' },
-          { icon: <TrendingUp className="w-4 h-4" />, label: 'Butuh Info', value: metrics.needsInfo, color: 'text-orange-600 dark:text-orange-400' },
-          { icon: <Send className="w-4 h-4" />, label: 'Diteruskan ke Dinas', value: metrics.forwarded, color: 'text-blue-600 dark:text-blue-400' },
-          { icon: <CheckCircle2 className="w-4 h-4" />, label: 'Tuntas Ditangani', value: metrics.resolved, color: 'text-emerald-600 dark:text-emerald-400' },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-2xl p-4 flex items-center gap-3">
-            <div className={`shrink-0 ${stat.color}`}>{stat.icon}</div>
-            <div className="min-w-0">
-              <p className={`text-xl font-black ${stat.color}`}>{stat.value}</p>
-              <p className="text-[10px] text-[#9EACA3] leading-tight">{stat.label}</p>
-            </div>
-          </div>
-        ))}
+          <nav aria-label="Pintasan" className="panel p-2">
+            {[
+              ['/admin/disposisi', 'Disposisi dinas', 'Pantau laporan yang sedang di dinas'],
+              ['/admin/anggaran', 'Rekap APBD', 'Pagu, realisasi, dan estimasi kerusakan'],
+              ['/admin/pengguna', 'Pengguna', 'Verifikasi warga dan atur peran'],
+            ].map(([to, title, note]) => (
+              <Link key={to} to={to} className="block px-3 py-2.5 rounded-lg hover:bg-surface-2/60 transition-colors">
+                <span className="block text-sm font-semibold text-ink">{title}</span>
+                <span className="block text-xs text-ink-3">{note}</span>
+              </Link>
+            ))}
+          </nav>
+        </aside>
       </div>
     </div>
   );
 };
 
+const WorkRow: React.FC<{ report: Report; busy: boolean; onMessage: () => void }> = ({ report, busy, onMessage }) => (
+  <li className="px-5 py-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+    <div className="min-w-0 flex-1 basis-64">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+        <span className="titik-id text-[11px] text-ink-3">{report.publicReference}</span>
+        <StatusLabel status={report.status} />
+        <SeverityMark severity={report.severity} />
+      </div>
+      <p className="mt-1 text-sm font-semibold text-ink leading-snug">{report.title}</p>
+      <p className="mt-0.5 text-xs text-ink-3">
+        masuk {ageLabel(report.createdAt)}
+        {report.reporterDisplayName ? ` / ${report.reporterDisplayName}` : ''}
+      </p>
+    </div>
+    <div className="flex items-center gap-2 shrink-0">
+      <button
+        type="button"
+        onClick={onMessage}
+        disabled={busy || !report.reporterUserId}
+        title={report.reporterUserId ? 'Kirim pesan ke pelapor' : 'Laporan anonim, tidak bisa dikirimi pesan'}
+        className="h-9 px-3.5 rounded-lg bg-surface-2 text-ink text-sm font-semibold hover:bg-line disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+      >
+        {busy ? 'Membuka' : 'Pesan'}
+      </button>
+      <Link to={`/admin/validasi?r=${encodeURIComponent(report.id)}`} className="h-9 px-4 inline-flex items-center rounded-lg bg-brand text-on-brand text-sm font-semibold hover:bg-brand-hover transition-colors">
+        Tinjau
+      </Link>
+    </div>
+  </li>
+);

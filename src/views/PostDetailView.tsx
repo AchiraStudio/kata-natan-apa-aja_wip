@@ -211,15 +211,15 @@ export const PostDetailView: React.FC = () => {
   }, [comments, profile]);
 
   return (
-    <div className="flex-1 min-w-0 bg-[#F7F5EF] dark:bg-[#0A100D] text-[#101913] dark:text-[#F3F6F4] pb-24 lg:pb-0">
+    <div className="flex-1 min-w-0 bg-canvas text-ink pb-24 lg:pb-0">
 
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 py-6 lg:py-8">
+      <main className="flex-1 min-w-0 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-10 pt-5 lg:pt-10 pb-32 lg:pb-14">
         {/* Navigation Top Bar */}
         <div className="flex items-center justify-between mb-4">
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#1B4332] dark:hover:text-[#34D399] transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 text-xs font-bold text-ink-2 hover:text-brand transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Kembali ke Beranda</span>
@@ -229,8 +229,8 @@ export const PostDetailView: React.FC = () => {
         {/* Loading State */}
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <Loader2 className="w-8 h-8 text-[#1B4332] dark:text-[#34D399] animate-spin mb-3" />
-            <p className="text-xs font-medium text-[#4F5A52] dark:text-[#9EACA3]">
+            <Loader2 className="w-8 h-8 text-brand animate-spin mb-3" />
+            <p className="text-xs font-medium text-ink-2">
               Memuat postingan...
             </p>
           </div>
@@ -242,16 +242,16 @@ export const PostDetailView: React.FC = () => {
             <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
               <AlertCircle className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-[#101913] dark:text-[#F3F6F4]">
+            <h3 className="text-base font-bold text-ink">
               {error || 'Postingan tidak ditemukan'}
             </h3>
-            <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3]">
+            <p className="text-xs text-ink-2">
               Postingan ini mungkin telah dihapus atau tautan tidak valid.
             </p>
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="px-4 py-2 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-xl text-xs font-bold hover:bg-[#14352A] cursor-pointer"
+              className="px-4 py-2 bg-brand text-on-brand rounded-xl text-xs font-bold hover:bg-brand-hover cursor-pointer"
             >
               Kembali ke Beranda
             </button>
@@ -261,9 +261,9 @@ export const PostDetailView: React.FC = () => {
         {/* Post Card */}
         {!isLoading && post && (
           <div className="space-y-6">
-            <article className="bg-white dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl shadow-sm overflow-hidden">
+            <article className="bg-surface dark:bg-surface-2 border border-line rounded-3xl shadow-sm overflow-hidden">
               {/* Author Header */}
-              <div className="p-4 sm:p-5 flex items-center justify-between border-b border-[#E3E0D6]/60 dark:border-[#26352E]/60">
+              <div className="p-4 sm:p-5 flex items-center justify-between border-b border-line/60">
                 <Link
                   to={`/u/${post.author.username.replace(/^@+/, '')}`}
                   className="flex items-center gap-3 group"
@@ -273,13 +273,13 @@ export const PostDetailView: React.FC = () => {
                     alt={post.author.displayName}
                     name={post.author.displayName}
                     role={post.author.role}
-                    className="w-11 h-11 rounded-full object-cover border border-[#E3E0D6] dark:border-[#26352E] group-hover:ring-2 group-hover:ring-[#1B4332] transition-all"
+                    className="w-11 h-11 rounded-full object-cover border border-line group-hover:ring-2 group-hover:ring-brand transition-all"
                   />
                   <div>
-                    <div className="text-sm font-bold text-[#101913] dark:text-[#F3F6F4] group-hover:text-[#1B4332] dark:group-hover:text-[#34D399] transition-colors">
+                    <div className="text-sm font-bold text-ink group-hover:text-brand transition-colors">
                       {post.author.displayName}
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
+                    <div className="flex items-center gap-2 text-[11px] text-ink-2">
                       <span>@{post.author.username}</span>
                       <span>•</span>
                       <span>{formatIndonesianTimeAgo(post.createdAt)}</span>
@@ -287,7 +287,7 @@ export const PostDetailView: React.FC = () => {
                   </div>
                 </Link>
 
-                <div className="flex items-center gap-1.5 text-xs text-[#1B4332] dark:text-[#34D399] font-semibold bg-[#E7EBDD] dark:bg-[#1A2E24] px-2.5 py-1 rounded-full">
+                <div className="flex items-center gap-1.5 text-xs text-brand font-semibold bg-brand-soft px-2.5 py-1 rounded-full">
                   <MapPin className="w-3.5 h-3.5" />
                   <span>{post.locationTag || 'Kota Bogor'}</span>
                 </div>
@@ -295,7 +295,7 @@ export const PostDetailView: React.FC = () => {
 
               {/* Media Container if any */}
               {post.media && post.media.length > 0 && (
-                <div className="bg-stone-900 border-b border-[#E3E0D6]/60 dark:border-[#26352E]/60 overflow-hidden">
+                <div className="bg-stone-900 border-b border-line/60 overflow-hidden">
                   {post.media.map((item) =>
                     item.type === 'video' ? (
                       <video
@@ -318,7 +318,7 @@ export const PostDetailView: React.FC = () => {
 
               {/* Post Body */}
               <div className="p-5 space-y-4">
-                <p className="text-sm sm:text-base text-[#101913] dark:text-[#F3F6F4] leading-relaxed whitespace-pre-wrap">
+                <p className="text-sm sm:text-base text-ink leading-relaxed whitespace-pre-wrap">
                   {post.body}
                 </p>
 
@@ -326,20 +326,20 @@ export const PostDetailView: React.FC = () => {
                 {post.relatedReport && (
                   <div
                     onClick={() => openReportDetail(post.relatedReport as Report)}
-                    className="p-4 rounded-2xl bg-[#F7F5EF] dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] hover:border-[#1B4332]/40 dark:hover:border-[#10B981]/40 transition-all cursor-pointer space-y-2 group"
+                    className="p-4 rounded-2xl bg-canvas dark:bg-surface border border-line hover:border-brand/40 transition-all cursor-pointer space-y-2 group"
                   >
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-mono font-bold text-[#1B4332] dark:text-[#34D399]">
+                      <span className="font-mono font-bold text-brand">
                         {post.relatedReport.publicReference}
                       </span>
-                      <span className="text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full font-bold">
+                      <span className="text-lime-700 dark:text-lime-400 bg-lime-50 dark:bg-lime-950/40 px-2 py-0.5 rounded-full font-bold">
                         {post.relatedReport.status}
                       </span>
                     </div>
-                    <h5 className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4] group-hover:text-[#1B4332] dark:group-hover:text-[#34D399]">
+                    <h5 className="text-xs font-bold text-ink group-hover:text-brand">
                       {post.relatedReport.title}
                     </h5>
-                    <p className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] flex items-center gap-1">
+                    <p className="text-[11px] text-ink-2 flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
                       <span>{post.relatedReport.location?.address || 'Kota Bogor'}</span>
                     </p>
@@ -348,20 +348,20 @@ export const PostDetailView: React.FC = () => {
               </div>
 
               {/* Engagement Bar */}
-              <div className="px-5 py-3.5 bg-[#F7F5EF]/60 dark:bg-[#1A221E]/60 border-t border-[#E3E0D6] dark:border-[#26352E] flex items-center justify-between">
+              <div className="px-5 py-3.5 bg-canvas/60 dark:bg-surface/60 border-t border-line flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
                     onClick={handleToggleLike}
                     className={`inline-flex items-center gap-1.5 text-xs font-bold transition-all active:scale-90 cursor-pointer ${
-                      isLiked ? 'text-rose-600 dark:text-rose-400' : 'text-[#4F5A52] dark:text-[#9EACA3]'
+                      isLiked ? 'text-rose-600 dark:text-rose-400' : 'text-ink-2'
                     }`}
                   >
                     <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
                     <span>{likesCount} Suka</span>
                   </button>
 
-                  <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4F5A52] dark:text-[#9EACA3]">
+                  <div className="inline-flex items-center gap-1.5 text-xs font-bold text-ink-2">
                     <MessageCircle className="w-4 h-4 text-blue-500" />
                     <span>{comments.length} Komentar</span>
                   </div>
@@ -374,7 +374,7 @@ export const PostDetailView: React.FC = () => {
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
                       isSaved
                         ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/40'
-                        : 'text-[#4F5A52] dark:text-[#9EACA3] hover:bg-stone-200 dark:hover:bg-[#26352E]'
+                        : 'text-ink-2 hover:bg-stone-200 dark:hover:bg-line'
                     }`}
                     title={isSaved ? 'Hapus dari simpanan' : 'Simpan postingan'}
                   >
@@ -385,11 +385,11 @@ export const PostDetailView: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleShare}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#131916] text-xs font-bold text-[#101913] dark:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#26352E] cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-line bg-surface dark:bg-surface-2 text-xs font-bold text-ink hover:bg-canvas dark:hover:bg-line cursor-pointer"
                   >
                     {shareCopied ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <Check className="w-3.5 h-3.5 text-lime-600" />
                         <span>Tersalin!</span>
                       </>
                     ) : (
@@ -404,20 +404,20 @@ export const PostDetailView: React.FC = () => {
             </article>
 
             {/* Comments Section */}
-            <section className="bg-white dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
+            <section className="bg-surface dark:bg-surface-2 border border-line rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-[#101913] dark:text-[#F3F6F4]">
+                <h3 className="text-sm font-bold text-ink">
                   Komentar Warga ({comments.length})
                 </h3>
                 <button
                   type="button"
                   onClick={refreshCommentsOnly}
                   disabled={isRefreshingComments}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] hover:bg-[#F7F5EF] dark:hover:bg-[#1E2621] transition-all cursor-pointer disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-ink-2 hover:text-ink hover:bg-canvas dark:hover:bg-surface-2 transition-all cursor-pointer disabled:opacity-40"
                   title="Segarkan komentar saja"
                   aria-label="Segarkan komentar saja"
                 >
-                  <RotateCw className={`w-3.5 h-3.5 ${isRefreshingComments ? 'animate-spin text-emerald-600 dark:text-emerald-400' : ''}`} />
+                  <RotateCw className={`w-3.5 h-3.5 ${isRefreshingComments ? 'animate-spin text-lime-600 dark:text-lime-400' : ''}`} />
                   <span>Segarkan</span>
                 </button>
               </div>
@@ -426,7 +426,7 @@ export const PostDetailView: React.FC = () => {
               {isAuthenticated ? (
                 <form onSubmit={handleAddComment} className="space-y-2">
                   {replyTarget && (
-                    <div className="flex items-center justify-between px-3 py-1.5 bg-[#E7EBDD] dark:bg-[#1A2E24] rounded-xl text-xs font-semibold text-[#1B4332] dark:text-[#34D399]">
+                    <div className="flex items-center justify-between px-3 py-1.5 bg-brand-soft rounded-xl text-xs font-semibold text-brand">
                       <span className="flex items-center gap-1">
                         <CornerDownRight className="w-3.5 h-3.5" />
                         <span>Membalas @{replyTarget.authorName}</span>
@@ -434,7 +434,7 @@ export const PostDetailView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setReplyTarget(null)}
-                        className="text-[#4F5A52] hover:text-[#101913] cursor-pointer"
+                        className="text-ink-2 hover:text-ink cursor-pointer"
                       >
                         Batal
                       </button>
@@ -458,12 +458,12 @@ export const PostDetailView: React.FC = () => {
                           ? `Tulis balasan untuk @${replyTarget.authorName}...`
                           : 'Tulis tanggapan atau masukan warga...'
                       }
-                      className="flex-1 px-4 py-2.5 text-xs rounded-xl border border-[#E3E0D6] dark:border-[#26352E] bg-[#F7F5EF] dark:bg-[#1A221E] text-[#101913] dark:text-[#F3F6F4] focus:outline-none focus:ring-1 focus:ring-[#1B4332]"
+                      className="flex-1 px-4 py-2.5 text-xs rounded-xl border border-line bg-canvas dark:bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                     <button
                       type="submit"
                       disabled={isSubmittingComment || !commentText.trim()}
-                      className="px-4 py-2.5 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-xl text-xs font-bold hover:bg-[#14352A] cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+                      className="px-4 py-2.5 bg-brand text-on-brand rounded-xl text-xs font-bold hover:bg-brand-hover cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
                     >
                       {isSubmittingComment ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -475,14 +475,14 @@ export const PostDetailView: React.FC = () => {
                   </div>
                 </form>
               ) : (
-                <div className="p-3.5 rounded-2xl bg-[#F7F5EF] dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] flex items-center justify-between text-xs">
-                  <span className="text-[#4F5A52] dark:text-[#9EACA3]">
+                <div className="p-3.5 rounded-2xl bg-canvas dark:bg-surface border border-line flex items-center justify-between text-xs">
+                  <span className="text-ink-2">
                     Masuk untuk memberikan tanggapan atau saran fasilitas publik.
                   </span>
                   <button
                     type="button"
                     onClick={() => navigate('/login')}
-                    className="px-3 py-1.5 bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610] rounded-xl font-bold cursor-pointer"
+                    className="px-3 py-1.5 bg-brand text-on-brand rounded-xl font-bold cursor-pointer"
                   >
                     Masuk
                   </button>
@@ -492,7 +492,7 @@ export const PostDetailView: React.FC = () => {
               {/* Comments List */}
               <div className="space-y-3 pt-2">
                 {comments.length === 0 ? (
-                  <p className="text-xs text-center py-6 text-[#4F5A52] dark:text-[#9EACA3]">
+                  <p className="text-xs text-center py-6 text-ink-2">
                     Belum ada komentar. Jadilah warga pertama yang menanggapi!
                   </p>
                 ) : (
@@ -504,8 +504,8 @@ export const PostDetailView: React.FC = () => {
                       data-comment-id={comment.id}
                       className={`p-3.5 rounded-2xl border transition-all scroll-mt-4 ${
                         comment.parentId
-                          ? 'ml-6 bg-[#F7F5EF]/50 dark:bg-[#1A221E]/50 border-[#E3E0D6]/60 dark:border-[#26352E]/60'
-                          : 'bg-white dark:bg-[#131916] border-[#E3E0D6] dark:border-[#26352E]'
+                          ? 'ml-6 bg-canvas/50 dark:bg-surface/50 border-line/60'
+                          : 'bg-surface dark:bg-surface-2 border-line'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1.5">
@@ -525,32 +525,32 @@ export const PostDetailView: React.FC = () => {
                                 role={comment.authorName.toLowerCase().includes('admin') || comment.authorName.toLowerCase().includes('pupr') ? 'admin' : 'citizen'}
                                 className="w-6 h-6 rounded-full object-cover"
                               />
-                              <span className="text-xs font-bold text-[#101913] dark:text-[#F3F6F4] group-hover:text-[#1B4332] dark:group-hover:text-[#34D399]">
+                              <span className="text-xs font-bold text-ink group-hover:text-brand">
                                 {comment.authorName}
                               </span>
                               {isMyComment && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 shrink-0">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-lime-50 dark:bg-lime-950/40 text-lime-700 dark:text-lime-300 border border-lime-200 dark:border-lime-800/40 shrink-0">
                                   Anda
                                 </span>
                               )}
                             </Link>
                           );
                         })()}
-                        <span className="text-[10px] text-[#4F5A52] dark:text-[#9EACA3]">
+                        <span className="text-[10px] text-ink-2">
                           {comment.timeAgo}
                         </span>
                       </div>
 
-                      <p className="text-xs text-[#101913] dark:text-[#D1DCD5] leading-relaxed pl-8">
+                      <p className="text-xs text-ink leading-relaxed pl-8">
                         {comment.body}
                       </p>
 
-                      <div className="pl-8 pt-2 flex items-center gap-4 text-[10px] text-[#4F5A52] dark:text-[#9EACA3]">
+                      <div className="pl-8 pt-2 flex items-center gap-4 text-[10px] text-ink-2">
                         {isAuthenticated && (
                           <button
                             type="button"
                             onClick={() => setReplyTarget(comment)}
-                            className="font-bold hover:text-[#1B4332] dark:hover:text-[#34D399] cursor-pointer"
+                            className="font-bold hover:text-brand cursor-pointer"
                           >
                             Balas
                           </button>

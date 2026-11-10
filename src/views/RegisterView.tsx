@@ -1,21 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import {
-  AlertCircle,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  RefreshCw,
-  User,
-  AtSign,
-} from 'lucide-react';
-import { TitikLogo } from '../components/common/TitikLogo';
-import { ThemeToggle } from '../components/common/ThemeToggle';
+import { useNavigate } from 'react-router-dom';
+import { AuthShell, AuthField, AuthAlert } from '../components/auth/AuthShell';
 import { useAuth } from '../context/AuthContext';
-import { isSupabaseConfigured } from '../services/supabaseClient';
-import './LoginView.css';
 
 const USERNAME_PATTERN = /^[a-z0-9_.]{3,24}$/;
 
@@ -81,192 +67,67 @@ export const RegisterView: React.FC = () => {
   };
 
   return (
-    <div className="login-page">
-      <div className="absolute top-4 right-4 z-30">
-        <ThemeToggle />
-      </div>
+    <AuthShell
+      mode="register"
+      title="Buat akun warga"
+      description="Satu akun untuk melaporkan, berkomentar, dan mengawal penanganan fasilitas publik."
+    >
+      {errorMessage && <AuthAlert kind="error">{errorMessage}</AuthAlert>}
+      {successMessage && <AuthAlert kind="success">{successMessage}</AuthAlert>}
 
-      <div className="login-card-container">
-        <div className="login-hero">
-          <div className="login-hero-slashes" aria-hidden="true">
-            <div className="login-glow-top" />
-            <div className="login-glow-bottom" />
-            <div className="login-ribbon-1" />
-            <div className="login-ribbon-2" />
-            <div className="login-ribbon-3" />
-            <div className="login-ribbon-4" />
-            <div className="login-slash-1" />
-            <div className="login-slash-2" />
-            <div className="login-slash-3" />
-          </div>
-
-          <div className="login-hero-header">
-            <div className="flex items-center gap-2">
-              <TitikLogo className="w-5 h-5 shrink-0" pinColor="#FFFFFF" innerColor="#1B4332" dotColor="#34D399" />
-              <span className="login-brand-tag">Civic Social Platform</span>
-            </div>
-            <span className="login-env-tag">
-              {isSupabaseConfigured ? 'Supabase Auth' : 'Demo Mode'}
-            </span>
-          </div>
-
-          <div className="login-hero-body">
-            <div className="login-brand-logo-frame group">
-              <div className="login-brand-logo-badge">
-                <TitikLogo className="w-full h-full" pinColor="#1B4332" innerColor="#FFFFFF" dotColor="#34D399" />
-              </div>
-            </div>
-            <div>
-              <h2 className="login-brand-title">
-                <span>TITIK</span>
-                <span className="login-brand-dot" />
-              </h2>
-              <p className="login-brand-tagline">
-                See the issue. Trace the budget. Track the impact.
-              </p>
-            </div>
-          </div>
-
-          <div className="login-hero-footer">
-            <p className="login-hero-subtext">
-              Satu akun untuk melaporkan, mengomentari, dan mengawal fasilitas publik.
-            </p>
-          </div>
-        </div>
-
-        <div className="login-form-panel">
-          <div className="login-form-content">
-            <div className="login-form-header">
-              <div className="login-form-title-row">
-                <div className="flex items-center gap-2.5">
-                  <div className="lg:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-[#1B4332] shadow-xs shrink-0">
-                    <TitikLogo className="w-5 h-5" pinColor="#FFFFFF" innerColor="#1B4332" dotColor="#34D399" />
-                  </div>
-                  <h3 className="login-form-heading">daftar</h3>
-                </div>
-
-                <span className="login-mode-track">
-                  <Link to="/login" className="login-mode-tab">
-                    Masuk
-                  </Link>
-                  <span className="login-mode-tab login-mode-tab--active">Daftar</span>
-                </span>
-              </div>
-
-              <p className="login-form-desc">
-                Buat akun warga TITIK untuk ikut berdiskusi dan melaporkan kondisi fasilitas publik.
-              </p>
-            </div>
-
-            {errorMessage && (
-              <div className="login-alert-error" role="alert">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            {successMessage && (
-              <div className="login-alert-success" role="status">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-                <span>{successMessage}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleRegisterSubmit} className="login-form">
-              <div className="login-input-group">
-                <div className="login-input-icon"><User className="w-4 h-4" /></div>
-                <input
-                  type="text"
-                  value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  placeholder="Nama tampilan (mis. Rina Wijaya)"
-                  className="login-input-field"
-                  autoComplete="name"
-                  maxLength={40}
-                  required
-                />
-              </div>
-
-              <div className="login-input-group">
-                <div className="login-input-icon"><AtSign className="w-4 h-4" /></div>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value.toLowerCase())}
-                  placeholder="Username (mis. rinawijaya)"
-                  className="login-input-field"
-                  autoComplete="username"
-                  maxLength={24}
-                  required
-                />
-              </div>
-
-              <div className="login-input-group">
-                <div className="login-input-icon"><Mail className="w-4 h-4" /></div>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="Email aktif"
-                  className="login-input-field"
-                  autoComplete="email"
-                  required
-                />
-              </div>
-
-              <div className="login-input-group">
-                <div className="login-input-icon"><Lock className="w-4 h-4" /></div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Kata sandi (minimal 8 karakter)"
-                  className="login-input-field login-input-field--password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((visible) => !visible)}
-                  className="login-password-toggle"
-                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-
-              <div className="login-input-group">
-                <div className="login-input-icon"><Lock className="w-4 h-4" /></div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  placeholder="Ulangi kata sandi"
-                  className="login-input-field"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                />
-              </div>
-
-              <button type="submit" disabled={isSubmitting} className="login-submit-button">
-                {isSubmitting && <RefreshCw className="w-4 h-4 animate-spin" />}
-                <span>{isSubmitting ? 'Mendaftarkan...' : 'Buat Akun'}</span>
-              </button>
-            </form>
-
-            <div className="mt-5 border-t border-[#E3E0D6] dark:border-[#26352E] pt-4 text-center text-[11px] text-[#4F5A52] dark:text-[#9EACA3]">
-              <p>
-                Sudah punya akun?{' '}
-                <Link to="/login" className="font-bold text-[#1B4332] dark:text-[#34D399] hover:underline">
-                  Masuk di sini
-                </Link>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <form onSubmit={handleRegisterSubmit} className="space-y-4">
+        <AuthField
+          label="Nama tampilan"
+          type="text"
+          value={displayName}
+          onChange={(event) => setDisplayName(event.target.value)}
+          placeholder="Contoh: Rina Wijaya"
+          autoComplete="name"
+          maxLength={40}
+          required
+        />
+        <AuthField
+          label="Username"
+          type="text"
+          value={username}
+          onChange={(event) => setUsername(event.target.value.toLowerCase())}
+          hint="3 sampai 24 karakter: huruf kecil, angka, garis bawah, atau titik."
+          autoComplete="username"
+          maxLength={24}
+          required
+        />
+        <AuthField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          autoComplete="email"
+          required
+        />
+        <AuthField
+          label="Kata sandi"
+          type={showPassword ? 'text' : 'password'}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          hint="Minimal 8 karakter."
+          autoComplete="new-password"
+          minLength={8}
+          reveal={{ visible: showPassword, onToggle: () => setShowPassword((visible) => !visible) }}
+          required
+        />
+        <AuthField
+          label="Ulangi kata sandi"
+          type={showPassword ? 'text' : 'password'}
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          autoComplete="new-password"
+          minLength={8}
+          required
+        />
+        <button type="submit" disabled={isSubmitting} className="titik-pill-btn titik-pill-btn-primary w-full min-h-11 text-sm">
+          {isSubmitting ? 'Mendaftarkan' : 'Buat akun'}
+        </button>
+      </form>
+    </AuthShell>
   );
 };

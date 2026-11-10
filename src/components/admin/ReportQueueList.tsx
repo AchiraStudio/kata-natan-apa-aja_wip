@@ -1,8 +1,21 @@
-import React from 'react';
-import { Report } from '../../types/domain';
-import { ReportQueueItem } from './ReportQueueItem';
-import { AdminSortOption } from './types';
-import { Search, Filter, ArrowUpDown, X } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Search } from 'lucide-react';
+import type { Report, ReportStatus } from '../../types/domain';
+import { StatusLabel } from '../common/StatusLabel';
+import { getStatusMeta } from '../../utils/reportStatus';
+import type { AdminSortOption } from './types';
+import { SeverityMark, ageLabel, EmptyNote } from './ui';
+
+const STATUS_ORDER: ReportStatus[] = [
+  'submitted',
+  'under_review',
+  'needs_info',
+  'accepted_for_routing',
+  'forwarded_to_institution',
+  'institution_responded',
+  'resolved',
+  'rejected',
+];
 
 interface ReportQueueListProps {
   reports: Report[];
@@ -10,24 +23,16 @@ interface ReportQueueListProps {
   selectedReportId: string;
   onSelectReport: (id: string) => void;
   statusFilter: string;
-  onStatusFilterChange: (status: string) => void;
+  onStatusFilterChange: (value: string) => void;
   categoryFilter: string;
-  onCategoryFilterChange: (category: string) => void;
+  onCategoryFilterChange: (value: string) => void;
   searchQuery: string;
-  onSearchQueryChange: (query: string) => void;
+  onSearchQueryChange: (value: string) => void;
   sortBy: AdminSortOption;
-  onSortByChange: (sort: AdminSortOption) => void;
+  onSortByChange: (value: AdminSortOption) => void;
+  isLoading?: boolean;
   className?: string;
 }
-
-const CATEGORIES = [
-  'Semua',
-  'Infrastruktur',
-  'Lingkungan',
-  'Pendidikan',
-  'Kesehatan',
-  'Lainnya',
-];
 
 export const ReportQueueList: React.FC<ReportQueueListProps> = ({
   reports,
@@ -42,133 +47,111 @@ export const ReportQueueList: React.FC<ReportQueueListProps> = ({
   onSearchQueryChange,
   sortBy,
   onSortByChange,
+  isLoading = false,
   className = '',
 }) => {
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    reports.forEach((r) => r.category && set.add(r.category));
+    if (categoryFilter !== 'Semua') set.add(categoryFilter);
+    return [...set].sort((a, b) => a.localeCompare(b, 'id'));
+  }, [reports, categoryFilter]);
+
+  const hasFilter = statusFilter !== 'all' || categoryFilter !== 'Semua' || searchQuery.trim() !== '';
+
   return (
-    <div
-      className={`admin-queue-card bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-5 shadow-xs space-y-4 ${className}`}
-    >
-      {/* Top Header: Title and Status Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E3E0D6] dark:border-[#26352E]">
-        <div className="flex items-center gap-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#101913] dark:text-[#F3F6F4]">
-            Antrean Laporan ({reports.length}
-            {reports.length !== totalReportsCount ? ` / ${totalReportsCount}` : ''})
-          </h3>
-        </div>
-
-        {/* Filter Dropdown */}
-        <div className="flex items-center gap-1.5 text-xs">
-          <Filter className="w-3.5 h-3.5 text-[#4F5A52] dark:text-[#9EACA3] shrink-0" />
-          <select
-            value={statusFilter}
-            onChange={(e) => onStatusFilterChange(e.target.value)}
-            className="text-xs bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-full px-3 py-1.5 text-[#101913] dark:text-[#F3F6F4] focus:outline-none focus:border-[#1B4332] dark:focus:border-[#10B981] cursor-pointer"
-          >
-            <option value="all">Semua Status</option>
-            <option value="submitted">Baru Masuk</option>
-            <option value="under_review">Menunggu Verifikasi</option>
-            <option value="needs_info">Butuh Info</option>
-            <option value="accepted_for_routing">Disetujui untuk Rute</option>
-            <option value="forwarded_to_institution">Diteruskan ke Dinas</option>
-            <option value="institution_responded">Dinas Merespon</option>
-            <option value="resolved">Tuntas Ditangani</option>
-            <option value="rejected">Ditolak</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Search Input & Sort Selector */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#4F5A52] dark:text-[#9EACA3]" />
+    <section aria-label="Antrean laporan" className={`panel flex flex-col min-h-0 overflow-hidden ${className}`}>
+      <div className="p-3 sm:p-4 space-y-2.5 border-b border-line-soft">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3 pointer-events-none" aria-hidden="true" />
           <input
-            type="text"
+            type="search"
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
-            placeholder="Cari ID ref (TIK-...) atau judul..."
-            className="w-full pl-8 pr-8 py-2 bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl text-xs text-[#101913] dark:text-[#F3F6F4] placeholder-[#4F5A52] dark:placeholder-[#6C7D73] focus:outline-none focus:border-[#1B4332] dark:focus:border-[#10B981]"
+            placeholder="Cari kode, judul, alamat, pelapor"
+            aria-label="Cari laporan"
+            className="titik-pill-input pl-9 pr-3"
           />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => onSearchQueryChange('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#4F5A52] hover:text-[#101913] dark:text-[#9EACA3] dark:hover:text-[#F3F6F4]"
-              aria-label="Bersihkan pencarian"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
-          <ArrowUpDown className="w-3.5 h-3.5 text-[#4F5A52] dark:text-[#9EACA3]" />
-          <select
-            value={sortBy}
-            onChange={(e) => onSortByChange(e.target.value as AdminSortOption)}
-            className="text-xs bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-xl px-2.5 py-2 text-[#101913] dark:text-[#F3F6F4] focus:outline-none focus:border-[#1B4332] dark:focus:border-[#10B981] cursor-pointer"
-          >
+        <div className="grid grid-cols-2 gap-2">
+          <select value={statusFilter} onChange={(e) => onStatusFilterChange(e.target.value)} aria-label="Filter status" className="titik-pill-input col-span-2 px-2 text-[13px]">
+            <option value="all">Semua status</option>
+            {STATUS_ORDER.map((s) => (
+              <option key={s} value={s}>
+                {getStatusMeta(s).label}
+              </option>
+            ))}
+          </select>
+          <select value={categoryFilter} onChange={(e) => onCategoryFilterChange(e.target.value)} aria-label="Filter kategori" className="titik-pill-input px-2 text-[13px]">
+            <option value="Semua">Semua kategori</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <select value={sortBy} onChange={(e) => onSortByChange(e.target.value as AdminSortOption)} aria-label="Urutan" className="titik-pill-input px-2 text-[13px]">
             <option value="newest">Terbaru</option>
             <option value="oldest">Terlama</option>
-            <option value="severity">Urgensi</option>
+            <option value="severity">Paling parah</option>
           </select>
         </div>
-      </div>
-
-      {/* Category Pills Row */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-        {CATEGORIES.map((cat) => {
-          const isActive = categoryFilter === cat;
-          return (
+        <p className="text-xs text-ink-3" role="status" aria-live="polite">
+          {reports.length} dari {totalReportsCount} laporan
+          {hasFilter && (
             <button
-              key={cat}
               type="button"
-              onClick={() => onCategoryFilterChange(cat)}
-              className={`px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                isActive
-                  ? 'bg-[#1B4332] dark:bg-[#10B981] text-white dark:text-[#0A1610]'
-                  : 'bg-[#F7F5EF] dark:bg-[#131916] text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4] border border-[#E3E0D6]/80 dark:border-[#26352E]'
-              }`}
+              onClick={() => {
+                onStatusFilterChange('all');
+                onCategoryFilterChange('Semua');
+                onSearchQueryChange('');
+              }}
+              className="ml-2 underline underline-offset-2 text-ink-2 hover:text-ink cursor-pointer"
             >
-              {cat}
+              Hapus filter
             </button>
-          );
-        })}
+          )}
+        </p>
       </div>
 
-      {/* Queue Items List */}
-      <div className="divide-y divide-[#E3E0D6]/60 dark:divide-[#26352E] max-h-[520px] overflow-y-auto no-scrollbar space-y-1">
-        {reports.length > 0 ? (
-          reports.map((report) => (
-            <ReportQueueItem
-              key={report.id}
-              report={report}
-              isSelected={selectedReportId === report.id}
-              onSelect={onSelectReport}
-            />
-          ))
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {isLoading && reports.length === 0 ? (
+          <p role="status" className="px-4 py-10 text-center text-sm text-ink-2">
+            Memuat antrean
+          </p>
+        ) : reports.length === 0 ? (
+          <EmptyNote title={hasFilter ? 'Tidak ada yang cocok' : 'Antrean kosong'}>
+            {hasFilter ? 'Ubah kata kunci atau filter.' : 'Laporan baru dari warga akan muncul di sini.'}
+          </EmptyNote>
         ) : (
-          <div className="py-12 text-center text-xs text-[#4F5A52] dark:text-[#9EACA3] space-y-2">
-            <p className="font-semibold text-[#101913] dark:text-[#F3F6F4]">
-              Tidak ada laporan yang cocok.
-            </p>
-            <p>Cobalah mengganti filter status, kategori, atau kata kunci pencarian.</p>
-            {(searchQuery || statusFilter !== 'all' || categoryFilter !== 'Semua') && (
-              <button
-                type="button"
-                onClick={() => {
-                  onSearchQueryChange('');
-                  onStatusFilterChange('all');
-                  onCategoryFilterChange('Semua');
-                }}
-                className="mt-2 text-xs font-bold text-[#1B4332] dark:text-[#34D399] underline cursor-pointer"
-              >
-                Reset Semua Filter
-              </button>
-            )}
-          </div>
+          <ul className="divide-y divide-line-soft">
+            {reports.map((r) => {
+              const selected = r.id === selectedReportId;
+              return (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectReport(r.id)}
+                    aria-current={selected ? 'true' : undefined}
+                    className={`w-full text-left px-4 py-3 transition-colors cursor-pointer ${selected ? 'bg-brand-soft' : 'hover:bg-surface-2/60'}`}
+                  >
+                    <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
+                      <span className="titik-id text-[11px] text-ink-3">{r.publicReference}</span>
+                      <StatusLabel status={r.status} />
+                    </span>
+                    <span className="mt-1 block text-sm font-semibold text-ink leading-snug line-clamp-2">{r.title}</span>
+                    <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-ink-3">
+                      <SeverityMark severity={r.severity} />
+                      <span>masuk {ageLabel(r.createdAt)}</span>
+                      {r.reporterDisplayName && <span className="truncate max-w-[10rem]">{r.reporterDisplayName}</span>}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
-    </div>
+    </section>
   );
 };

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Report } from '../../types/domain';
+import { FileText, Maximize2, Play } from 'lucide-react';
+import type { Report } from '../../types/domain';
 import { getReportMediaType } from '../../utils/reportEvidence';
 import { getPrivateEvidenceUrl } from '../../services/storageService';
-import { Building, ZoomIn, ShieldCheck, ShieldAlert, FileText } from 'lucide-react';
+import { SectionHead, formatRupiah, formatRupiahShort } from './ui';
 
 interface EvidenceInspectorProps {
   report: Report;
@@ -11,226 +12,67 @@ interface EvidenceInspectorProps {
   onRegisterFacility?: (name: string, category: string, address: string, lat: number, lng: number) => void;
 }
 
-export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
-  report,
-  onOpenZoom,
-  onVerifyEvidence,
-  onRegisterFacility,
-}) => {
-  // Resolved media URLs map: stores signed URLs for private files or public URLs
+const EVIDENCE_LABEL: Record<string, string> = {
+  verified: 'Bukti sudah disahkan',
+  rejected: 'Bukti ditandai tidak memenuhi syarat',
+  unverified: 'Bukti belum diperiksa',
+};
+
+/** Photos, the description and the facts a reviewer needs before deciding. */
+export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({ report, onOpenZoom, onVerifyEvidence, onRegisterFacility }) => {
+  // Private bucket paths are exchanged for short-lived signed URLs
   const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({});
   const [loadingUrls, setLoadingUrls] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
-
+    let alive = true;
     async function resolveAttachments() {
-      if (!report.mediaUrls || report.mediaUrls.length === 0) return;
+      if (!report.mediaUrls || report.mediaUrls.length === 0) {
+        setResolvedUrls({});
+        return;
+      }
       setLoadingUrls(true);
-
       const resolved: Record<string, string> = {};
-
       for (const urlOrPath of report.mediaUrls) {
-        // Check if it is a private bucket path or needs signing
-        const isPrivateStoragePath =
-          !urlOrPath.startsWith('http://') &&
-          !urlOrPath.startsWith('https://') &&
-          !urlOrPath.startsWith('data:');
-
-        if (isPrivateStoragePath || urlOrPath.includes('report-evidence-private')) {
+        const isStoragePath = !/^(https?:|data:)/.test(urlOrPath);
+        if (isStoragePath || urlOrPath.includes('report-evidence-private')) {
           try {
-            // Strip any bucket prefix if present
-            const cleanPath = urlOrPath.replace(/^report-evidence-private\//, '');
-            const signed = await getPrivateEvidenceUrl(cleanPath);
-            resolved[urlOrPath] = signed;
-          } catch (err) {
-            console.warn('Could not resolve signed URL for private evidence:', urlOrPath, err);
+            resolved[urlOrPath] = await getPrivateEvidenceUrl(urlOrPath.replace(/^report-evidence-private\//, ''));
+          } catch {
             resolved[urlOrPath] = urlOrPath;
           }
         } else {
           resolved[urlOrPath] = urlOrPath;
         }
       }
-
-      if (isMounted) {
+      if (alive) {
         setResolvedUrls(resolved);
         setLoadingUrls(false);
       }
     }
-
     resolveAttachments();
-
     return () => {
-      isMounted = false;
+      alive = false;
     };
   }, [report.mediaUrls]);
 
-  const evidenceStatus =
-    report.evidenceVerificationStatus || report.evidence_verification_status || 'unverified';
+  const evidenceStatus = report.evidenceVerificationStatus || report.evidence_verification_status || 'unverified';
+  const address = report.location?.address || 'Lokasi tidak dicantumkan';
+  const pagu = report.budgetContext?.paguAllocation;
 
-  return (
-    <div className="space-y-4">
-      {/* Evidence Verification Badge Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs pb-1">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#4F5A52] dark:text-[#9EACA3]">
-          Bukti Fisik & Deskripsi
-        </span>
-        <div className="flex flex-wrap items-center gap-2">
-          {evidenceStatus === 'verified' ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-              <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-              Bukti Terverifikasi
-            </span>
-          ) : evidenceStatus === 'rejected' ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-700">
-              <ShieldAlert className="w-3 h-3 text-rose-600 dark:text-rose-400" />
-              Bukti Tidak Memenuhi Syarat
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700">
-              Menunggu Validasi Bukti
-            </span>
-          )}
-
-          {onVerifyEvidence && (
-            <div className="inline-flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => onVerifyEvidence('verified')}
-                className="px-2.5 py-1 rounded-lg bg-[#1B4332] dark:bg-[#10B981] hover:bg-[#14352A] text-white dark:text-[#0A1610] text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
-                title="Tandai bukti fisik sebagai sah & valid"
-              >
-                Verifikasi Bukti Sah
-              </button>
-              {evidenceStatus !== 'rejected' && (
-                <button
-                  type="button"
-                  onClick={() => onVerifyEvidence('rejected')}
-                  className="px-2.5 py-1 rounded-lg border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-[10px] font-bold cursor-pointer transition-colors"
-                  title="Tandai bukti fisik tidak valid"
-                >
-                  Tolak Bukti
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Evidence Media Gallery with Zoom Overlay */}
-      <div className="flex flex-col sm:flex-row items-start gap-4">
-        {report.mediaUrls && report.mediaUrls.length > 0 && (
-          <div className="flex flex-wrap gap-2.5 shrink-0">
-            {report.mediaUrls.map((originalUrl, index) => {
-              const displayUrl = resolvedUrls[originalUrl] || originalUrl;
-              const mediaType = getReportMediaType(displayUrl);
-
-              return (
-                <div
-                  key={`${report.id}-evidence-${index}`}
-                  className="relative group cursor-pointer overflow-hidden rounded-2xl border border-[#E3E0D6] dark:border-[#26352E] shadow-2xs bg-neutral-100 dark:bg-neutral-900"
-                >
-                  {mediaType === 'video' ? (
-                    <div className="w-24 h-24 relative flex items-center justify-center bg-black rounded-2xl">
-                      <video
-                        src={displayUrl}
-                        playsInline
-                        className="w-full h-full object-cover rounded-2xl"
-                        aria-label={`Video bukti ${index + 1} ${report.title}`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onOpenZoom(displayUrl, 'video', report.title, report.location.address)
-                        }
-                        aria-label={`Buka video bukti ${index + 1}`}
-                        className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/60 transition-colors"
-                      >
-                        <ZoomIn className="w-5 h-5 text-white drop-shadow-md group-hover:scale-110 transition-transform" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="w-24 h-24 relative">
-                      <img
-                        src={displayUrl}
-                        alt={`Foto bukti ${index + 1} ${report.title}`}
-                        className="w-full h-full object-cover rounded-2xl"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onOpenZoom(displayUrl, 'image', report.title, report.location.address)
-                        }
-                        aria-label={`Perbesar foto bukti ${index + 1}`}
-                        className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors cursor-zoom-in"
-                      >
-                        <ZoomIn className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 drop-shadow-md group-hover:scale-110 transition-all" />
-                      </button>
-                    </div>
-                  )}
-                  {loadingUrls && !resolvedUrls[originalUrl] && (
-                    <div className="absolute inset-0 bg-neutral-900/60 flex items-center justify-center text-[10px] text-white">
-                      Memuat...
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Editorial Description & Citizen Author Info */}
-        <div className="text-xs space-y-2 flex-1 min-w-0">
-          <p className="text-[#101913] dark:text-[#F3F6F4] leading-relaxed break-words whitespace-pre-line">
-            {report.description}
-          </p>
-          <div className="text-[11px] text-[#4F5A52] dark:text-[#9EACA3] pt-1">
-            Pelapor:{' '}
-            <span className="font-semibold text-[#101913] dark:text-[#F3F6F4]">
-              {report.reporterDisplayName || 'Anonim'}
-            </span>{' '}
-            • Sektor:{' '}
-            <span className="font-semibold text-[#101913] dark:text-[#F3F6F4]">
-              {report.category}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 4-Column Consolidated Metadata Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3.5 bg-[#F7F5EF]/80 dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] rounded-2xl text-xs">
-        <div>
-          <div className="text-[10px] uppercase font-bold text-[#4F5A52] dark:text-[#9EACA3]">
-            Dinas & Pagu
-          </div>
-          <div className="font-semibold text-[#101913] dark:text-[#F3F6F4] mt-0.5 flex items-center gap-1.5">
-            <Building className="w-3.5 h-3.5 text-[#1B4332] dark:text-[#34D399] shrink-0" />
-            <span className="truncate">{report.responsibleAgency}</span>
-          </div>
-          <div className="text-[11px] font-mono tabular-nums text-[#1B4332] dark:text-[#34D399] font-semibold mt-0.5">
-            Alokasi: Rp {((report.budgetContext?.paguAllocation || 0) / 1000000000).toFixed(1)} M
-          </div>
-        </div>
-
-        <div>
-          <div className="text-[10px] uppercase font-bold text-[#4F5A52] dark:text-[#9EACA3]">
-            Estimasi Biaya
-          </div>
-          <div className="font-semibold tabular-nums text-[#101913] dark:text-[#F3F6F4] mt-0.5">
-            {report.estimatedCost
-              ? `Rp ${report.estimatedCost.toLocaleString('id-ID')}`
-              : 'Belum dicantumkan'}
-          </div>
-        </div>
-
-        <div>
-          <div className="text-[10px] uppercase font-bold text-[#4F5A52] dark:text-[#9EACA3]">
-            Fasilitas Terkait
-          </div>
-          <div className="font-semibold text-[#101913] dark:text-[#F3F6F4] mt-0.5 truncate" title={report.facilityName || 'Fasilitas Umum'}>
-            {report.facilityName || 'Fasilitas Umum'}
-          </div>
-          {report.facilityName && onRegisterFacility && (
+  const facts: Array<[string, React.ReactNode]> = [
+    ['Pelapor', report.reporterDisplayName || 'Anonim'],
+    ['Kategori', report.category || '-'],
+    ['Dinas', report.responsibleAgency || '-'],
+    ['Lokasi', address],
+    ['Estimasi biaya', report.estimatedCost ? formatRupiah(report.estimatedCost) : 'Belum dicantumkan'],
+    ['Pagu sektor', pagu ? formatRupiahShort(pagu) : 'Tidak tercatat'],
+    [
+      'Fasilitas',
+      report.facilityName ? (
+        <span className="inline-flex flex-wrap items-baseline gap-x-2">
+          {report.facilityName}
+          {onRegisterFacility && (
             <button
               type="button"
               onClick={() =>
@@ -242,39 +84,111 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({
                   report.location?.longitude || 106.806
                 )
               }
-              className="text-[10px] font-bold text-[#1B4332] dark:text-[#34D399] hover:underline inline-flex items-center gap-1 mt-0.5 cursor-pointer"
+              className="text-xs font-semibold text-brand underline underline-offset-2 cursor-pointer"
             >
-              + Daftarkan Resmi
+              Daftarkan ke katalog
             </button>
           )}
-        </div>
+        </span>
+      ) : (
+        'Tidak disebutkan'
+      ),
+    ],
+  ];
 
-        <div>
-          <div className="text-[10px] uppercase font-bold text-[#4F5A52] dark:text-[#9EACA3]">
-            Dokumen Pendukung
-          </div>
-          {report.supportingDocuments && report.supportingDocuments.length > 0 ? (
-            <ul className="mt-0.5 space-y-1">
-              {report.supportingDocuments.map((document, index) => (
-                <li key={`${document.name}-${index}`} className="flex items-center gap-1">
-                  <FileText className="w-3 h-3 text-[#1B4332] dark:text-[#34D399] shrink-0" />
-                  <a
-                    href={document.dataUrl}
-                    download={document.name}
-                    className="text-[#1B4332] dark:text-[#34D399] underline underline-offset-2 break-all truncate text-[11px]"
-                  >
-                    {document.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="font-medium text-[#4F5A52] dark:text-[#9EACA3] mt-0.5">
-              Tidak ada lampiran
+  return (
+    <section aria-label="Bukti dan rincian" className="space-y-5">
+      <SectionHead
+        as="h3"
+        title="Bukti dan rincian"
+        actions={
+          onVerifyEvidence && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onVerifyEvidence('verified')}
+                disabled={evidenceStatus === 'verified'}
+                className="h-8 px-3 rounded-lg bg-brand text-on-brand text-xs font-semibold hover:bg-brand-hover disabled:opacity-40 disabled:cursor-default transition-colors cursor-pointer"
+              >
+                Sahkan bukti
+              </button>
+              <button
+                type="button"
+                onClick={() => onVerifyEvidence('rejected')}
+                disabled={evidenceStatus === 'rejected'}
+                className="h-8 px-3 rounded-lg bg-surface-2 text-ink text-xs font-semibold hover:bg-line disabled:opacity-40 disabled:cursor-default transition-colors cursor-pointer"
+              >
+                Tolak bukti
+              </button>
             </div>
-          )}
+          )
+        }
+      />
+      <p className="-mt-3 flex items-center gap-2 text-xs text-ink-2">
+        <span
+          aria-hidden="true"
+          className={`w-2 h-2 rounded-full ${evidenceStatus === 'verified' ? 'bg-st-tuntas' : evidenceStatus === 'rejected' ? 'bg-st-ditolak' : 'bg-st-baru'}`}
+        />
+        {EVIDENCE_LABEL[evidenceStatus] ?? EVIDENCE_LABEL.unverified}
+      </p>
+
+      {report.mediaUrls && report.mediaUrls.length > 0 ? (
+        <ul className="flex flex-wrap gap-2.5" aria-label="Lampiran bukti">
+          {report.mediaUrls.map((original, index) => {
+            const url = resolvedUrls[original] || original;
+            const type = getReportMediaType(url) === 'video' ? 'video' : 'image';
+            return (
+              <li key={`${report.id}-evidence-${index}`} className="relative w-28 h-28 rounded-lg overflow-hidden bg-surface-2">
+                {type === 'video' ? (
+                  <video src={url} playsInline muted className="w-full h-full object-cover" aria-label={`Video bukti ${index + 1}`} />
+                ) : (
+                  <img src={url} alt={`Foto bukti ${index + 1}: ${report.title}`} className="w-full h-full object-cover" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => onOpenZoom(url, type, report.title, address)}
+                  aria-label={type === 'video' ? `Putar video bukti ${index + 1}` : `Perbesar foto bukti ${index + 1}`}
+                  className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/40 text-white opacity-0 hover:opacity-100 focus-visible:opacity-100 transition cursor-pointer"
+                >
+                  {type === 'video' ? <Play className="w-6 h-6" /> : <Maximize2 className="w-5 h-5" />}
+                </button>
+                {loadingUrls && !resolvedUrls[original] && (
+                  <span className="absolute inset-0 grid place-items-center bg-black/55 text-[11px] text-white">Memuat</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="text-sm text-ink-2">Pelapor tidak melampirkan foto atau video.</p>
+      )}
+
+      <p className="text-sm text-ink leading-relaxed whitespace-pre-line break-words">{report.description}</p>
+
+      <dl className="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+        {facts.map(([label, value]) => (
+          <div key={label} className="min-w-0">
+            <dt className="text-xs text-ink-3">{label}</dt>
+            <dd className="mt-0.5 text-ink break-words">{value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {report.supportingDocuments && report.supportingDocuments.length > 0 && (
+        <div>
+          <p className="text-xs text-ink-3">Dokumen pendukung</p>
+          <ul className="mt-1 space-y-1">
+            {report.supportingDocuments.map((doc, index) => (
+              <li key={`${doc.name}-${index}`} className="flex items-center gap-2 text-sm">
+                <FileText className="w-4 h-4 text-ink-3 shrink-0" aria-hidden="true" />
+                <a href={doc.dataUrl} download={doc.name} className="text-brand underline underline-offset-2 truncate">
+                  {doc.name}
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
-      </div>
-    </div>
+      )}
+    </section>
   );
 };

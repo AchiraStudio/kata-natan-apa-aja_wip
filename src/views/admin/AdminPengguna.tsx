@@ -1,23 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Users,
-  ShieldCheck,
-  Shield,
-  Search,
-  MessageSquare,
-  CheckCircle2,
-  XCircle,
-  RotateCcw,
-  UserCheck,
-  UserX,
-  MapPin,
-  Mail,
-} from 'lucide-react';
-import { UserProfile } from '../../types/domain';
+import { RefreshCw, Search } from 'lucide-react';
+import type { UserProfile } from '../../types/domain';
 import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 import { dataService } from '../../services/dataService';
 import { UserAvatar } from '../../components/common/UserAvatar';
+import { EmptyNote, Notice } from '../../components/admin';
 
 interface Props {
   profile: UserProfile;
@@ -33,553 +21,248 @@ interface UserRow {
   verifiedAgency?: string;
   district?: string;
   isVerified: boolean;
-  bio?: string;
-  createdAt?: string;
 }
 
-const SEEDED_PROFILES: UserRow[] = [
-  {
-    id: 'a0000000-0000-0000-0000-000000000001',
-    username: 'admin.pupr',
-    displayName: 'admin Dinas PUPR',
-    email: 'admin@titik.id',
-    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-    role: 'admin',
-    verifiedAgency: 'Dinas PUPR',
-    district: 'Bogor Tengah',
-    isVerified: true,
-    bio: 'Akun resmi verifikasi dan tindak lanjut laporan infrastruktur dinas PUPR Kota Bogor.',
-    createdAt: '2026-10-01T08:00:00.000Z',
-  },
-  {
-    id: 'c0000000-0000-0000-0000-000000000001',
-    username: 'budi.santoso',
-    displayName: 'Budi Santoso',
-    email: 'warga@titik.id',
-    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-    role: 'citizen',
-    district: 'Bogor Selatan',
-    isVerified: true,
-    bio: 'Warga Bogor Selatan pemerhati fasilitas jalan, drainase, dan keterbukaan APBD.',
-    createdAt: '2026-10-02T09:00:00.000Z',
-  },
-  {
-    id: 'usr-kn-001',
-    username: 'mamatojol_bks',
-    displayName: 'Mamat Saputra',
-    email: 'mamat@demo.titik.id',
-    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-    role: 'citizen',
-    district: 'Bekasi Barat',
-    isVerified: true,
-    bio: 'Ojol Bekasi pejuang aspal pantura & Ahmad Yani.',
-    createdAt: '2026-10-05T10:00:00.000Z',
-  },
-  {
-    id: 'usr-kn-002',
-    username: 'dian.margonda',
-    displayName: 'Dian Prameswari',
-    email: 'dian@demo.titik.id',
-    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    role: 'citizen',
-    district: 'Pancoran Mas',
-    isVerified: true,
-    bio: 'Warga Margonda, pejalan kaki harian kawasan kampus UI.',
-    createdAt: '2026-10-06T11:00:00.000Z',
-  },
-  {
-    id: 'usr-kn-003',
-    username: 'wardi_pajajaran',
-    displayName: 'Wardi Gunawan',
-    email: 'wardi@demo.titik.id',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    role: 'citizen',
-    district: 'Bogor Utara',
-    isVerified: true,
-    bio: 'Warga Bogor Utara, rutin melintas koridor Pajajaran.',
-    createdAt: '2026-10-08T14:00:00.000Z',
-  },
-  {
-    id: 'usr-kn-004',
-    username: 'najla.kemang',
-    displayName: 'Najla Savitri',
-    email: 'najla@demo.titik.id',
-    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-    role: 'citizen',
-    district: 'Bogor Timur',
-    isVerified: false,
-    bio: 'Warga aktif Kota Bogor.',
-    createdAt: '2026-10-10T16:00:00.000Z',
-  },
-  {
-    id: 'usr-kn-005',
-    username: 'ahmadfauzi',
-    displayName: 'Ahmad Fauzi',
-    email: 'ahmad@demo.titik.id',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    role: 'citizen',
-    district: 'Bogor Tengah',
-    isVerified: false,
-    bio: 'Warga Pasar Anyar pemerhati kebersihan lingkungan.',
-    createdAt: '2026-10-12T18:00:00.000Z',
-  },
-  {
-    id: 'usr-kn-006',
-    username: 'dikasetia',
-    displayName: 'Dika Setiawan',
-    email: 'dika@demo.titik.id',
-    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150',
-    role: 'citizen',
-    district: 'Bogor Selatan',
-    isVerified: true,
-    bio: 'Teknisi kelistrikan & pemerhati penerangan jalan umum.',
-    createdAt: '2026-10-15T20:00:00.000Z',
-  },
-];
+type RoleFilter = 'Semua' | 'citizen' | 'admin';
+type VerifyFilter = 'Semua' | 'Terverifikasi' | 'Belum';
+
+const ROLE_LABEL: Record<RoleFilter, string> = { Semua: 'Semua peran', citizen: 'Warga', admin: 'Admin' };
+
+/** Change a role through the server function when it exists, else straight on the tables. */
+async function persistRole(userId: string, role: 'citizen' | 'admin'): Promise<void> {
+  const rpc = await supabase.rpc('admin_set_user_role', { p_user_id: userId, p_role: role });
+  if (!rpc.error) return;
+
+  const missingFunction = rpc.error.code === 'PGRST202' || rpc.error.code === '42883' || /could not find the function/i.test(rpc.error.message ?? '');
+  if (!missingFunction) throw new Error(rpc.error.message || 'Peran belum dapat diubah.');
+
+  const { error } = await supabase.from('profiles').update({ role, updated_at: new Date().toISOString() }).eq('id', userId);
+  if (error) throw new Error(error.message);
+  if (role === 'admin') {
+    const { error: roleError } = await supabase.from('user_roles').upsert({ user_id: userId, role: 'admin' });
+    if (roleError) throw new Error(roleError.message);
+  } else {
+    const { error: roleError } = await supabase.from('user_roles').delete().eq('user_id', userId);
+    if (roleError) throw new Error(roleError.message);
+  }
+}
 
 export const AdminPengguna: React.FC<Props> = ({ profile }) => {
   const navigate = useNavigate();
-  const [users, setUsers] = useState<UserRow[]>(SEEDED_PROFILES);
+  const [users, setUsers] = useState<UserRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'Semua' | 'citizen' | 'admin'>('Semua');
-  const [verificationFilter, setVerificationFilter] = useState<'Semua' | 'Terverifikasi' | 'Belum'>('Semua');
-  const [actionMessage, setActionMessage] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [query, setQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('Semua');
+  const [verifyFilter, setVerifyFilter] = useState<VerifyFilter>('Semua');
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoading(true);
+    setLoadError('');
     if (!isSupabaseConfigured) {
-      setUsers(SEEDED_PROFILES);
+      setUsers([]);
+      setLoadError('Supabase belum dikonfigurasi, jadi daftar pengguna tidak tersedia.');
       setIsLoading(false);
       return;
     }
-
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error || !data || data.length === 0) {
-        setUsers(SEEDED_PROFILES);
-      } else {
-        const mappedUsers: UserRow[] = data.map((row: any) => ({
+      const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setUsers(
+        (data ?? []).map((row: Record<string, any>) => ({
           id: row.id,
-          username: row.username || 'user',
+          username: row.username || 'pengguna',
           displayName: row.display_name || row.username || 'Warga',
-          email: row.email,
-          avatarUrl: row.avatar_url,
+          email: row.email ?? undefined,
+          avatarUrl: row.avatar_url ?? undefined,
           role: row.role === 'admin' ? 'admin' : 'citizen',
-          verifiedAgency: row.verified_agency,
-          district: row.district || 'Kota Bogor',
+          verifiedAgency: row.verified_agency ?? undefined,
+          district: row.district || undefined,
           isVerified: Boolean(row.is_verified),
-          bio: row.bio,
-          createdAt: row.created_at,
-        }));
-        setUsers(mappedUsers);
-      }
+        }))
+      );
     } catch {
-      setUsers(SEEDED_PROFILES);
+      setUsers([]);
+      setLoadError('Daftar pengguna belum dapat dimuat. Periksa koneksi lalu segarkan.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
-  const handleToggleRole = async (targetUser: UserRow) => {
-    const nextRole: 'citizen' | 'admin' = targetUser.role === 'admin' ? 'citizen' : 'admin';
+  const patchUser = (id: string, patch: Partial<UserRow>) => setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)));
 
-    // Optimistic UI update
-    setUsers((prev) =>
-      prev.map((u) => (u.id === targetUser.id ? { ...u, role: nextRole } : u))
-    );
+  const toggleRole = async (user: UserRow) => {
+    if (busyId) return;
+    if (user.id === profile.id) {
+      setFeedback({ kind: 'error', text: 'Anda tidak bisa mengubah peran akun Anda sendiri.' });
+      return;
+    }
+    const next: 'citizen' | 'admin' = user.role === 'admin' ? 'citizen' : 'admin';
+    const ok = window.confirm(next === 'admin' ? `Jadikan ${user.displayName} admin? Akun ini akan bisa mengubah status laporan.` : `Cabut akses admin ${user.displayName}?`);
+    if (!ok) return;
 
-    setActionMessage(`Peran ${targetUser.displayName} diubah menjadi ${nextRole}`);
-    setTimeout(() => setActionMessage(''), 3000);
-
-    if (!isSupabaseConfigured) return;
-
+    setBusyId(user.id);
+    setFeedback(null);
     try {
-      // 1. Update profiles table
-      await supabase
-        .from('profiles')
-        .update({ role: nextRole, updated_at: new Date().toISOString() })
-        .eq('id', targetUser.id);
-
-      // 2. Update user_roles table
-      if (nextRole === 'admin') {
-        await supabase
-          .from('user_roles')
-          .upsert({ user_id: targetUser.id, role: 'admin' });
-      } else {
-        await supabase
-          .from('user_roles')
-          .delete()
-          .eq('user_id', targetUser.id);
-      }
+      await persistRole(user.id, next);
+      patchUser(user.id, { role: next });
+      setFeedback({ kind: 'success', text: `${user.displayName} sekarang berperan ${next === 'admin' ? 'admin' : 'warga'}.` });
     } catch (err) {
-      console.warn('Gagal sinkronisasi peran ke Supabase:', err);
+      setFeedback({ kind: 'error', text: err instanceof Error ? err.message : 'Peran belum dapat diubah.' });
+    } finally {
+      setBusyId(null);
     }
   };
 
-  const handleToggleVerification = async (targetUser: UserRow) => {
-    const nextStatus = !targetUser.isVerified;
-
-    // Optimistic UI update
-    setUsers((prev) =>
-      prev.map((u) => (u.id === targetUser.id ? { ...u, isVerified: nextStatus } : u))
-    );
-
-    setActionMessage(
-      `Status verifikasi ${targetUser.displayName} diubah menjadi ${
-        nextStatus ? 'Terverifikasi' : 'Belum Terverifikasi'
-      }`
-    );
-    setTimeout(() => setActionMessage(''), 3000);
-
+  const toggleVerification = async (user: UserRow) => {
+    if (busyId) return;
+    const next = !user.isVerified;
+    setBusyId(user.id);
+    setFeedback(null);
     try {
-      await dataService.setCitizenVerification(targetUser.id, nextStatus);
-    } catch {
-      if (isSupabaseConfigured) {
-        await supabase
-          .from('profiles')
-          .update({ is_verified: nextStatus, updated_at: new Date().toISOString() })
-          .eq('id', targetUser.id);
-      }
+      await dataService.setCitizenVerification(user.id, next);
+      patchUser(user.id, { isVerified: next });
+      setFeedback({ kind: 'success', text: `${user.displayName} ${next ? 'ditandai terverifikasi' : 'tidak lagi terverifikasi'}.` });
+    } catch (err) {
+      setFeedback({ kind: 'error', text: err instanceof Error ? err.message : 'Status verifikasi belum dapat diubah.' });
+    } finally {
+      setBusyId(null);
     }
   };
 
-  const handleQuickMessage = (userId: string) => {
-    navigate(`/pesan?user_id=${userId}`);
-  };
+  const counts = useMemo(
+    () => ({
+      total: users.length,
+      verified: users.filter((u) => u.isVerified).length,
+      admins: users.filter((u) => u.role === 'admin').length,
+    }),
+    [users]
+  );
 
-  // Metrics summary
-  const totalUsersCount = users.length;
-  const verifiedUsersCount = users.filter((u) => u.isVerified).length;
-  const adminUsersCount = users.filter((u) => u.role === 'admin').length;
-
-  // Filtered users list
-  const filteredUsers = useMemo(() => {
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
     return users.filter((u) => {
-      // Role filter
-      if (roleFilter !== 'Semua' && u.role !== roleFilter) {
-        return false;
-      }
-
-      // Verification filter
-      if (verificationFilter === 'Terverifikasi' && !u.isVerified) {
-        return false;
-      }
-      if (verificationFilter === 'Belum' && u.isVerified) {
-        return false;
-      }
-
-      // Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchName = u.displayName.toLowerCase().includes(q);
-        const matchUser = u.username.toLowerCase().includes(q);
-        const matchEmail = (u.email || '').toLowerCase().includes(q);
-        const matchDistrict = (u.district || '').toLowerCase().includes(q);
-        if (!matchName && !matchUser && !matchEmail && !matchDistrict) {
-          return false;
-        }
-      }
-
-      return true;
+      if (roleFilter !== 'Semua' && u.role !== roleFilter) return false;
+      if (verifyFilter === 'Terverifikasi' && !u.isVerified) return false;
+      if (verifyFilter === 'Belum' && u.isVerified) return false;
+      return !q || [u.displayName, u.username, u.email, u.district].some((v) => v?.toLowerCase().includes(q));
     });
-  }, [users, roleFilter, verificationFilter, searchQuery]);
+  }, [users, roleFilter, verifyFilter, query]);
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 shadow-xs space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#E3E0D6] dark:border-[#26352E]">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold">
-                Direktori Warga &amp; Identitas
-              </span>
-            </div>
-            <h2 className="text-base sm:text-lg font-bold text-[#101913] dark:text-[#F3F6F4] mt-0.5">
-              Manajemen Pengguna &amp; Hak Akses
-            </h2>
-            <p className="text-xs text-[#4F5A52] dark:text-[#9EACA3] mt-1">
-              Verifikasi akun warga, mutasi peran admin dinas, dan komunikasi langsung warga.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold text-[#1B4332] dark:text-[#34D399] px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
-              Supabase profiles &middot; Live
-            </span>
-            <button
-              type="button"
-              onClick={fetchUsers}
-              disabled={isLoading}
-              className="p-2 rounded-xl border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#1B4332] dark:hover:text-[#34D399] transition-colors cursor-pointer"
-              title="Segarkan Data Pengguna"
-              aria-label="Segarkan"
-            >
-              <RotateCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-2xl font-bold text-ink">Pengguna</h2>
+          <p className="mt-1 text-sm text-ink-2 tabular-nums">
+            {counts.total} akun, {counts.verified} terverifikasi, {counts.admins} admin.
+          </p>
         </div>
+        <button type="button" onClick={fetchUsers} disabled={isLoading} aria-label="Segarkan" className="w-9 h-9 rounded-lg bg-surface-2 text-ink-2 hover:text-ink flex items-center justify-center cursor-pointer disabled:opacity-60">
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+        </button>
+      </header>
 
-        {/* 3 Telemetry Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
-          <div className="p-4 rounded-2xl bg-[#F7F5EF]/60 dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-[#4F5A52] dark:text-[#9EACA3]">
-                Total Pengguna Terdaftar
-              </span>
-              <div className="text-xl font-black text-[#101913] dark:text-[#F3F6F4] font-mono tabular-nums mt-1">
-                {totalUsersCount} Akun
-              </div>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-[#1B4332]/10 text-[#1B4332] dark:text-[#34D399] flex items-center justify-center">
-              <Users className="w-5 h-5" />
-            </div>
-          </div>
+      {loadError && <Notice kind="error">{loadError}</Notice>}
+      {feedback && <Notice kind={feedback.kind}>{feedback.text}</Notice>}
 
-          <div className="p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
-                Warga Terverifikasi
-              </span>
-              <div className="text-xl font-black text-emerald-700 dark:text-emerald-400 font-mono tabular-nums mt-1">
-                {verifiedUsersCount} Akun
-              </div>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">
-                Akun admin Berwenang
-              </span>
-              <div className="text-xl font-black text-amber-700 dark:text-amber-400 font-mono tabular-nums mt-1">
-                {adminUsersCount} Akun
-              </div>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <Shield className="w-5 h-5" />
-            </div>
-          </div>
-        </div>
-
-        {actionMessage && (
-          <div className="px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-            <span>{actionMessage}</span>
-          </div>
-        )}
-      </div>
-
-      {/* User Directory Table Card */}
-      <div className="bg-white dark:bg-[#1A221E] border border-[#E3E0D6] dark:border-[#26352E] rounded-3xl p-6 shadow-xs space-y-4">
-        {/* Filter Bar */}
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+      <section aria-label="Daftar pengguna" className="panel overflow-hidden">
+        <div className="flex flex-col md:flex-row gap-3 p-4 border-b border-line-soft">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#4F5A52] dark:text-[#9EACA3]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3 pointer-events-none" aria-hidden="true" />
             <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari nama, @username, email, atau kecamatan..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E] text-[#101913] dark:text-[#F3F6F4] placeholder-[#4F5A52] dark:placeholder-[#9EACA3] focus:outline-hidden focus:border-[#1B4332] dark:focus:border-[#34D399]"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari nama, @username, email, atau kecamatan"
+              aria-label="Cari pengguna"
+              className="titik-pill-input pl-9 pr-3"
             />
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Role Filter Chips */}
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E]">
-              {(['Semua', 'citizen', 'admin'] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRoleFilter(r)}
-                  className={`py-1 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    roleFilter === r
-                      ? 'bg-[#1B4332] text-white shadow-xs'
-                      : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4]'
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-
-            {/* Verification Filter Chips */}
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-[#F7F5EF] dark:bg-[#131916] border border-[#E3E0D6] dark:border-[#26352E]">
-              {(['Semua', 'Terverifikasi', 'Belum'] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setVerificationFilter(v)}
-                  className={`py-1 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    verificationFilter === v
-                      ? 'bg-[#1B4332] text-white shadow-xs'
-                      : 'text-[#4F5A52] dark:text-[#9EACA3] hover:text-[#101913] dark:hover:text-[#F3F6F4]'
-                  }`}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
-          </div>
+          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as RoleFilter)} aria-label="Filter peran" className="titik-pill-input px-3 md:w-40">
+            {(Object.keys(ROLE_LABEL) as RoleFilter[]).map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABEL[r]}
+              </option>
+            ))}
+          </select>
+          <select value={verifyFilter} onChange={(e) => setVerifyFilter(e.target.value as VerifyFilter)} aria-label="Filter verifikasi" className="titik-pill-input px-3 md:w-48">
+            <option value="Semua">Semua verifikasi</option>
+            <option value="Terverifikasi">Terverifikasi</option>
+            <option value="Belum">Belum terverifikasi</option>
+          </select>
         </div>
 
-        {/* User Management Table */}
-        <div className="overflow-x-auto rounded-2xl border border-[#E3E0D6] dark:border-[#26352E]">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#F7F5EF] dark:bg-[#131916] text-[#4F5A52] dark:text-[#9EACA3] font-bold border-b border-[#E3E0D6] dark:border-[#26352E]">
-              <tr>
-                <th className="py-3 px-4">Pengguna</th>
-                <th className="py-3 px-4">Kecamatan</th>
-                <th className="py-3 px-4">Peran Akun</th>
-                <th className="py-3 px-4">Status Verifikasi</th>
-                <th className="py-3 px-4 text-right">Aksi Manajemen</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E3E0D6] dark:divide-[#26352E]">
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((u) => {
-                  const isAdminRole = u.role === 'admin';
-                  return (
-                    <tr
-                      key={u.id}
-                      className="hover:bg-[#F7F5EF]/60 dark:hover:bg-[#131916]/60 transition-colors"
+        {isLoading && users.length === 0 ? (
+          <p role="status" className="px-5 py-12 text-center text-sm text-ink-2">
+            Memuat pengguna
+          </p>
+        ) : visible.length === 0 ? (
+          <EmptyNote title={users.length === 0 ? 'Belum ada pengguna' : 'Tidak ada yang cocok'}>{users.length === 0 ? 'Akun yang mendaftar akan muncul di sini.' : 'Ubah kata kunci atau filter.'}</EmptyNote>
+        ) : (
+          <ul className="divide-y divide-line-soft">
+            {visible.map((u) => {
+              const isSelf = u.id === profile.id;
+              const busy = busyId === u.id;
+              return (
+                <li key={u.id} className="px-5 py-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+                  <UserAvatar src={u.avatarUrl} alt={u.displayName} name={u.displayName} role={u.role} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                  <div className="min-w-0 flex-1 basis-56">
+                    <p className="text-sm font-semibold text-ink truncate">
+                      {u.displayName}
+                      {isSelf && <span className="ml-2 text-xs font-normal text-ink-3">(Anda)</span>}
+                    </p>
+                    <p className="text-xs text-ink-3 truncate">
+                      @{u.username}
+                      {u.email ? ` / ${u.email}` : ''}
+                    </p>
+                    <p className="mt-1 text-xs text-ink-2 flex flex-wrap gap-x-3">
+                      <span>{u.role === 'admin' ? 'admin' : 'citizen'}</span>
+                      <span>{u.isVerified ? 'Terverifikasi' : 'Belum terverifikasi'}</span>
+                      {u.district && <span>{u.district}</span>}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/pesan?new_chat=${encodeURIComponent(u.id)}`)}
+                      disabled={isSelf}
+                      title={isSelf ? 'Ini akun Anda' : `Kirim pesan ke ${u.displayName}`}
+                      className="h-9 px-3.5 rounded-lg bg-surface-2 text-ink text-sm font-semibold hover:bg-line disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <UserAvatar
-                            src={u.avatarUrl}
-                            alt={u.displayName}
-                            name={u.displayName}
-                            role={u.role}
-                            className="w-8 h-8 rounded-full object-cover shrink-0"
-                          />
-                          <div>
-                            <div className="font-bold text-[#101913] dark:text-[#F3F6F4]">
-                              {u.displayName}
-                            </div>
-                            <div className="text-[11px] font-mono text-[#4F5A52] dark:text-[#9EACA3]">
-                              @{u.username}
-                              {u.email && <span> &middot; {u.email}</span>}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-[#4F5A52] dark:text-[#9EACA3]">
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 shrink-0 text-[#9EACA3]" />
-                          <span>{u.district || 'Kota Bogor'}</span>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-                              isAdminRole
-                                ? 'bg-[#92400E]/10 text-[#92400E] dark:text-[#FDE68A] border-[#92400E]/30'
-                                : 'bg-[#1B4332]/10 text-[#1B4332] dark:text-[#34D399] border-[#1B4332]/30'
-                            }`}
-                          >
-                            {u.role}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        {u.isVerified ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>Terverifikasi</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-stone-100 dark:bg-[#26352E] text-[#4F5A52] dark:text-[#9EACA3] border border-stone-300 dark:border-stone-700">
-                            <XCircle className="w-3 h-3" />
-                            <span>Belum Verifikasi</span>
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Quick Message Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleQuickMessage(u.id)}
-                            className="inline-flex items-center gap-1 py-1.5 px-2.5 rounded-xl border border-[#E3E0D6] dark:border-[#26352E] bg-white dark:bg-[#1A221E] text-[#101913] dark:text-[#F3F6F4] text-[11px] font-semibold hover:border-[#1B4332] dark:hover:border-[#34D399] transition-colors cursor-pointer"
-                            title="Kirim pesan langsung ke pengguna"
-                          >
-                            <MessageSquare className="w-3 h-3 text-[#1B4332] dark:text-[#34D399]" />
-                            <span>Pesan</span>
-                          </button>
-
-                          {/* Role Toggle Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleRole(u)}
-                            className={`py-1.5 px-2.5 rounded-xl text-[11px] font-semibold border transition-colors cursor-pointer ${
-                              isAdminRole
-                                ? 'border-stone-300 dark:border-stone-700 bg-stone-100 dark:bg-[#26352E] text-stone-700 dark:text-stone-300 hover:bg-stone-200'
-                                : 'border-amber-300 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
-                            }`}
-                            title={isAdminRole ? 'Ubah menjadi citizen' : 'Jadikan akun admin'}
-                          >
-                            {isAdminRole ? 'Jadikan citizen' : 'Jadikan admin'}
-                          </button>
-
-                          {/* Verification Toggle Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleVerification(u)}
-                            className={`inline-flex items-center gap-1 py-1.5 px-2.5 rounded-xl text-[11px] font-semibold border transition-colors cursor-pointer ${
-                              u.isVerified
-                                ? 'border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100'
-                                : 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100'
-                            }`}
-                            title={u.isVerified ? 'Batalkan status verifikasi' : 'Verifikasi identitas warga'}
-                          >
-                            {u.isVerified ? (
-                              <>
-                                <UserX className="w-3 h-3" />
-                                <span>Batal Verif</span>
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="w-3 h-3" />
-                                <span>Verifikasi</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-[#4F5A52] dark:text-[#9EACA3]">
-                    Tidak ada pengguna yang cocok dengan kriteria filter.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                      Pesan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleVerification(u)}
+                      disabled={busy || u.role === 'admin'}
+                      title={u.role === 'admin' ? 'Akun admin tidak perlu verifikasi warga' : undefined}
+                      className="h-9 px-3.5 rounded-lg bg-surface-2 text-ink text-sm font-semibold hover:bg-line disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    >
+                      {u.isVerified ? 'Batalkan verifikasi' : 'Verifikasi'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleRole(u)}
+                      disabled={busy || isSelf}
+                      title={isSelf ? 'Anda tidak bisa mengubah peran sendiri' : undefined}
+                      className="h-9 px-3.5 rounded-lg bg-surface-2 text-ink text-sm font-semibold hover:bg-line disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    >
+                      {busy ? 'Memproses' : u.role === 'admin' ? 'Jadikan warga' : 'Jadikan admin'}
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 };

@@ -7,6 +7,7 @@ import {
   FeedComment,
 } from './types';
 import { formatIndonesianTimeAgo } from '../../utils/timeAgo';
+import { resolveAvatarUrl } from '../../utils/avatar';
 import { Post, Report, ReportStatus, Facility, BudgetSectorContext, UserProfile, EvidenceStatus } from '../../types/domain';
 import { DataError } from '../errors/DataError';
 import { storageService } from '../storageService';
@@ -152,9 +153,7 @@ function mapPostRow(
       id: row.author_id || 'usr-anon',
       username: row.author_username || 'warga',
       displayName: row.author_display_name || 'Warga TITIK',
-      avatarUrl:
-        row.author_avatar_url ||
-        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      avatarUrl: resolveAvatarUrl(row.author_avatar_url),
       role: row.author_role === 'admin' ? 'admin' : 'citizen',
     },
     body: row.body,
@@ -1012,13 +1011,25 @@ export class SupabaseDataAdapter implements IDataAdapter {
         return [];
       }
 
+      // Roles come from the profiles table, never from the display name a commenter typed
+      const authorIds = [...new Set(data.map((row: any) => row.author_id).filter(Boolean))] as string[];
+      const profileById = new Map<string, { role?: string; username?: string }>();
+      if (authorIds.length > 0) {
+        try {
+          const { data: profiles } = await supabase.from('profiles').select('id, username, role').in('id', authorIds);
+          (profiles || []).forEach((p: any) => profileById.set(p.id, { role: p.role, username: p.username }));
+        } catch {
+          // Without profile data comments still render, just without role badges.
+        }
+      }
+
       return data.map((row: any) => ({
         id: row.id,
         authorId: row.author_id || undefined,
+        authorRole: profileById.get(row.author_id)?.role === 'admin' ? ('admin' as const) : ('citizen' as const),
+        authorUsername: profileById.get(row.author_id)?.username || undefined,
         authorName: row.author_name,
-        avatarUrl:
-          row.avatar_url ||
-          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        avatarUrl: resolveAvatarUrl(row.avatar_url),
         body: row.body,
         timeAgo: formatIndonesianTimeAgo(row.created_at),
         likes: typeof row.likes === 'number' ? row.likes : 0,
@@ -1124,7 +1135,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
         id: data.id,
         username: data.username,
         displayName: data.display_name,
-        avatarUrl: data.avatar_url,
+        avatarUrl: resolveAvatarUrl(data.avatar_url),
         role: data.role === 'admin' ? 'admin' : 'citizen',
         bio: data.bio || undefined,
         district: data.district || undefined,
@@ -1358,7 +1369,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
         id: data.id,
         username: data.username,
         displayName: data.display_name,
-        avatarUrl: data.avatar_url,
+        avatarUrl: resolveAvatarUrl(data.avatar_url),
         role: data.role === 'admin' ? 'admin' : 'citizen',
         bio: data.bio || undefined,
         district: data.district || undefined,

@@ -4,6 +4,8 @@ import { dataService } from '../services/dataService';
 import { FeedComment, NewReportInput, ReportSubmitResult } from '../services/adapters/types';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { useAuth } from './AuthContext';
+import { resolveAvatarUrl } from '../utils/avatar';
+import { rememberAnonymousReport } from '../utils/localReports';
 
 export interface TitikContextType {
   posts: Post[];
@@ -74,7 +76,7 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [landingBannerOpen, setLandingBannerOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(1);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
 
   useEffect(() => {
     const handleUnreadUpdate = (e: Event) => {
@@ -461,11 +463,7 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     parentId?: string
   ) => {
     const finalAuthor = authorName || (isAuthenticated ? profile.displayName : 'Warga Anonim');
-    const finalAvatar =
-      avatarUrl ||
-      (isAuthenticated
-        ? profile.avatarUrl
-        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80');
+    const finalAvatar = resolveAvatarUrl(avatarUrl || (isAuthenticated ? profile.avatarUrl : ''));
     const created = await dataService.addComment(postId, finalAuthor, finalAvatar, body, parentId);
     setPosts((prev) =>
       prev.map((p) => (p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p))
@@ -475,18 +473,29 @@ export const TitikProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const submitReport = async (input: NewReportInput) => {
     const result = await dataService.submitReport(input);
-    const [submittedPost] = await dataService.getFeedPosts('for_you', 'Semua');
-    setActiveFeedTab('for_you');
-    setSelectedCategory('Semua');
+    if (input.reporterType === 'anonymous' && currentUserId) {
+      rememberAnonymousReport(currentUserId, result.publicReference, result.secretFollowUpToken);
+    }
+    // The report exists from here on; lists that show the user's own reports reload right away.
+    window.dispatchEvent(new CustomEvent('titik-report-submitted', { detail: { reportId: result.report.id } }));
 
-    if (submittedPost?.relatedReportId === result.report.id) {
-      setPosts((currentPosts) => [
-        submittedPost,
-        ...currentPosts.filter((post) => post.id !== submittedPost.id),
-      ]);
-      setActivePostIdState(submittedPost.id);
-    } else {
-      await refreshFeed();
+    // A feed refresh failure must not turn a saved report into a failed submission.
+    try {
+      const [submittedPost] = await dataService.getFeedPosts('for_you', 'Semua');
+      setActiveFeedTab('for_you');
+      setSelectedCategory('Semua');
+
+      if (submittedPost?.relatedReportId === result.report.id) {
+        setPosts((currentPosts) => [
+          submittedPost,
+          ...currentPosts.filter((post) => post.id !== submittedPost.id),
+        ]);
+        setActivePostIdState(submittedPost.id);
+      } else {
+        await refreshFeed();
+      }
+    } catch (feedError) {
+      console.warn('Report saved, but the feed could not be refreshed:', feedError);
     }
     return result;
   };
