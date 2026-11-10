@@ -316,14 +316,14 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, isActive, isNearActive
 
       {/* Video utilities, top right below the phone header */}
       {isVideo && (
-        <div className="absolute z-20 right-3 top-[calc(max(0.75rem,env(safe-area-inset-top))+3.25rem)] lg:top-3 flex items-center gap-2">
+        <div className="absolute z-20 right-3 top-[calc(max(0.75rem,env(safe-area-inset-top))+6.5rem)] lg:top-3 flex items-center gap-2">
           <button
             type="button"
             onClick={onToggleMute}
             aria-pressed={!isMuted}
             aria-label={isMuted ? 'Nyalakan suara' : 'Matikan suara'}
             title={isMuted ? 'Nyalakan suara' : 'Matikan suara'}
-            className="glass-media w-9 h-9 rounded-xl flex items-center justify-center hover:bg-black/60 transition-colors cursor-pointer"
+            className="glass-media w-10 h-10 lg:w-9 lg:h-9 rounded-xl flex items-center justify-center hover:bg-black/60 transition-colors cursor-pointer"
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>

@@ -6,9 +6,19 @@ import { useTitik } from '../../context/useTitik';
 import { useAuth } from '../../context/AuthContext';
 import { UserAvatar } from '../common/UserAvatar';
 
+/** The slot every destination shares: a rounded indicator that fills when its page is open. */
+const INDICATOR =
+  'flex items-center justify-center w-14 h-8 rounded-xl transition-[background-color,color,box-shadow] duration-200';
+const INDICATOR_ACTIVE = 'bg-lime text-on-lime shadow-[0_6px_14px_-6px_rgba(0,0,0,0.45)]';
+const INDICATOR_IDLE = 'text-ink-2 group-hover:bg-surface-2 group-hover:text-ink';
+
+const TAB_BASE = 'group flex flex-col items-center justify-center gap-1 h-[3.75rem] rounded-2xl text-[11px] leading-none';
+
 /**
  * Mobile navigation. Floats over the video feed and map, so it is one of the few
  * places that earns a glass surface. Hides while a sheet or a message thread is open.
+ * The open page is marked three ways (filled lime indicator, heavier icon, bold label)
+ * so it reads at a glance, even over a bright video frame.
  */
 export const BottomNav: React.FC = () => {
   const navigate = useNavigate();
@@ -66,11 +76,11 @@ export const BottomNav: React.FC = () => {
         if (onClick) onClick();
         else go(href);
       }}
-      className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-xl text-[11px] font-medium transition-colors ${
-        active ? 'text-brand font-semibold' : 'text-ink-2 hover:text-ink'
-      }`}
+      className={`${TAB_BASE} ${active ? 'text-ink font-bold' : 'text-ink-2 font-medium hover:text-ink'}`}
     >
-      <Icon className="w-5 h-5" strokeWidth={active ? 2.3 : 1.8} />
+      <span className={`${INDICATOR} ${active ? INDICATOR_ACTIVE : INDICATOR_IDLE}`}>
+        <Icon className="w-[19px] h-[19px]" strokeWidth={active ? 2.5 : 1.8} />
+      </span>
       <span>{label}</span>
     </a>
   );
@@ -81,11 +91,12 @@ export const BottomNav: React.FC = () => {
     currentPath === `/u/${profile.username}` ||
     currentPath === '/me' ||
     (profile.role === 'admin' && currentPath.startsWith('/admin'));
+  const isAdminArea = currentPath.startsWith('/admin');
 
   return (
     <nav
       aria-label="Navigasi Utama Mobile"
-      className={`glass-strong fixed bottom-[max(0.75rem,env(safe-area-inset-bottom,12px))] left-3 right-3 mx-auto z-40 lg:hidden grid grid-cols-5 items-center max-w-md px-1.5 py-1.5 rounded-2xl shadow-[0_18px_40px_-18px_rgba(0,0,0,0.55)] transition-all duration-300 ${
+      className={`glass-strong fixed bottom-[max(0.75rem,env(safe-area-inset-bottom,12px))] left-3 right-3 mx-auto z-40 lg:hidden grid grid-cols-5 items-center max-w-md px-1.5 py-1.5 rounded-3xl shadow-[0_18px_40px_-18px_rgba(0,0,0,0.55)] transition-all duration-300 ${
         isVisible && !isCommentsSheetOpen && !isMessagesOnMobile
           ? 'translate-y-0 opacity-100'
           : 'translate-y-28 opacity-0 pointer-events-none'
@@ -99,15 +110,16 @@ export const BottomNav: React.FC = () => {
 
       {tab('/explore', 'Explore', Compass, currentPath === '/explore')}
 
+      {/* Create is an action, not a place: a raised key that breaks the bar's top edge */}
       <div className="flex items-center justify-center">
         <button
           type="button"
           onClick={() => openComposer('post')}
-          className="flex items-center justify-center w-12 h-10 rounded-xl bg-brand text-on-brand active:scale-95 transition-transform cursor-pointer"
+          className="-translate-y-4 flex items-center justify-center w-14 h-14 rounded-2xl bg-brand text-on-brand border border-white/25 shadow-[0_12px_24px_-10px_rgba(0,0,0,0.6)] active:scale-95 transition-transform cursor-pointer"
           title="Buat Postingan atau Laporan"
           aria-label="Buat"
         >
-          <Plus className="w-5 h-5" strokeWidth={2.8} />
+          <Plus className="w-6 h-6" strokeWidth={2.8} />
         </button>
       </div>
 
@@ -120,31 +132,42 @@ export const BottomNav: React.FC = () => {
             e.preventDefault();
             go(profileHref);
           }}
-          className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-xl text-[11px] font-medium transition-colors ${
+          aria-current={profileActive ? 'page' : undefined}
+          className={`${TAB_BASE} ${
             profileActive
-              ? currentPath.startsWith('/admin')
+              ? isAdminArea
                 ? 'text-amber-400 font-bold'
-                : 'text-brand font-semibold'
-              : 'text-ink-2 hover:text-ink'
+                : 'text-ink font-bold'
+              : 'text-ink-2 font-medium hover:text-ink'
           }`}
           title={profile.role === 'admin' ? 'Profil & admin' : 'Profil Saya'}
         >
-          <div className="relative">
-            <UserAvatar
-              src={profile.avatarUrl}
-              alt={profile.displayName}
-              name={profile.displayName}
-              role={profile.role}
-              className={`w-5 h-5 rounded-full object-cover ${
-                profile.role === 'admin' ? 'ring-1 ring-amber-400/70' : ''
-              }`}
-            />
-            {profile.role === 'admin' && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-surface" title="Akun admin" />
-            )}
-          </div>
-          <span className="truncate max-w-[56px] text-center">
-            {currentPath.startsWith('/admin') ? 'admin' : profile.displayName.split(' ')[0]}
+          <span
+            className={`${INDICATOR} ${
+              profileActive
+                ? isAdminArea
+                  ? 'bg-amber-400/25 ring-1 ring-amber-400/60'
+                  : INDICATOR_ACTIVE
+                : 'group-hover:bg-surface-2'
+            }`}
+          >
+            <span className="relative">
+              <UserAvatar
+                src={profile.avatarUrl}
+                alt={profile.displayName}
+                name={profile.displayName}
+                role={profile.role}
+                className={`w-[22px] h-[22px] rounded-full object-cover ${
+                  profile.role === 'admin' ? 'ring-1 ring-amber-400/70' : ''
+                }`}
+              />
+              {profile.role === 'admin' && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-surface" title="Akun admin" />
+              )}
+            </span>
+          </span>
+          <span className="truncate max-w-[60px] text-center">
+            {isAdminArea ? 'admin' : profile.displayName.split(' ')[0]}
           </span>
         </a>
       ) : (

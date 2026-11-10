@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { UserProfile } from '../types/domain';
@@ -22,9 +22,102 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const LOCAL_STORAGE_ACTIVE_PROFILE = 'titik_active_profile_v1';
 export const LOCAL_STORAGE_AUTHENTICATED = 'titik_authenticated_v2';
+/** When the current login began. A login lasts SESSION_MAX_AGE_MS from this moment, no matter how active the user is. */
+export const LOCAL_STORAGE_SESSION_STARTED = 'titik_session_started_v1';
+/** sessionStorage flag so /login can explain why the user was signed out. Not cleared with the auth keys. */
+export const SESSION_EXPIRED_NOTICE_KEY = 'titik_notice_session_expired';
+export const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 export const freshSignupUserIds = new Set<string>();
 
 export const isLiveMode = true;
+
+/**
+ * A failure that says nothing about whether the session is valid: the network dropped, the
+ * server answered 5xx or 429, or a profile read could not complete. Treating these as "invalid
+ * session" signed people out whenever a laptop woke up or a tab regained focus on a bad connection.
+ */
+export class TransientAuthError extends Error {
+  readonly original: unknown;
+
+  constructor(message: string, original?: unknown) {
+    super(message);
+    this.name = 'TransientAuthError';
+    this.original = original;
+  }
+}
+
+const NETWORK_FAILURE_PATTERN = /failed to fetch|networkerror|network request failed|load failed|fetch failed|timed? ?out/i;
+
+export function isTransientAuthFailure(error: unknown): boolean {
+  if (!error) return false;
+  if (error instanceof TransientAuthError) return true;
+  const e = error as { name?: string; status?: number; message?: string };
+  if (e.name === 'AuthRetryableFetchError') return true;
+  if (typeof e.status === 'number' && (e.status === 0 || e.status === 429 || e.status >= 500)) return true;
+  return NETWORK_FAILURE_PATTERN.test(e.message || '');
+}
+
+function getLocalStorage(): Storage | null {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage;
+    if (typeof localStorage !== 'undefined') return localStorage;
+  } catch {
+    // Storage blocked
+  }
+  return null;
+}
+
+export function getSessionStartedAt(): number | null {
+  try {
+    const raw = getLocalStorage()?.getItem(LOCAL_STORAGE_SESSION_STARTED);
+    const value = raw ? Number(raw) : NaN;
+    return Number.isFinite(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Records the start of a login. Without `force` an existing start time is kept (focus events re-emit SIGNED_IN). */
+export function markSessionStarted(force = false, now = Date.now()): void {
+  try {
+    const storage = getLocalStorage();
+    if (!storage) return;
+    if (!force && getSessionStartedAt() !== null) return;
+    storage.setItem(LOCAL_STORAGE_SESSION_STARTED, String(now));
+  } catch {
+    // Ignore storage errors: expiry then simply cannot be enforced on this device
+  }
+}
+
+export function isSessionExpired(now = Date.now()): boolean {
+  const startedAt = getSessionStartedAt();
+  return startedAt !== null && now - startedAt >= SESSION_MAX_AGE_MS;
+}
+
+export function flagSessionExpiredNotice(): void {
+  try {
+    if (typeof window !== 'undefined') window.sessionStorage.setItem(SESSION_EXPIRED_NOTICE_KEY, '1');
+  } catch {
+    // Notice is a courtesy only
+  }
+}
+
+/** True when the user was just signed out by the 24-hour limit. Reading does not clear it (safe under StrictMode). */
+export function peekSessionExpiredNotice(): boolean {
+  try {
+    return typeof window !== 'undefined' && window.sessionStorage.getItem(SESSION_EXPIRED_NOTICE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function clearSessionExpiredNotice(): void {
+  try {
+    if (typeof window !== 'undefined') window.sessionStorage.removeItem(SESSION_EXPIRED_NOTICE_KEY);
+  } catch {
+    // Nothing to clear
+  }
+}
 
 export const ANONYMOUS_PROFILE: UserProfile = {
   id: 'usr-anon-00',
@@ -147,6 +240,7 @@ export function clearAllAuthStorage(): void {
           key.startsWith('sb-') ||
           key.startsWith('titik_active_profile') ||
           key.startsWith('titik_authenticated') ||
+          key.startsWith('titik_session_started') ||
           key.startsWith('titik_simulated_accounts')
         ) {
           keysToRemove.push(key);
@@ -253,6 +347,8 @@ export async function fetchRealProfileAndRole(
       ) {
         return null;
       }
+      // Anything else (network, 5xx, timeout) says nothing about the account: do not sign out for it
+      throw new TransientAuthError('Profil belum dapat dimuat.', error);
     }
 
     if (data) {
@@ -282,7 +378,8 @@ export async function fetchRealProfileAndRole(
     }
   } catch (err) {
     console.warn('Could not fetch DB profile:', err);
-    return null;
+    if (err instanceof TransientAuthError) throw err;
+    throw new TransientAuthError('Profil belum dapat dimuat.', err);
   }
 
   // In pure live mode, if database profile row is missing, return null
@@ -338,12 +435,24 @@ export async function initializeAuthSession(deps: InitializeAuthSessionParams): 
     return;
   }
 
+  let initialSession: Session | null = null;
   try {
-    const { data: { session: initialSession } } = await deps.supabase.auth.getSession();
+    ({ data: { session: initialSession } } = await deps.supabase.auth.getSession());
 
     if (initialSession?.user) {
+      // A login lasts 24 hours from sign-in. Sessions that predate this rule start counting now.
+      if (isSessionExpired()) {
+        flagSessionExpiredNotice();
+        await deps.invalidateSession({ redirect: true });
+        return;
+      }
+      markSessionStarted();
+
       // 1. Live server validation with Supabase Auth
       const { data: userData, error: userError } = await deps.supabase.auth.getUser();
+      if (userError && isTransientAuthFailure(userError)) {
+        throw userError;
+      }
       if (userError || !userData?.user) {
         console.warn('Auth token references invalid or deleted user in Supabase:', userError?.message);
         await deps.invalidateSession({ redirect: true });
@@ -380,8 +489,18 @@ export async function initializeAuthSession(deps: InitializeAuthSessionParams): 
       }
     }
   } catch (err) {
-    console.error('Session retrieval failed:', err);
-    await deps.invalidateSession({ redirect: false });
+    if (isTransientAuthFailure(err)) {
+      // Offline or the server hiccuped: keep the saved session and profile, validate on the next event
+      console.warn('Session check postponed, connection problem:', err);
+      if (initialSession?.user && deps.getStoredAuth()) {
+        deps.setSession(initialSession);
+        deps.setUser(initialSession.user);
+        deps.setIsAuthenticated(true);
+      }
+    } else {
+      console.error('Session retrieval failed:', err);
+      await deps.invalidateSession({ redirect: false });
+    }
   } finally {
     deps.setIsLoading(false);
   }
@@ -406,24 +525,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = useCallback(async () => {
     if (session) {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData?.user) {
-        await invalidateSession({ redirect: true });
-        return;
-      }
-      const refreshed = await fetchRealProfileAndRole(session);
-      if (refreshed) {
-        setProfile(refreshed);
-        try {
-          localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(refreshed));
-        } catch {
-          // Ignore storage set errors
+      try {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError && isTransientAuthFailure(userError)) return;
+        if (userError || !userData?.user) {
+          await invalidateSession({ redirect: true });
+          return;
         }
-      } else {
-        await invalidateSession({ redirect: true });
+        const refreshed = await fetchRealProfileAndRole(session);
+        if (refreshed) {
+          setProfile(refreshed);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE, JSON.stringify(refreshed));
+          } catch {
+            // Ignore storage set errors
+          }
+        } else {
+          await invalidateSession({ redirect: true });
+        }
+      } catch (err) {
+        // A dropped connection must not end the session; the next refresh will try again
+        if (!isTransientAuthFailure(err)) throw err;
+        console.warn('Profile refresh postponed, connection problem:', err);
       }
     }
   }, [session, invalidateSession]);
+
+  // The user id the app currently trusts. A repeat SIGNED_IN for the same id is a tab regaining focus, not a new login.
+  const knownUserIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    knownUserIdRef.current = user?.id ?? null;
+  }, [user]);
+
+  // A login lasts 24 hours. Checked on a timer and whenever the tab wakes up, because timers pause while a device sleeps.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const enforceSessionAge = () => {
+      if (!isSessionExpired()) return;
+      flagSessionExpiredNotice();
+      void invalidateSession({ redirect: true });
+    };
+    enforceSessionAge();
+    const timer = window.setInterval(enforceSessionAge, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') enforceSessionAge();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', enforceSessionAge);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', enforceSessionAge);
+    };
+  }, [isAuthenticated, invalidateSession]);
 
   // Realtime subscription to profiles table for live avatar and profile synchronization
   useEffect(() => {
@@ -489,11 +643,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthenticated(false);
           setProfile(ANONYMOUS_PROFILE);
         } else if (newSession?.user) {
+          // Token rotation (hourly) and a tab regaining focus re-emit events for the same user.
+          // Nothing about the account changed, so keep the new tokens and skip the network round trips.
+          const isSameUserRefresh =
+            event === 'TOKEN_REFRESHED' ||
+            (event === 'SIGNED_IN' && knownUserIdRef.current === newSession.user.id);
+          if (isSameUserRefresh) {
+            setSession(newSession);
+            markSessionStarted();
+            return;
+          }
+
           try {
             const isFreshSignup = freshSignupUserIds.has(newSession.user.id);
 
             if (!isFreshSignup) {
               const { data: userData, error: userError } = await supabase.auth.getUser();
+              if (userError && isTransientAuthFailure(userError)) return;
               if (userError || !userData?.user) {
                 await invalidateSession({ redirect: true });
                 return;
@@ -555,6 +721,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           } catch (err) {
             console.warn('onAuthStateChange profile fetch error:', err);
+            // A connection problem keeps the current session; only a definite failure ends it
+            if (isTransientAuthFailure(err)) return;
             const isFreshSignup = newSession?.user && freshSignupUserIds.has(newSession.user.id);
             if (!isFreshSignup) {
               await invalidateSession({ redirect: true });
@@ -694,10 +862,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.session && data.user) {
+        // Start the 24-hour clock before isAuthenticated flips, so a stale key can never expire a fresh login
+        markSessionStarted(true);
         setSession(data.session);
         setUser(data.user);
         setIsAuthenticated(true);
-        const resolved = await fetchRealProfileAndRole(data.session);
+        let resolved: UserProfile | null;
+        try {
+          resolved = await fetchRealProfileAndRole(data.session);
+        } catch (profileErr) {
+          if (!isTransientAuthFailure(profileErr)) throw profileErr;
+          await invalidateSession({ redirect: false });
+          setIsLoading(false);
+          return { success: false, error: 'Koneksi terputus saat memuat profil Anda. Coba masuk lagi.' };
+        }
         if (!resolved) {
           await invalidateSession({ redirect: false });
           setIsLoading(false);
@@ -884,6 +1062,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resolved = fallbackProfile;
       }
 
+      markSessionStarted(true);
       setSession(userSession);
       setUser(effectiveUser);
       setProfile(resolved);

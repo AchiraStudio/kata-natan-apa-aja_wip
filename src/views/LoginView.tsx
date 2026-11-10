@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthShell, AuthField, AuthAlert } from '../components/auth/AuthShell';
 import { UserAvatar } from '../components/common/UserAvatar';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, peekSessionExpiredNotice, clearSessionExpiredNotice } from '../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
 interface QuickAccount {
@@ -40,10 +40,17 @@ export const LoginView: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  // A 24-hour sign-out is explained once, so it does not look like a bug
+  const [errorMessage, setErrorMessage] = useState(() =>
+    peekSessionExpiredNotice() ? 'Sesi Anda berakhir setelah 24 jam demi keamanan akun. Silakan masuk kembali.' : ''
+  );
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedQuickId, setSelectedQuickId] = useState<string>('');
   const [quickAccounts, setQuickAccounts] = useState<QuickAccount[]>(DEFAULT_QUICK_ACCOUNTS);
+
+  useEffect(() => {
+    clearSessionExpiredNotice();
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;

@@ -2,55 +2,59 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Camera,
-  CheckCircle2,
+  Check,
   Sparkles,
   MapPin,
   Globe,
-  Palette,
   ArrowRight,
   ArrowLeft,
   Trash2,
   Loader2,
   AlertCircle,
-  UserCheck,
-  AtSign,
-  FileText,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { dataService } from '../services/dataService';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { TitikLogo } from '../components/common/TitikLogo';
 import { ThemeToggle } from '../components/common/ThemeToggle';
-import { BOGOR_DISTRICTS, THEME_OPTIONS, BANNER_PRESETS } from '../components/profile/profileThemes';
+import { BOGOR_DISTRICTS, THEME_OPTIONS, BANNER_PRESETS, getProfileTheme } from '../components/profile/profileThemes';
 import { stripExifAndCleanImage, uploadFileToSupabase } from '../components/composer/useMediaUpload';
 
 type SetupStep = 1 | 2 | 3;
 
 const SETUP_STEPS: Array<{
   step: SetupStep;
-  shortLabel: string;
-  fullTitle: string;
+  label: string;
+  title: string;
   subtitle: string;
 }> = [
   {
     step: 1,
-    shortLabel: '1. Identitas',
-    fullTitle: '1. Identitas & Domisili Warga',
-    subtitle: 'Atur nama tampilan, username unik, foto profil, dan kecamatan domisili Anda.',
+    label: 'Identitas',
+    title: 'Kenalkan diri Anda',
+    subtitle: 'Nama tampilan dan username adalah cara warga lain mengenali Anda.',
   },
   {
     step: 2,
-    shortLabel: '2. Detail & Bio',
-    fullTitle: '2. Tentang Anda & Detail Profil',
-    subtitle: 'Tambahkan bio singkat, slogan warga, serta tautan media sosial atau situs Anda.',
+    label: 'Tentang Anda',
+    title: 'Ceritakan kepedulian Anda',
+    subtitle: 'Bio singkat dan tautan membantu warga memahami fokus Anda. Semuanya boleh dikosongkan.',
   },
   {
     step: 3,
-    shortLabel: '3. Tema & Sampul',
-    fullTitle: '3. Kustomisasi Tema & Sampul Profil',
-    subtitle: 'Pilih nuansa warna kartu profil dan foto sampul khas Kota Bogor.',
+    label: 'Tampilan',
+    title: 'Pilih nuansa profil',
+    subtitle: 'Warna dan foto sampul tampil di bagian atas profil publik Anda.',
   },
 ];
+
+const labelClass = 'block text-sm font-medium text-ink mb-1.5';
+const inputClass = 'titik-pill-input px-3.5 min-h-11';
+const btnPrimary = 'titik-pill-btn titik-pill-btn-primary min-h-11 px-5 text-sm';
+const btnSecondary = 'titik-pill-btn titik-pill-btn-secondary min-h-11 px-4 text-sm';
+const btnGhost = 'titik-pill-btn min-h-11 px-3 text-sm text-ink-2 hover:text-ink';
+
+const gradientOf = (from: string, to: string) => ({ backgroundImage: `linear-gradient(135deg, ${from}, ${to})` });
 
 export const AccountSetupView: React.FC = () => {
   const navigate = useNavigate();
@@ -91,8 +95,10 @@ export const AccountSetupView: React.FC = () => {
     }
   }, [profile]);
 
-  const activeTheme =
-    THEME_OPTIONS.find((t) => t.id === backgroundTheme) || THEME_OPTIONS[0];
+  const activeTheme = getProfileTheme(backgroundTheme);
+  const step = SETUP_STEPS[currentStep - 1];
+  const previewHandle = username.trim().toLowerCase().replace(/^@+/, '');
+  const isBusy = isSaving || isUploadingMedia;
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -267,22 +273,26 @@ export const AccountSetupView: React.FC = () => {
     }
   };
 
+  // Enter inside a field moves forward; it only saves from the last step
+  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (currentStep < 3) handleNextStep();
+    else void handleSaveSetup(event, 'profile');
+  };
+
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-canvas flex flex-col items-center justify-center p-4 text-center">
-        <div className="max-w-md w-full bg-surface border border-line rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
-          <h2 className="text-lg font-extrabold text-ink">
-            Sesi Akun Belum Aktif
-          </h2>
-          <p className="text-xs text-ink-2">
-            Silakan masuk atau daftar akun terlebih dahulu untuk mengatur profil warga Anda.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="w-full py-2.5 px-4 rounded-xl bg-brand text-on-brand text-xs font-bold cursor-pointer"
-          >
-            Masuk ke Akun
+      <div className="min-h-[100dvh] flex items-center justify-center p-4 text-ink">
+        <div className="panel max-w-md w-full p-7 sm:p-9 text-center space-y-5">
+          <TitikLogo className="w-12 h-12 mx-auto" />
+          <div className="space-y-2">
+            <h1 className="font-display text-2xl font-bold">Sesi akun belum aktif</h1>
+            <p className="text-sm text-ink-2">
+              Masuk atau daftar terlebih dahulu untuk menyiapkan profil warga Anda.
+            </p>
+          </div>
+          <button type="button" onClick={() => navigate('/login')} className={`${btnPrimary} w-full`}>
+            Masuk ke akun
           </button>
         </div>
       </div>
@@ -290,335 +300,306 @@ export const AccountSetupView: React.FC = () => {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col ${activeTheme.pageBg} text-ink transition-colors duration-300`}>
-      {/* Compact Sticky Top Bar */}
-      <header className="shrink-0 z-30 border-b border-line bg-surface/90 dark:bg-surface-2/90 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-brand shadow-xs shrink-0">
-              <TitikLogo className="w-5 h-5" pinColor="#FFFFFF" innerColor="#1B4332" dotColor="#34D399" />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-extrabold tracking-tight text-ink">
-                TITIK<span className="text-brand">.</span>
-              </span>
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-surface-2 dark:bg-line text-brand">
-                Langkah Penyiapan Profil
-              </span>
-            </div>
+    <div className="min-h-[100dvh] flex flex-col text-ink">
+      {/* Floating glass bar */}
+      <div className="sticky top-0 z-30 px-3 pt-3 sm:px-6">
+        <header className="glass-strong mx-auto max-w-6xl h-14 px-4 rounded-2xl flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <TitikLogo className="w-8 h-8 shrink-0" />
+            <span className="font-display text-lg font-extrabold tracking-tight">
+              TITIK<span className="text-brand">.</span>
+            </span>
+            <span className="hidden sm:inline-flex text-xs font-semibold px-2.5 py-1 rounded-md bg-brand-soft text-ink">
+              Penyiapan profil
+            </span>
           </div>
-
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="text-xs font-bold text-ink-2 hover:text-ink px-3 py-1.5 rounded-xl hover:bg-stone-200/60 dark:hover:bg-line transition-colors cursor-pointer"
-            >
-              Lewati untuk sekarang
+          <div className="flex items-center gap-1.5">
+            <button type="button" onClick={() => navigate('/')} className={btnGhost}>
+              Lewati dulu
             </button>
             <ThemeToggle />
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
-      {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-16 right-5 z-50 px-4 py-2.5 rounded-xl bg-brand text-on-brand text-xs font-bold shadow-xl flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4" />
+        <div
+          role="status"
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 glass-strong px-4 py-2.5 rounded-xl text-sm font-semibold text-ink flex items-center gap-2 titik-pop"
+        >
+          <Check className="w-4 h-4 text-brand" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Main Split-Screen Container (No excessive page overflow on desktop) */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col justify-center min-h-0">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-stretch min-h-0">
-          {/* LEFT COLUMN: Welcome + Live Real-Time Profile Card Preview */}
-          <section
-            aria-label="Pratinjau Kartu Profil"
-            className="lg:col-span-5 flex flex-col justify-between bg-surface/70 dark:bg-surface-2/70 border border-line rounded-3xl p-4 sm:p-5 shadow-xs space-y-4"
-          >
-            <div className="space-y-3">
-              {/* Compact Welcome Header */}
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Pratinjau Kartu Profil Anda (Real-Time)</span>
+      <main className="flex-1 w-full max-w-6xl mx-auto px-3 sm:px-6 pt-6 pb-16">
+        <div className="titik-stagger grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-6 lg:gap-8 items-start">
+          {/* LEFT: what the public profile will look like, updating as the user types */}
+          <section aria-label="Pratinjau profil" className="space-y-4 lg:sticky lg:top-24">
+            <div className="space-y-1.5">
+              <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-2">
+                <Sparkles className="w-3.5 h-3.5 text-brand" />
+                Pratinjau langsung
+              </p>
+              <h1 className="font-display text-2xl sm:text-3xl font-bold leading-tight tracking-tight">
+                Halo, {displayName.trim() || profile.displayName}
+              </h1>
+              <p className="text-sm text-ink-2 max-w-md">
+                Begini profil Anda tampil bagi warga lain. Ubah isian di samping dan kartu ini ikut berubah.
+              </p>
+            </div>
+
+            <div className="panel overflow-hidden">
+              <div
+                className="relative h-28 sm:h-36"
+                style={gradientOf(activeTheme.bannerFrom, activeTheme.bannerTo)}
+              >
+                {bannerUrl && (
+                  <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                )}
+                <input
+                  ref={bannerInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleBannerUpload}
+                  aria-label="Unggah foto sampul"
+                />
+                <div className="absolute right-3 bottom-3 flex items-center gap-2">
+                  {bannerUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setBannerUrl('')}
+                      className="glass-media inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold cursor-pointer hover:bg-black/60"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Reset
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => bannerInputRef.current?.click()}
+                    disabled={isUploadingMedia}
+                    className="glass-media inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold cursor-pointer hover:bg-black/60 disabled:opacity-60"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    {isUploadingMedia ? 'Mengunggah...' : 'Ganti sampul'}
+                  </button>
                 </div>
-                <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-ink line-clamp-1">
-                  Halo, {displayName || profile.displayName}!
-                </h1>
-                <p className="text-[11px] text-ink-2 leading-relaxed">
-                  Kartu di bawah ini menampilkan wujud profil publik Anda saat warga lain mengklik akun Anda.
-                </p>
               </div>
 
-              {/* Live Profile Card */}
-              <div className={`relative ${activeTheme.cardBg} border ${activeTheme.cardBorder} rounded-2xl shadow-sm overflow-hidden transition-colors duration-300`}>
-                {/* Banner Preview */}
-                <div className={`h-28 sm:h-32 relative overflow-hidden bg-gradient-to-r ${activeTheme.bannerGradient}`}>
-                  {bannerUrl && (
-                    <img
-                      src={bannerUrl}
-                      alt="Pratinjau Sampul"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
-
+              <div className="px-5 sm:px-6 pb-5 sm:pb-6">
+                {/* Opaque backing: the initials avatar is translucent, so without it the cover edge cuts through the letters */}
+                <div className="relative z-10 -mt-10 sm:-mt-12 w-fit rounded-full bg-surface-solid ring-4 ring-surface-solid">
+                  <UserAvatar
+                    src={avatarUrl}
+                    alt={displayName || 'Warga'}
+                    name={displayName || 'Warga'}
+                    role={profile.role}
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover"
+                  />
                   <input
-                    ref={bannerInputRef}
+                    ref={avatarInputRef}
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     className="hidden"
-                    onChange={handleBannerUpload}
+                    onChange={handleAvatarUpload}
+                    aria-label="Unggah foto profil"
                   />
-                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
-                    {bannerUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setBannerUrl('')}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-900/80 hover:bg-rose-900 text-white text-[10px] font-semibold backdrop-blur-md cursor-pointer border border-white/15"
-                      >
-                        <Trash2 className="w-2.5 h-2.5" />
-                        <span>Reset</span>
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => bannerInputRef.current?.click()}
-                      disabled={isUploadingMedia}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/55 hover:bg-black/80 backdrop-blur-md text-white text-[10px] font-semibold shadow-md transition-all cursor-pointer border border-white/20"
-                    >
-                      <Camera className="w-3 h-3" />
-                      <span>{isUploadingMedia ? 'Mengunggah...' : 'Unggah Sampul'}</span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={isUploadingMedia}
+                    className="absolute -bottom-0.5 -right-0.5 w-9 h-9 rounded-full bg-brand text-on-brand ring-4 ring-surface flex items-center justify-center cursor-pointer hover:bg-brand-hover disabled:opacity-60"
+                    title="Unggah foto profil"
+                    aria-label="Unggah foto profil"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </button>
                 </div>
 
-                {/* Identity Content */}
-                <div className="px-4 pb-4 pt-0 relative">
-                  <div className="flex items-end justify-between gap-2 -mt-10 mb-2.5">
-                    <div className="relative group">
-                      <UserAvatar
-                        src={avatarUrl}
-                        alt={displayName || 'Warga'}
-                        name={displayName || 'Warga'}
-                        role={profile.role}
-                        className="w-16 h-16 sm:w-18 sm:h-18 rounded-full object-cover ring-4 ring-white dark:ring-surface-2 shadow-lg bg-stone-100"
-                      />
-                      <input
-                        ref={avatarInputRef}
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        className="hidden"
-                        onChange={handleAvatarUpload}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => avatarInputRef.current?.click()}
-                        disabled={isUploadingMedia}
-                        className="absolute bottom-0 right-0 p-1.5 rounded-full bg-brand hover:bg-brand-hover border border-white/30 text-on-brand shadow-md cursor-pointer"
-                        title="Unggah Foto Profil"
-                        aria-label="Unggah Foto Profil"
-                      >
-                        <Camera className="w-3 h-3" />
-                      </button>
-                    </div>
-
-                    {avatarUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setAvatarUrl('')}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl border border-line text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
-                      >
-                        <Trash2 className="w-2.5 h-2.5" />
-                        <span>Pakai Inisial</span>
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <h2 className="text-sm sm:text-base font-extrabold text-ink truncate">
-                        {displayName.trim() || 'Nama Warga'}
-                      </h2>
-                      {customStatus.trim() && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-brand bg-surface-2 dark:bg-line px-2 py-0.5 rounded-full border border-ink-2 dark:border-line max-w-full truncate">
-                          <Sparkles className="w-2.5 h-2.5 shrink-0" />
-                          <span className="truncate">&ldquo;{customStatus.trim()}&rdquo;</span>
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-[11px] font-mono font-semibold text-ink-2">
-                      @{username.trim().toLowerCase().replace(/^@+/, '') || 'username'}
-                    </p>
-
-                    {bio.trim() ? (
-                      <p className="text-[11px] text-ink leading-relaxed pt-0.5 line-clamp-2">
-                        {bio.trim()}
-                      </p>
-                    ) : (
-                      <p className="text-[11px] italic text-ink-2/70 dark:text-ink-2/60 pt-0.5">
-                        Belum ada bio singkat.
-                      </p>
-                    )}
-
-                    <div className="flex flex-wrap items-center gap-2.5 pt-1.5 text-[10px] text-ink-2">
-                      {district.trim() && (
-                        <span className="inline-flex items-center gap-1 font-medium text-ink">
-                          <MapPin className="w-3 h-3 text-brand" />
-                          <span>{district.trim()}</span>
-                        </span>
-                      )}
-                      {websiteUrl.trim() && (
-                        <span className="inline-flex items-center gap-1 font-medium text-brand truncate max-w-[180px]">
-                          <Globe className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{websiteUrl.trim().replace(/^https?:\/\//, '')}</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                <div className="mt-3 min-w-0">
+                  <h2 className="font-display text-xl sm:text-2xl font-bold leading-tight truncate">
+                    {displayName.trim() || <span className="text-ink-3">Nama Anda</span>}
+                  </h2>
+                  <p className="mt-0.5 text-sm text-ink-3">
+                    @{previewHandle || 'username'}
+                  </p>
                 </div>
-              </div>
-            </div>
 
-            {/* Step Progress Summary Pill */}
-            <div className="pt-2 border-t border-line/70 dark:border-line flex items-center justify-between text-[11px] text-ink-2">
-              <span className="font-semibold">
-                 Progres Langkah {currentStep} dari 3
-              </span>
-              <div className="flex items-center gap-1.5">
-                {[1, 2, 3].map((s) => (
-                  <span
-                    key={s}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      currentStep === s
-                        ? 'w-6 bg-brand'
-                        : currentStep > s
-                        ? 'w-3 bg-brand/60'
-                        : 'w-3 bg-line'
-                    }`}
-                  />
-                ))}
+                {customStatus.trim() && <p className="mt-4 text-sm text-ink break-words">{customStatus.trim()}</p>}
+                {bio.trim() ? (
+                  <p className="mt-2 text-sm text-ink-2 whitespace-pre-wrap break-words max-w-prose">{bio.trim()}</p>
+                ) : (
+                  <p className="mt-3 text-sm text-ink-3 italic">Bio belum diisi.</p>
+                )}
+
+                {(district.trim() || websiteUrl.trim()) && (
+                  <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px] text-ink-2">
+                    {district.trim() && (
+                      <li className="inline-flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5" /> {district.trim()}
+                      </li>
+                    )}
+                    {websiteUrl.trim() && (
+                      <li className="inline-flex items-center gap-1.5 min-w-0">
+                        <Globe className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{websiteUrl.trim().replace(/^https?:\/\//i, '').replace(/\/$/, '')}</span>
+                      </li>
+                    )}
+                  </ul>
+                )}
               </div>
             </div>
           </section>
 
-          {/* RIGHT COLUMN: Step-by-Step Form Wizard */}
-          <form
-            onSubmit={(e) => handleSaveSetup(e, 'profile')}
-            className="lg:col-span-7 bg-surface dark:bg-surface-2 border border-line rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col justify-between min-h-[420px]"
-          >
-            <div className="space-y-5">
-              {/* Stepper Navigation Pills */}
-              <div className="grid grid-cols-3 gap-2 p-1 rounded-2xl bg-canvas dark:bg-surface border border-line">
-                {SETUP_STEPS.map((item) => {
-                  const isActive = currentStep === item.step;
-                  const isCompleted = currentStep > item.step;
-                  return (
+          {/* RIGHT: three short steps */}
+          <form onSubmit={handleFormSubmit} noValidate className="panel p-5 sm:p-8 flex flex-col gap-7">
+            <ol aria-label="Langkah penyiapan profil" className="flex items-center">
+              {SETUP_STEPS.map((item, index) => {
+                const state = currentStep === item.step ? 'current' : currentStep > item.step ? 'done' : 'todo';
+                return (
+                  <li key={item.step} className={`flex items-center ${index < SETUP_STEPS.length - 1 ? 'flex-1' : ''}`}>
                     <button
-                      key={item.step}
                       type="button"
                       onClick={() => handleSelectStep(item.step)}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer truncate ${
-                        isActive
-                          ? 'bg-brand text-on-brand shadow-xs'
-                          : isCompleted
-                          ? 'text-brand hover:bg-surface/60 dark:hover:bg-line'
-                          : 'text-ink-2 hover:text-ink'
-                      }`}
+                      aria-current={state === 'current' ? 'step' : undefined}
+                      className="flex items-center gap-2.5 rounded-lg cursor-pointer"
                     >
-                      {isCompleted && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
-                      <span className="truncate">{item.shortLabel}</span>
+                      <span
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-colors ${
+                          state === 'current'
+                            ? 'bg-brand text-on-brand shadow-[0_6px_14px_-6px_rgba(0,0,0,0.5)]'
+                            : state === 'done'
+                            ? 'bg-brand-soft text-ink'
+                            : 'bg-surface-2 text-ink-3'
+                        }`}
+                      >
+                        {state === 'done' ? <Check className="w-4 h-4" strokeWidth={2.6} /> : item.step}
+                      </span>
+                      <span
+                        className={`hidden sm:block text-sm ${
+                          state === 'current' ? 'font-semibold text-ink' : 'font-medium text-ink-2'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
                     </button>
-                  );
-                })}
+                    {index < SETUP_STEPS.length - 1 && (
+                      <span
+                        aria-hidden="true"
+                        className={`mx-3 sm:mx-4 h-0.5 flex-1 rounded-full transition-colors ${
+                          currentStep > item.step ? 'bg-brand' : 'bg-line'
+                        }`}
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+
+            <div key={currentStep} className="titik-rise space-y-6">
+              <div>
+                <p className="text-xs font-semibold text-ink-3">
+                  Langkah {currentStep} dari 3 · {step.label}
+                </p>
+                <h2 className="mt-1 font-display text-2xl font-bold tracking-tight">{step.title}</h2>
+                <p className="mt-1.5 text-sm text-ink-2">{step.subtitle}</p>
               </div>
 
               {errorMessage && (
                 <div
-                  className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-medium flex items-center gap-2"
                   role="alert"
+                  className="rounded-xl px-3.5 py-3 text-sm border border-st-ditolak/40 text-st-ditolak bg-st-ditolak/10 flex items-start gap-2.5"
                 >
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{errorMessage}</span>
                 </div>
               )}
 
-              {/* STEP 1: Identitas & Domisili Warga */}
-              <div className={currentStep === 1 ? 'space-y-4' : 'hidden'}>
-                <div className="border-b border-line pb-3">
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="w-4 h-4 text-brand" />
-                    <h3 className="text-sm font-extrabold text-ink">
-                      1. Identitas & Domisili Warga
-                    </h3>
-                  </div>
-                  <p className="text-[11px] text-ink-2 mt-0.5">
-                    Pastikan nama tampilan dan username Anda mudah dikenali oleh warga sekitar.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label
-                      htmlFor="setup-display-name"
-                      className="text-xs font-bold text-ink block"
-                    >
-                      Nama Tampilan
-                    </label>
-                    <input
-                      id="setup-display-name"
-                      type="text"
-                      required
-                      maxLength={40}
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Contoh: Rina Wijaya"
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-line bg-canvas/60 dark:bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-brand"
+              {/* STEP 1 */}
+              {currentStep === 1 && (
+                <div className="space-y-5">
+                  <div className="flex items-center gap-4 rounded-2xl bg-surface-2 p-4">
+                    <UserAvatar
+                      src={avatarUrl}
+                      alt={displayName || 'Warga'}
+                      name={displayName || 'Warga'}
+                      role={profile.role}
+                      className="w-16 h-16 rounded-full object-cover shrink-0"
                     />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-ink">Foto profil</p>
+                      <p className="text-xs text-ink-3">JPG, PNG, atau WebP, maksimal 5 MB. Tanpa foto, inisial Anda yang tampil.</p>
+                      <div className="mt-2.5 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => avatarInputRef.current?.click()}
+                          disabled={isUploadingMedia}
+                          className="titik-pill-btn titik-pill-btn-secondary min-h-9 px-3 text-xs"
+                        >
+                          <Camera className="w-3.5 h-3.5" />
+                          {avatarUrl ? 'Ganti foto' : 'Unggah foto'}
+                        </button>
+                        {avatarUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setAvatarUrl('')}
+                            className="titik-pill-btn min-h-9 px-3 text-xs text-ink-2 hover:text-ink"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Pakai inisial
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label
-                      htmlFor="setup-username"
-                      className="text-xs font-bold text-ink flex items-center gap-1"
-                    >
-                      <AtSign className="w-3.5 h-3.5 text-ink-2" />
-                      <span>Username</span>
-                    </label>
-                    <input
-                      id="setup-username"
-                      type="text"
-                      required
-                      maxLength={30}
-                      value={username}
-                      onChange={(e) =>
-                        setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.#]/g, ''))
-                      }
-                      placeholder="rinawijaya"
-                      className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-line bg-canvas/60 dark:bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-brand"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="setup-display-name" className={labelClass}>Nama tampilan</label>
+                      <input
+                        id="setup-display-name"
+                        type="text"
+                        maxLength={40}
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="Contoh: Rina Wijaya"
+                        autoComplete="name"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="setup-username" className={labelClass}>Username</label>
+                      <div className="relative">
+                        <span aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-3 text-sm">@</span>
+                        <input
+                          id="setup-username"
+                          type="text"
+                          maxLength={30}
+                          value={username}
+                          onChange={(e) =>
+                            setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.#]/g, ''))
+                          }
+                          placeholder="rinawijaya"
+                          autoComplete="username"
+                          className={`${inputClass} pl-8 font-mono`}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                  <div className="space-y-1.5">
-                    <label
-                      htmlFor="setup-district"
-                      className="text-xs font-bold text-ink flex items-center gap-1"
-                    >
-                      <MapPin className="w-3.5 h-3.5 text-brand" />
-                      <span>Kecamatan Domisili</span>
+                  <div>
+                    <label htmlFor="setup-district" className={labelClass}>
+                      Kecamatan domisili <span className="font-normal text-ink-3">(opsional)</span>
                     </label>
                     <select
                       id="setup-district"
                       value={district}
                       onChange={(e) => setDistrict(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-line bg-canvas/60 dark:bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-brand"
+                      className={`${inputClass} cursor-pointer`}
                     >
-                      <option value="">Pilih Kecamatan (Opsional)...</option>
+                      <option value="">Pilih kecamatan</option>
                       {BOGOR_DISTRICTS.map((d) => (
                         <option key={d} value={d}>
                           {d}
@@ -626,70 +607,32 @@ export const AccountSetupView: React.FC = () => {
                       ))}
                     </select>
                   </div>
-
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-bold text-ink block">
-                      Foto Profil Warga
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => avatarInputRef.current?.click()}
-                      disabled={isUploadingMedia}
-                      className="w-full px-3.5 py-2.5 text-xs font-bold rounded-xl border border-dashed border-brand/40 bg-surface-2/40 dark:bg-line/40 text-brand hover:bg-surface-2 dark:hover:bg-line transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <Camera className="w-3.5 h-3.5" />
-                      <span>{avatarUrl ? 'Ganti Foto Profil' : 'Unggah Foto Profil'}</span>
-                    </button>
-                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* STEP 2: Tentang Anda & Detail Profil */}
-              <div className={currentStep === 2 ? 'space-y-4' : 'hidden'}>
-                <div className="border-b border-line pb-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-brand" />
-                    <h3 className="text-sm font-extrabold text-ink">
-                      2. Tentang Anda & Detail Profil
-                    </h3>
+              {/* STEP 2 */}
+              {currentStep === 2 && (
+                <div className="space-y-5">
+                  <div>
+                    <div className="flex items-baseline justify-between">
+                      <label htmlFor="setup-bio" className={labelClass}>Bio singkat</label>
+                      <span className="text-xs text-ink-3 tabular-nums">{bio.length}/160</span>
+                    </div>
+                    <textarea
+                      id="setup-bio"
+                      rows={4}
+                      maxLength={160}
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="Mis. pemantau drainase dan ruang terbuka hijau di lingkungan saya"
+                      className={`${inputClass} py-2.5 resize-none`}
+                    />
                   </div>
-                  <p className="text-[11px] text-ink-2 mt-0.5">
-                    Ceritakan fokus atau kepedulian Anda terhadap lingkungan tempat tinggal.
-                  </p>
-                </div>
 
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label
-                      htmlFor="setup-bio"
-                      className="text-xs font-bold text-ink"
-                    >
-                      Bio Singkat
-                    </label>
-                    <span className="text-[10px] text-ink-2">{bio.length}/160</span>
-                  </div>
-                  <textarea
-                    id="setup-bio"
-                    rows={3}
-                    maxLength={160}
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Ceritakan fokus atau kepedulian Anda di lingkungan tempat tinggal (mis: Pemantau drainase & ruang terbuka hijau)..."
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-line bg-canvas/60 dark:bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-brand resize-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="setup-status"
-                        className="text-xs font-bold text-ink flex items-center gap-1"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-brand" />
-                        <span>Slogan / Status Singkat</span>
-                      </label>
-                      <span className="text-[10px] text-ink-2">{customStatus.length}/60</span>
+                  <div>
+                    <div className="flex items-baseline justify-between">
+                      <label htmlFor="setup-status" className={labelClass}>Slogan</label>
+                      <span className="text-xs text-ink-3 tabular-nums">{customStatus.length}/60</span>
                     </div>
                     <input
                       id="setup-status"
@@ -697,19 +640,13 @@ export const AccountSetupView: React.FC = () => {
                       maxLength={60}
                       value={customStatus}
                       onChange={(e) => setCustomStatus(e.target.value)}
-                      placeholder="Contoh: Kawal Infrastruktur Lingkungan"
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-line bg-canvas/60 dark:bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-brand"
+                      placeholder="Contoh: Kawal infrastruktur lingkungan"
+                      className={inputClass}
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label
-                      htmlFor="setup-website"
-                      className="text-xs font-bold text-ink flex items-center gap-1"
-                    >
-                      <Globe className="w-3.5 h-3.5 text-brand" />
-                      <span>Tautan Situs / Media Sosial</span>
-                    </label>
+                  <div>
+                    <label htmlFor="setup-website" className={labelClass}>Situs atau media sosial</label>
                     <input
                       id="setup-website"
                       type="url"
@@ -717,182 +654,148 @@ export const AccountSetupView: React.FC = () => {
                       value={websiteUrl}
                       onChange={(e) => setWebsiteUrl(e.target.value)}
                       placeholder="https://instagram.com/username"
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-line bg-canvas/60 dark:bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-brand"
+                      className={inputClass}
                     />
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* STEP 3: Kustomisasi Tema & Sampul Profil */}
-              <div className={currentStep === 3 ? 'space-y-4' : 'hidden'}>
-                <div className="border-b border-line pb-3">
-                  <div className="flex items-center gap-2">
-                    <Palette className="w-4 h-4 text-brand" />
-                    <h3 className="text-sm font-extrabold text-ink">
-                      3. Kustomisasi Tema & Sampul Profil
-                    </h3>
-                  </div>
-                  <p className="text-[11px] text-ink-2 mt-0.5">
-                    Pilih warna aksen kartu profil dan gambar sampul Anda.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-xs font-bold text-ink">
-                    Pilih Tema Warna Profil
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {THEME_OPTIONS.map((theme) => {
-                      const isSelected = backgroundTheme === theme.id;
-                      return (
-                        <button
-                          key={theme.id}
-                          type="button"
-                          onClick={() => setBackgroundTheme(theme.id)}
-                          className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all cursor-pointer ${
-                            isSelected
-                              ? 'border-brand bg-surface-2 dark:bg-line shadow-xs'
-                              : 'border-line bg-canvas/50 dark:bg-surface hover:bg-stone-100 dark:hover:bg-line'
-                          }`}
-                        >
-                          <span
-                            className={`w-4 h-4 rounded-full shrink-0 border border-white/40 ${
-                              theme.id === 'editorial_forest'
-                                ? 'bg-brand-soft'
-                                : theme.id === 'bogor_slate'
-                                ? 'bg-line'
-                                : theme.id === 'warm_terracotta'
-                                ? 'bg-[#4E342E]'
-                                : theme.id === 'midnight_charcoal'
-                                ? 'bg-surface'
-                                : 'bg-[#333027]'
+              {/* STEP 3 */}
+              {currentStep === 3 && (
+                <div className="space-y-7">
+                  <fieldset>
+                    <legend className={labelClass}>Warna sampul</legend>
+                    <div role="radiogroup" aria-label="Warna sampul" className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {THEME_OPTIONS.map((theme) => {
+                        const isSelected = backgroundTheme === theme.id;
+                        return (
+                          <button
+                            key={theme.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={isSelected}
+                            onClick={() => setBackgroundTheme(theme.id)}
+                            className={`flex items-center gap-3 p-2.5 rounded-xl text-left cursor-pointer transition-colors ${
+                              isSelected ? 'bg-surface-2 ring-2 ring-brand' : 'bg-canvas ring-1 ring-line hover:bg-surface-2'
                             }`}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[11px] font-bold text-ink truncate">
-                              {theme.name}
-                            </div>
-                          </div>
-                          {isSelected && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-brand shrink-0" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="w-12 h-12 rounded-lg shrink-0"
+                              style={gradientOf(theme.bannerFrom, theme.bannerTo)}
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-semibold text-ink leading-snug">{theme.name}</span>
+                              <span className="block text-xs text-ink-3 truncate">{theme.description}</span>
+                            </span>
+                            {isSelected && <Check className="w-4 h-4 text-brand shrink-0" strokeWidth={2.6} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
 
-                <div className="space-y-2">
-                  <div className="text-xs font-bold text-ink">
-                    Koleksi Foto Sampul Khas Bogor
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {BANNER_PRESETS.map((preset) => {
-                      const isPresetSelected = bannerUrl === preset.url;
-                      return (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          onClick={() => setBannerUrl(preset.url)}
-                          className={`group relative h-14 rounded-xl overflow-hidden border text-left transition-all cursor-pointer ${
-                            isPresetSelected
-                              ? 'border-2 border-brand ring-2 ring-brand/20'
-                              : 'border-line opacity-85 hover:opacity-100'
-                          }`}
-                        >
-                          <img
-                            src={preset.url}
-                            alt={preset.label}
-                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                          <span className="absolute bottom-1.5 left-2 right-2 text-[10px] font-bold text-white truncate">
-                            {preset.label}
-                          </span>
-                        </button>
-                      );
-                    })}
+                  <div>
+                    <div className="flex items-center justify-between gap-3 mb-1.5">
+                      <p className="text-sm font-medium text-ink">Foto sampul</p>
+                      <button
+                        type="button"
+                        onClick={() => bannerInputRef.current?.click()}
+                        disabled={isUploadingMedia}
+                        className="titik-pill-btn titik-pill-btn-secondary min-h-9 px-3 text-xs"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        {isUploadingMedia ? 'Mengunggah...' : 'Unggah sendiri'}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {BANNER_PRESETS.map((preset) => {
+                        const isPresetSelected = bannerUrl === preset.url;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            aria-pressed={isPresetSelected}
+                            onClick={() => setBannerUrl(isPresetSelected ? '' : preset.url)}
+                            className={`group relative h-16 rounded-xl overflow-hidden text-left cursor-pointer ${
+                              isPresetSelected ? 'ring-2 ring-brand' : 'ring-1 ring-line'
+                            }`}
+                          >
+                            <img
+                              src={preset.url}
+                              alt=""
+                              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                            <span className="absolute bottom-1.5 left-2 right-2 text-[11px] font-semibold text-white truncate">
+                              {preset.label}
+                            </span>
+                            {isPresetSelected && (
+                              <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-brand text-on-brand flex items-center justify-center">
+                                <Check className="w-3 h-3" strokeWidth={3} />
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2 text-xs text-ink-3">Ketuk foto yang sama sekali lagi untuk melepasnya.</p>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Wizard Footer Navigation */}
-            <div className="pt-4 mt-4 border-t border-line flex flex-wrap items-center justify-between gap-2.5">
-              <div>
-                {currentStep > 1 ? (
-                  <button
-                    type="button"
-                    onClick={handlePrevStep}
-                    disabled={isSaving || isUploadingMedia}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-line bg-surface text-xs font-bold text-ink hover:bg-canvas dark:hover:bg-line transition-colors cursor-pointer"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>Sebelumnya</span>
+            {/* Footer: the forward action is always the strongest thing here */}
+            <div className="pt-6 border-t border-line-soft flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-1">
+                {currentStep > 1 && (
+                  <button type="button" onClick={handlePrevStep} disabled={isBusy} className={btnGhost}>
+                    <ArrowLeft className="w-4 h-4" />
+                    Kembali
                   </button>
-                ) : (
+                )}
+                {currentStep < 3 && (
                   <button
                     type="button"
                     onClick={(e) => handleSaveSetup(e, 'feed')}
-                    disabled={isSaving || isUploadingMedia}
-                    className="px-3.5 py-2 rounded-xl border border-line bg-surface text-xs font-bold text-ink-2 hover:text-ink hover:bg-canvas dark:hover:bg-line transition-colors cursor-pointer"
+                    disabled={isBusy}
+                    className={btnGhost}
                   >
-                    Simpan & Langsung ke Beranda
+                    Simpan, lanjut nanti
                   </button>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 ml-auto">
-                {currentStep < 3 ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={(e) => handleSaveSetup(e, 'profile')}
-                      disabled={isSaving || isUploadingMedia}
-                      className="px-3 py-2 rounded-xl text-xs font-bold text-brand hover:bg-surface-2 dark:hover:bg-line transition-colors cursor-pointer"
-                    >
-                      Simpan & Lihat Profil Saya
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleNextStep}
-                      disabled={isSaving || isUploadingMedia}
-                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-brand hover:bg-brand-hover dark:hover:bg-brand text-on-brand text-xs font-bold shadow-sm transition-all cursor-pointer"
-                    >
-                      <span>Lanjut</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={(e) => handleSaveSetup(e, 'feed')}
-                      disabled={isSaving || isUploadingMedia}
-                      className="px-3.5 py-2.5 rounded-xl border border-line bg-surface text-xs font-bold text-ink hover:bg-canvas dark:hover:bg-line transition-colors cursor-pointer"
-                    >
-                      Simpan & ke Beranda
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSaving || isUploadingMedia}
-                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand hover:bg-brand-hover dark:hover:bg-brand text-on-brand text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Menyimpan...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Simpan & Lihat Profil Saya</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
-                  </>
-                )}
-              </div>
+              {currentStep < 3 ? (
+                <button type="submit" disabled={isBusy} className={`${btnPrimary} sm:min-w-36`}>
+                  Lanjut
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <div className="flex flex-col-reverse sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleSaveSetup(e, 'feed')}
+                    disabled={isBusy}
+                    className={btnSecondary}
+                  >
+                    Simpan & ke beranda
+                  </button>
+                  <button type="submit" disabled={isBusy} className={btnPrimary}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      <>
+                        Simpan & lihat profil
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </form>
         </div>

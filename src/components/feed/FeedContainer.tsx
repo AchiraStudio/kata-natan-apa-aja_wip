@@ -211,26 +211,30 @@ export const FeedContainer: React.FC = () => {
   const unread = (unreadMessagesCount ?? 0) > 0;
 
   const iconBtn =
-    'relative w-9 h-9 rounded-xl glass-media flex items-center justify-center text-white/90 hover:bg-black/60 transition-colors cursor-pointer';
+    'relative w-10 h-10 rounded-xl glass-media flex items-center justify-center text-white/90 hover:bg-black/60 transition-colors cursor-pointer';
 
   return (
     <div className="relative w-full h-[100dvh] lg:h-screen flex flex-col items-center overflow-hidden">
-      {/* Header: floats over the video on phones, sits on the canvas on desktop */}
-      <header className="absolute top-0 inset-x-0 z-30 pt-[max(0.75rem,env(safe-area-inset-top))] px-3 pb-6 flex items-center justify-between pointer-events-none bg-gradient-to-b from-black/55 to-transparent lg:static lg:h-14 lg:shrink-0 lg:bg-none lg:p-0 lg:justify-center">
+      {/* Header: floats over the video on phones, sits on the canvas on desktop.
+          Phone layout: logo left, one segmented tab control centred, search above messages in the right corner. */}
+      <header className="absolute top-0 inset-x-0 z-30 pt-[max(0.75rem,env(safe-area-inset-top))] px-3 pb-16 flex items-start justify-between gap-2 pointer-events-none bg-gradient-to-b from-black/60 via-black/25 to-transparent lg:static lg:h-14 lg:shrink-0 lg:bg-none lg:p-0 lg:items-center lg:justify-center">
         <a
           href="/"
           onClick={(e) => {
             e.preventDefault();
             scrollToIndex(0);
           }}
-          className="lg:hidden pointer-events-auto w-9 h-9 flex items-center justify-center"
+          className="lg:hidden pointer-events-auto w-10 h-10 shrink-0 flex items-center justify-center"
           aria-label="Kembali ke laporan pertama"
           title="Kembali ke atas"
         >
           <TitikLogo className="w-7 h-7" />
         </a>
 
-        <nav className="pointer-events-auto flex items-center gap-5 lg:gap-8" aria-label="Jenis feed">
+        <nav
+          className="pointer-events-auto min-w-0 flex items-center gap-0.5 p-1 rounded-2xl bg-black/50 backdrop-blur-lg border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] lg:gap-8 lg:p-0 lg:rounded-none lg:bg-transparent lg:border-0 lg:shadow-none lg:backdrop-blur-none"
+          aria-label="Jenis feed"
+        >
           {FEED_TABS.map((tab) => {
             const isActive = activeFeedTab === tab.key;
             return (
@@ -243,20 +247,26 @@ export const FeedContainer: React.FC = () => {
                   isRestoringScrollRef.current = false;
                   setActiveFeedTab(tab.key);
                 }}
-                className={`relative py-1.5 text-[13px] font-semibold transition-colors cursor-pointer drop-shadow-sm lg:drop-shadow-none ${
-                  isActive ? 'text-white lg:text-ink' : 'text-white/65 hover:text-white lg:text-ink-3 lg:hover:text-ink'
+                className={`relative h-8 px-2.5 min-[380px]:px-3 rounded-xl text-[12.5px] font-semibold whitespace-nowrap transition-colors cursor-pointer lg:h-auto lg:px-0 lg:py-1.5 lg:rounded-none lg:text-[13px] ${
+                  isActive
+                    ? 'bg-lime text-on-lime lg:bg-transparent lg:text-ink'
+                    : 'text-white/80 hover:text-white lg:text-ink-3 lg:hover:text-ink'
                 }`}
               >
                 {tab.label}
-                {isActive && <span className="absolute left-0 right-0 -bottom-0.5 h-0.5 rounded-full bg-brand" />}
+                {isActive && <span className="hidden lg:block absolute left-0 right-0 -bottom-0.5 h-0.5 rounded-full bg-brand" />}
               </button>
             );
           })}
         </nav>
 
-        <div className="lg:hidden pointer-events-auto flex items-center gap-2">
+        {/* Search above messages, stacked in the corner so the tab control keeps the whole row */}
+        <div className="lg:hidden pointer-events-auto shrink-0 flex flex-col items-center gap-2">
+          <button type="button" onClick={() => setSearchModalOpen(true)} className={iconBtn} title="Cari laporan atau fasilitas" aria-label="Cari">
+            <Search className="w-[18px] h-[18px]" />
+          </button>
           <button type="button" onClick={() => navigate('/pesan')} className={iconBtn} title="Pesan Langsung" aria-label="Pesan">
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className="w-[18px] h-[18px]" />
             {unread && (
               <span
                 data-testid="messages-unread-dot"
@@ -264,9 +274,6 @@ export const FeedContainer: React.FC = () => {
                 title="Pesan belum dibaca"
               />
             )}
-          </button>
-          <button type="button" onClick={() => setSearchModalOpen(true)} className={iconBtn} title="Cari laporan atau fasilitas" aria-label="Cari">
-            <Search className="w-4 h-4" />
           </button>
         </div>
       </header>
