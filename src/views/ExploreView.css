@@ -306,8 +306,127 @@
   color: #F3F6F4;
 }
 
+/* Interactive Chart Elements & Accessibility Focus */
+.explore-chart-legend-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.65rem;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #4F5A52;
+  font-size: 0.72rem;
+  text-align: left;
+  transition: all 0.18s ease;
+  cursor: pointer;
+}
+
+.explore-chart-legend-btn:hover {
+  background: #F7F5EF;
+  color: #101913;
+}
+
+.dark .explore-chart-legend-btn {
+  color: #9EACA3;
+}
+
+.dark .explore-chart-legend-btn:hover {
+  background: #24322B;
+  color: #F3F6F4;
+}
+
+.explore-chart-legend-btn.is-active {
+  background: rgba(27, 67, 50, 0.08);
+  border-color: #1B4332;
+  color: #1B4332;
+  font-weight: 700;
+}
+
+.dark .explore-chart-legend-btn.is-active {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #10B981;
+  color: #34D399;
+}
+
+.explore-category-row-btn {
+  display: grid;
+  grid-template-columns: minmax(5rem, 8rem) minmax(2rem, 1fr) 1.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.65rem;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #4F5A52;
+  font-size: 0.72rem;
+  text-align: left;
+  transition: all 0.18s ease;
+  cursor: pointer;
+}
+
+.explore-category-row-btn:hover {
+  background: #F7F5EF;
+  color: #101913;
+}
+
+.dark .explore-category-row-btn {
+  color: #9EACA3;
+}
+
+.dark .explore-category-row-btn:hover {
+  background: #24322B;
+  color: #F3F6F4;
+}
+
+.explore-category-row-btn.is-active {
+  background: rgba(27, 67, 50, 0.08);
+  border-color: #1B4332;
+  color: #1B4332;
+  font-weight: 700;
+}
+
+.dark .explore-category-row-btn.is-active {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #10B981;
+  color: #34D399;
+}
+
+.explore-donut-interactive {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.explore-donut-interactive:hover {
+  transform: scale(1.03);
+}
+
+.explore-donut-interactive:focus-visible {
+  outline: 2px solid #1B4332;
+  outline-offset: 4px;
+}
+
+.dark .explore-donut-interactive:focus-visible {
+  outline-color: #10B981;
+}
+
+/* Civic Aspiration Card */
+.explore-aspiration-card {
+  border-radius: var(--titik-radius-card-md, 20px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.explore-aspiration-card:hover {
+  transform: translateY(-2px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .explore-category-bar {
+    transition: none;
+  }
+  .explore-donut-interactive {
     transition: none;
   }
 }
