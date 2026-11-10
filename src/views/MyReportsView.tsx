@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Select } from '../components/common/Select';
 import { useNavigate, Link } from 'react-router-dom';
 import { FileText, MapPin, Plus, RefreshCw, Send, AlertCircle, ArrowRight, CheckCircle2, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -401,35 +402,35 @@ export const MyReportsView: React.FC = () => {
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div>
                               <label htmlFor={`${report.id}-edit-category`} className="mb-1 block text-xs font-semibold text-ink">Kategori</label>
-                              <select
+                              <Select
                                 id={`${report.id}-edit-category`}
                                 value={editValues.category}
-                                onChange={(event) => setEditValues({ ...editValues, category: event.target.value })}
-                                className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink dark:bg-surface-2"
+                                onChange={(category) => setEditValues({ ...editValues, category })}
+                                size="sm"
                               >
                                 {!['Infrastruktur', 'Lingkungan', 'Pendidikan', 'Kesehatan', 'Lainnya'].includes(editValues.category) && (
                                   <option value={editValues.category}>{editValues.category}</option>
                                 )}
                                 {['Infrastruktur', 'Lingkungan', 'Pendidikan', 'Kesehatan', 'Lainnya']
                                   .map((category) => <option key={category} value={category}>{category}</option>)}
-                              </select>
+                              </Select>
                             </div>
                             <div>
                               <label htmlFor={`${report.id}-edit-severity`} className="mb-1 block text-xs font-semibold text-ink">Tingkat urgensi</label>
-                              <select
+                              <Select
                                 id={`${report.id}-edit-severity`}
                                 value={editValues.severity}
-                                onChange={(event) => setEditValues({
+                                onChange={(severity) => setEditValues({
                                   ...editValues,
-                                  severity: event.target.value as RejectedReportEdits['severity'],
+                                  severity,
                                 })}
-                                className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink dark:bg-surface-2"
+                                size="sm"
                               >
                                 <option value="low">Rendah</option>
                                 <option value="medium">Sedang</option>
                                 <option value="high">Tinggi</option>
                                 <option value="critical">Kritis</option>
-                              </select>
+                              </Select>
                             </div>
                           </div>
                           <div>

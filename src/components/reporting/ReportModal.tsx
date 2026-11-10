@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Select } from '../common/Select';
 import { useNavigate } from 'react-router-dom';
 import {
   X,
@@ -20,9 +21,12 @@ import { NewReportInput, ReportSubmitResult } from '../../services/adapters/type
 import { ReportAttachment } from '../../types/domain';
 import { hasExplicitAIGenerationMarker, hasRequiredReportEvidence } from '../../utils/reportEvidence';
 
-interface SelectedEvidence {
+interface EvidenceItem {
+  id: string;
+  type: 'image' | 'video';
   fileName: string;
   dataUrl: string;
+  sizeBytes: number;
 }
 
 export const ReportModal: React.FC = () => {
@@ -48,8 +52,7 @@ export const ReportModal: React.FC = () => {
     isAuthenticated ? 'verified_citizen' : 'anonymous'
   );
   const [reporterDisplayName, setReporterDisplayName] = useState('');
-  const [photoEvidence, setPhotoEvidence] = useState<SelectedEvidence | null>(null);
-  const [videoEvidence, setVideoEvidence] = useState<SelectedEvidence | null>(null);
+  const [evidenceList, setEvidenceList] = useState<EvidenceItem[]>([]);
   const [evidenceError, setEvidenceError] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,43 +65,71 @@ export const ReportModal: React.FC = () => {
 
   const categories = ['Infrastruktur', 'Lingkungan', 'Pendidikan', 'Kesehatan', 'Lainnya'];
 
-  const handleEvidenceFile = async (kind: 'photo' | 'video', file?: File) => {
-    if (!file) return;
+  const handleEvidenceFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setEvidenceError('');
 
-    const allowedTypes = kind === 'photo'
-      ? ['image/jpeg', 'image/png', 'image/webp']
-      : ['video/mp4', 'video/webm', 'video/quicktime'];
-    if (!allowedTypes.includes(file.type)) {
-      setEvidenceError(kind === 'photo'
-        ? 'Foto harus berformat JPG, PNG, atau WebP.'
-        : 'Video harus berformat MP4, WebM, atau MOV.');
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setEvidenceError('Ukuran setiap foto dan video maksimal 10 MB.');
+    const newFiles = Array.from(files);
+    if (evidenceList.length + newFiles.length > 10) {
+      setEvidenceError('Maksimal 10 berkas media bukti per laporan.');
       return;
     }
 
-    try {
-      if (hasExplicitAIGenerationMarker(new Uint8Array(await file.arrayBuffer()))) {
-        setEvidenceError('Berkas memiliki penanda eksplisit alat generatif AI pada metadata dan tidak dapat digunakan sebagai bukti.');
-        return;
+    const MAX_SIZE = 100 * 1024 * 1024; // 100 MB limit
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+
+    const added: EvidenceItem[] = [];
+
+    for (const file of newFiles) {
+      const isImg = allowedImageTypes.includes(file.type);
+      const isVid = allowedVideoTypes.includes(file.type);
+
+      if (!isImg && !isVid) {
+        setEvidenceError(`Format "${file.name}" tidak didukung. Gunakan JPG, PNG, WebP, MP4, WebM, atau MOV.`);
+        continue;
       }
 
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error(`Gagal membaca ${file.name}`));
-        reader.readAsDataURL(file);
-      });
-      const evidence = { fileName: file.name, dataUrl };
-      if (kind === 'photo') setPhotoEvidence(evidence);
-      else setVideoEvidence(evidence);
-      setEvidenceError('');
-    } catch (error) {
-      console.error('Failed to read report evidence:', error);
-      setEvidenceError(`Berkas ${file.name} tidak dapat dibaca. Coba pilih berkas lain.`);
+      if (file.size > MAX_SIZE) {
+        setEvidenceError(`Ukuran berkas "${file.name}" melebihi batas 100 MB.`);
+        continue;
+      }
+
+      try {
+        const buffer = await file.arrayBuffer();
+        if (hasExplicitAIGenerationMarker(new Uint8Array(buffer))) {
+          setEvidenceError(`Berkas "${file.name}" ditolak karena memiliki penanda alat generatif AI.`);
+          continue;
+        }
+
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error(`Gagal membaca ${file.name}`));
+          reader.readAsDataURL(file);
+        });
+
+        added.push({
+          id: `media-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          type: isImg ? 'image' : 'video',
+          fileName: file.name,
+          dataUrl,
+          sizeBytes: file.size,
+        });
+      } catch (err) {
+        console.error('Failed to read evidence:', err);
+        setEvidenceError(`Gagal membaca berkas ${file.name}.`);
+      }
     }
+
+    if (added.length > 0) {
+      setEvidenceList((prev) => [...prev, ...added]);
+      setEvidenceError('');
+    }
+  };
+
+  const handleRemoveEvidence = (id: string) => {
+    setEvidenceList((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleUseCurrentLocation = () => {
@@ -160,8 +191,8 @@ export const ReportModal: React.FC = () => {
   const handleNextStep1 = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
-    if (!hasRequiredReportEvidence([photoEvidence?.dataUrl ?? '', videoEvidence?.dataUrl ?? ''])) {
-      setEvidenceError('Foto dan video bukti wajib diunggah sebelum melanjutkan.');
+    if (evidenceList.length === 0) {
+      setEvidenceError('Wajib melampirkan minimal 1 bukti foto atau video lapangan.');
       return;
     }
     setStep(2);
@@ -174,8 +205,8 @@ export const ReportModal: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!photoEvidence || !videoEvidence || !hasRequiredReportEvidence([photoEvidence.dataUrl, videoEvidence.dataUrl])) {
-      setEvidenceError('Foto dan video bukti wajib diunggah sebelum mengirim laporan.');
+    if (evidenceList.length === 0) {
+      setEvidenceError('Wajib melampirkan minimal 1 bukti foto atau video lapangan.');
       setStep(1);
       return;
     }
@@ -196,7 +227,7 @@ export const ReportModal: React.FC = () => {
         supportingDocuments,
         reporterType,
         reporterDisplayName: reporterType === 'verified_citizen' ? reporterDisplayName : undefined,
-        mediaUrls: [photoEvidence.dataUrl, videoEvidence.dataUrl],
+        mediaUrls: evidenceList.map((m) => m.dataUrl),
       };
 
       const result = await submitReport(input);
@@ -232,8 +263,7 @@ export const ReportModal: React.FC = () => {
     setSupportingDocuments([]);
     setDocumentError('');
     setLocationError('');
-    setPhotoEvidence(null);
-    setVideoEvidence(null);
+    setEvidenceList([]);
     setEvidenceError('');
     setSubmissionResult(null);
     setShowReportExample(false);
@@ -327,31 +357,31 @@ export const ReportModal: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-ink mb-1">Kategori Sektor *</label>
-                <select
+                <Select
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2 bg-canvas border border-line rounded-xl text-xs focus:outline-none focus:border-brand"
+                  onChange={setCategory}
+                  size="sm"
                 >
                   {categories.map((c) => (
                     <option key={c} value={c}>
                       {c}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-ink mb-1">Tingkat Urgensi</label>
-                <select
+                <Select
                   value={severity}
-                  onChange={(e) => setSeverity(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-canvas border border-line rounded-xl text-xs focus:outline-none focus:border-brand"
+                  onChange={setSeverity}
+                  size="sm"
                 >
                   <option value="low">Rendah (Mengganggu kenyamanan)</option>
                   <option value="medium">Sedang (Hambatan mobilitas)</option>
                   <option value="high">Tinggi (Berbahaya bagi pejalan kaki)</option>
                   <option value="critical">Kritis (Risiko cedera/darurat)</option>
-                </select>
+                </Select>
               </div>
             </div>
 
@@ -384,70 +414,102 @@ export const ReportModal: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-ink mb-1">Foto Bukti Lapangan *</label>
-                <div className="flex items-center gap-3">
-                  {photoEvidence && (
-                    <img
-                      src={photoEvidence.dataUrl}
-                      alt="Pratinjau foto bukti"
-                      className="w-20 h-20 rounded-xl object-cover border border-line shrink-0"
-                    />
-                  )}
-                  <label className="inline-flex items-center gap-2 px-3 py-2 bg-canvas border border-line hover:border-brand rounded-xl text-xs font-medium text-ink cursor-pointer transition-colors">
-                    <Upload className="w-3.5 h-3.5 text-brand" />
-                    <span>{photoEvidence ? 'Ganti Foto' : 'Pilih Foto'}</span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      className="hidden"
-                      aria-required="true"
-                      onChange={(e) => {
-                        void handleEvidenceFile('photo', e.target.files?.[0]);
-                        e.currentTarget.value = '';
-                      }}
-                    />
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-xs font-bold text-ink">
+                    Bukti Media Lapangan *
                   </label>
-                  {photoEvidence && <span className="text-[10px] text-ink-2 truncate">{photoEvidence.fileName}</span>}
+                  <p className="text-[11px] text-ink-2">
+                    Wajib minimal 1 bukti (foto ATAU video). Maksimal 100 MB per berkas.
+                  </p>
                 </div>
-                <p className="text-[10px] text-ink-2 mt-1">JPG, PNG, atau WebP. Maksimal 10 MB.</p>
+                <span className="text-[11px] font-semibold text-brand bg-brand-soft px-2.5 py-1 rounded-full">
+                  {evidenceList.length} / 10 Media
+                </span>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-ink mb-1">Video Bukti Lapangan *</label>
-                <div className="flex items-center gap-3">
-                  {videoEvidence && (
-                    <video
-                      src={videoEvidence.dataUrl}
-                      controls
-                      playsInline
-                      aria-label="Pratinjau video bukti"
-                      className="w-32 h-20 rounded-xl object-cover border border-line shrink-0"
-                    />
-                  )}
-                  <label className="inline-flex items-center gap-2 px-3 py-2 bg-canvas border border-line hover:border-brand rounded-xl text-xs font-medium text-ink cursor-pointer transition-colors">
-                    <Upload className="w-3.5 h-3.5 text-brand" />
-                    <span>{videoEvidence ? 'Ganti Video' : 'Pilih Video'}</span>
-                    <input
-                      type="file"
-                      accept="video/mp4,video/webm,video/quicktime"
-                      className="hidden"
-                      aria-required="true"
-                      onChange={(e) => {
-                        void handleEvidenceFile('video', e.target.files?.[0]);
-                        e.currentTarget.value = '';
-                      }}
-                    />
-                  </label>
-                  {videoEvidence && <span className="text-[10px] text-ink-2 truncate">{videoEvidence.fileName}</span>}
-                </div>
-                <p className="text-[10px] text-ink-2 mt-1">MP4, WebM, atau MOV. Maksimal 10 MB.</p>
+              {/* Upload Button */}
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-brand text-on-brand hover:bg-brand-hover rounded-xl text-xs font-semibold cursor-pointer transition-colors shadow-xs">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{evidenceList.length > 0 ? '+ Tambah Foto / Video Lain' : 'Pilih Foto / Video (Multi-select)'}</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      void handleEvidenceFiles(e.target.files);
+                      e.currentTarget.value = '';
+                    }}
+                  />
+                </label>
+                <span className="text-[10px] text-ink-3">Bisa pilih beberapa sekaligus</span>
               </div>
+
+              {/* Thumbnail Gallery & Removal Tray */}
+              {evidenceList.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                  {evidenceList.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="group relative rounded-xl border border-line bg-canvas overflow-hidden flex flex-col"
+                    >
+                      <div className="relative aspect-video w-full bg-black/90 flex items-center justify-center overflow-hidden">
+                        {item.type === 'image' ? (
+                          <img
+                            src={item.dataUrl}
+                            alt={item.fileName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <video
+                            src={item.dataUrl}
+                            playsInline
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+
+                        {/* Top badges */}
+                        <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/70 text-white uppercase tracking-wider">
+                            {item.type === 'image' ? 'Foto' : 'Video'}
+                          </span>
+                          {index === 0 && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-lime-700 text-lime-100 shadow-xs">
+                              ⭐ Cover Feed
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveEvidence(item.id)}
+                          title="Hapus media ini"
+                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 hover:bg-rose-600 text-white flex items-center justify-center transition-colors cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="p-2 flex items-center justify-between text-[10px] text-ink-2">
+                        <span className="truncate max-w-[110px]" title={item.fileName}>
+                          {item.fileName}
+                        </span>
+                        <span className="tabular-nums shrink-0">
+                          {(item.sizeBytes / (1024 * 1024)).toFixed(1)} MB
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <p className="text-[10px] text-ink-2">
                 Unggah dokumentasi asli yang Anda ambil sendiri. Pemeriksaan otomatis hanya dapat menolak metadata yang secara eksplisit menyebut alat generatif AI; pemeriksaan ini tidak dapat memastikan keaslian berkas.
               </p>
-              {evidenceError && <p role="alert" className="text-[11px] text-rose-600">{evidenceError}</p>}
+              {evidenceError && <p role="alert" className="text-[11px] text-rose-600 font-medium">{evidenceError}</p>}
             </div>
 
             <div>
@@ -504,24 +566,24 @@ export const ReportModal: React.FC = () => {
           <form onSubmit={handleNextStep2} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-ink mb-1.5">Fasilitas Umum Terkait</label>
-              <select
+              <Select
                 value={facilityName}
-                onChange={(e) => {
-                  const selected = facilities.find((facility) => facility.name === e.target.value);
-                  setFacilityName(e.target.value);
+                onChange={(name) => {
+                  const selected = facilities.find((facility) => facility.name === name);
+                  setFacilityName(name);
                   if (selected) {
                     setAddress(selected.address);
                     setLatitude(selected.latitude);
                     setLongitude(selected.longitude);
                   }
                 }}
-                className="w-full px-3.5 py-2.5 bg-canvas border border-line rounded-xl text-xs focus:outline-none focus:border-brand"
+                size="sm"
               >
                 <option value="">Pilih fasilitas atau isi lokasi manual</option>
                 {facilities.map((facility) => (
                   <option key={facility.id} value={facility.name}>{facility.name}</option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>
@@ -620,8 +682,10 @@ export const ReportModal: React.FC = () => {
               </div>
 
               <div>
-                <span className="text-[10px] text-ink-2 font-bold">Bukti Lapangan</span>
-                <div className="text-ink">{photoEvidence?.fileName} • {videoEvidence?.fileName}</div>
+                <span className="text-[10px] text-ink-2 font-bold">Bukti Lapangan ({evidenceList.length} media)</span>
+                <div className="text-ink text-xs truncate">
+                  {evidenceList.map((e) => e.fileName).join(', ')}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

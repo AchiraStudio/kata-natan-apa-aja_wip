@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Select } from '../common/Select';
 import { Search } from 'lucide-react';
 import type { Report, ReportStatus } from '../../types/domain';
 import { StatusLabel } from '../common/StatusLabel';
@@ -74,27 +75,27 @@ export const ReportQueueList: React.FC<ReportQueueListProps> = ({
           />
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <select value={statusFilter} onChange={(e) => onStatusFilterChange(e.target.value)} aria-label="Filter status" className="titik-pill-input col-span-2 px-2 text-[13px]">
+          <Select value={statusFilter} onChange={onStatusFilterChange} aria-label="Filter status" className="col-span-2 text-[13px]">
             <option value="all">Semua status</option>
             {STATUS_ORDER.map((s) => (
               <option key={s} value={s}>
                 {getStatusMeta(s).label}
               </option>
             ))}
-          </select>
-          <select value={categoryFilter} onChange={(e) => onCategoryFilterChange(e.target.value)} aria-label="Filter kategori" className="titik-pill-input px-2 text-[13px]">
+          </Select>
+          <Select value={categoryFilter} onChange={onCategoryFilterChange} aria-label="Filter kategori" className="text-[13px]">
             <option value="Semua">Semua kategori</option>
             {categories.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
-          </select>
-          <select value={sortBy} onChange={(e) => onSortByChange(e.target.value as AdminSortOption)} aria-label="Urutan" className="titik-pill-input px-2 text-[13px]">
+          </Select>
+          <Select value={sortBy} onChange={onSortByChange} aria-label="Urutan" className="text-[13px]">
             <option value="newest">Terbaru</option>
             <option value="oldest">Terlama</option>
             <option value="severity">Paling parah</option>
-          </select>
+          </Select>
         </div>
         <p className="text-xs text-ink-3" role="status" aria-live="polite">
           {reports.length} dari {totalReportsCount} laporan

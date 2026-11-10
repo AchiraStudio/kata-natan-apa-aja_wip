@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Select } from '../components/common/Select';
 import { useNavigate } from 'react-router-dom';
 import {
   Camera,
@@ -593,11 +594,11 @@ export const AccountSetupView: React.FC = () => {
                     <label htmlFor="setup-district" className={labelClass}>
                       Kecamatan domisili <span className="font-normal text-ink-3">(opsional)</span>
                     </label>
-                    <select
+                    <Select
                       id="setup-district"
                       value={district}
-                      onChange={(e) => setDistrict(e.target.value)}
-                      className={`${inputClass} cursor-pointer`}
+                      onChange={setDistrict}
+                      className="min-h-11"
                     >
                       <option value="">Pilih kecamatan</option>
                       {BOGOR_DISTRICTS.map((d) => (
@@ -605,7 +606,7 @@ export const AccountSetupView: React.FC = () => {
                           {d}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 </div>
               )}

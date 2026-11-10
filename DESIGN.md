@@ -41,6 +41,13 @@ Reference: a frosted-panel dashboard (large radii, light 1px edges, soft depth, 
 - `bg-surface-2` and `bg-canvas` never blur. Only panels do, to keep blur counts low and avoid blur inside blur.
 - Primitives `titik-pill-btn`, `titik-pill-input`, `titik-pill-track`, `titik-pill-tab` live in `@layer components`, so a utility on the element always wins.
 
+## Dropdowns
+- Use `Select` from `src/components/common/Select.tsx`, never a native `<select>`: the browser draws its popup in OS colours, outside the glass theme.
+- It takes `<option>` children or an `options` array. `onChange` gets the value, not an event. `size="sm"` for dense rows, and `className` for width (`sm:w-44`), not for padding or colour.
+- Trigger is a well (`--canvas`, same as `titik-pill-input`). Menu is near-opaque glass (`--surface-solid`) in a portal on `body`, so modals never clip it. It flips upward near the viewport bottom.
+- Selected option is `--brand-soft` with a check, the keyboard or hover option is `--surface-2`. Tokens only, so the theme switch needs no extra rules. Styles are `.titik-select`, `.titik-menu`, `.titik-option` in `src/index.css`.
+- Escape closes only the menu (it stops propagation, because modals close on a window-level Escape). Focus stays on the trigger, so modal focus traps keep working.
+
 ## Type
 - Display: Bricolage Grotesque (headings, numbers). UI: Figtree. Report IDs: IBM Plex Mono.
 - Sentence-case labels. No wide-tracked uppercase.

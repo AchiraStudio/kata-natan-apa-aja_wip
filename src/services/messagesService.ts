@@ -1227,19 +1227,36 @@ export async function searchProfiles(query: string, excludeUserId?: string): Pro
   try {
     let request = supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url, role')
+      .select('id, username, display_name, avatar_url, role, created_at, email')
       .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
-      .limit(8);
+      .limit(16);
     if (excludeUserId) request = request.neq('id', excludeUserId);
     const { data, error } = await request;
     if (error || !data) return [];
-    return data.map((row) => ({
-      id: row.id,
-      username: row.username ?? '',
-      displayName: row.display_name ?? row.username ?? '',
-      avatarUrl: row.avatar_url ?? '',
-      role: row.role ?? 'citizen',
-    }));
+    return data
+      .filter((row: any) => {
+        if (row.id === excludeUserId) return false;
+        const email = (row.email || '').toLowerCase();
+        const username = (row.username || '').toLowerCase();
+        const id = String(row.id || '');
+        const isBot =
+          email.includes('@demo.titik.id') ||
+          email.includes('demo.titik') ||
+          email.includes('bot') ||
+          id.startsWith('usr-kn-') ||
+          username.includes('demo') ||
+          username.includes('bot');
+        const isOld = row.created_at && new Date(row.created_at).getTime() < new Date('2026-11-10T00:00:00Z').getTime();
+        return !isBot && !isOld;
+      })
+      .slice(0, 8)
+      .map((row) => ({
+        id: row.id,
+        username: row.username ?? '',
+        displayName: row.display_name ?? row.username ?? '',
+        avatarUrl: row.avatar_url ?? '',
+        role: row.role ?? 'citizen',
+      }));
   } catch {
     return [];
   }

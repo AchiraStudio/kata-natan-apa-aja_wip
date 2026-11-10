@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { Select } from '../common/Select';
 import { Camera, Check, Loader2, X, Trash2 } from 'lucide-react';
 import type { ProfileController } from './useProfileController';
 import { BOGOR_DISTRICTS, THEME_OPTIONS, BANNER_PRESETS, getProfileTheme } from './profileThemes';
@@ -267,7 +268,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ ctrl }) => {
                       onChange={(e) => setEditDisplayName(e.target.value)}
                       maxLength={50}
                       autoComplete="name"
-                      className={fieldClass}
+                      className="min-h-11"
                     />
                   </div>
                   <div>
@@ -301,7 +302,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ ctrl }) => {
                     onChange={(e) => setEditCustomStatus(e.target.value)}
                     maxLength={60}
                     placeholder="Tampil di bawah nama Anda"
-                    className={fieldClass}
+                    className="min-h-11"
                   />
                 </div>
               </section>
@@ -328,17 +329,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ ctrl }) => {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label htmlFor="edit-district" className={labelClass}>Kecamatan</label>
-                    <select
+                    <Select
                       id="edit-district"
                       value={editDistrict}
-                      onChange={(e) => setEditDistrict(e.target.value)}
-                      className={fieldClass}
+                      onChange={setEditDistrict}
+                      className="min-h-11"
                     >
                       <option value="">Tidak ditampilkan</option>
                       {BOGOR_DISTRICTS.map((d) => (
                         <option key={d} value={d}>{d}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                   <div>
                     <label htmlFor="edit-website" className={labelClass}>Tautan</label>
@@ -350,7 +351,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ ctrl }) => {
                       maxLength={120}
                       inputMode="url"
                       placeholder="https://"
-                      className={fieldClass}
+                      className="min-h-11"
                     />
                   </div>
                 </div>

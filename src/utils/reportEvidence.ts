@@ -26,6 +26,9 @@ export function getReportMediaType(url: string): PostMedia['type'] {
 
 export function hasRequiredReportEvidence(mediaUrls: string[]): boolean {
   const providedMedia = mediaUrls.filter(Boolean);
-  return providedMedia.some((url) => getReportMediaType(url) === 'image')
-    && providedMedia.some((url) => getReportMediaType(url) === 'video');
+  if (providedMedia.length === 0) return false;
+  return providedMedia.some((url) => {
+    const type = getReportMediaType(url);
+    return type === 'image' || type === 'video';
+  });
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Select } from '../../components/common/Select';
 import { RefreshCw, Copy, Check, Search } from 'lucide-react';
 import type { UserProfile, BudgetSectorContext, Report } from '../../types/domain';
 import { dataService } from '../../services/dataService';
@@ -190,20 +191,20 @@ export const AdminAnggaran: React.FC<Props> = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3 pointer-events-none" aria-hidden="true" />
                 <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari dinas atau sektor" aria-label="Cari dinas atau sektor" className="titik-pill-input pl-9 pr-3" />
               </div>
-              <select value={agency} onChange={(e) => setAgency(e.target.value)} aria-label="Filter dinas" className="titik-pill-input px-3 sm:w-44">
+              <Select value={agency} onChange={setAgency} aria-label="Filter dinas" className="sm:w-44">
                 {agencies.map((a) => (
                   <option key={a} value={a}>
                     {a === 'Semua' ? 'Semua dinas' : a}
                   </option>
                 ))}
-              </select>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)} aria-label="Urutan" className="titik-pill-input px-3 sm:w-56">
+              </Select>
+              <Select value={sortBy} onChange={setSortBy} aria-label="Urutan" className="sm:w-56">
                 {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
                   <option key={k} value={k}>
                     {SORT_LABEL[k]}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div className="overflow-x-auto">

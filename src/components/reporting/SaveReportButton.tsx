@@ -50,13 +50,9 @@ export const SaveReportButton: React.FC<SaveReportButtonProps> = ({
           disabled={isSaving}
           aria-pressed={isSavedByMe}
           aria-label={isSavedByMe ? 'Hapus laporan dari daftar tersimpan' : 'Simpan laporan'}
-          className={`inline-flex items-center justify-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors disabled:cursor-wait disabled:opacity-60 ${
-          isSavedByMe
-            ? 'border-lime-300 bg-lime-50 text-lime-800 dark:border-lime-800 dark:bg-lime-950/50 dark:text-lime-300'
-            : 'border-line bg-surface text-ink hover:bg-canvas dark:hover:bg-surface-2'
-          } ${className}`}
+          className={`titik-pill-btn ${isSavedByMe ? 'titik-pill-btn-subtle' : 'titik-pill-btn-secondary'} ${className}`}
         >
-          <Bookmark className={`h-3.5 w-3.5 ${isSavedByMe ? 'fill-current' : ''}`} />
+          <Bookmark className={`h-4 w-4 ${isSavedByMe ? 'fill-current' : ''}`} aria-hidden="true" />
           <span>{isSaving ? 'Menyimpan...' : isSavedByMe ? 'Tersimpan' : 'Simpan'}</span>
         </button>
       ) : (
@@ -64,14 +60,14 @@ export const SaveReportButton: React.FC<SaveReportButtonProps> = ({
           href="/login"
           onClick={(event) => event.stopPropagation()}
           aria-label="Masuk untuk menyimpan laporan"
-          className={`inline-flex items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-canvas dark:hover:bg-surface-2 ${className}`}
+          className={`titik-pill-btn titik-pill-btn-secondary ${className}`}
         >
-          <Bookmark className="h-3.5 w-3.5" />
+          <Bookmark className="h-4 w-4" aria-hidden="true" />
           <span>Simpan</span>
         </a>
       )}
       {errorMessage && (
-        <span role="alert" className="mt-1 text-[10px] font-medium text-rose-600 dark:text-rose-400">
+        <span role="alert" className="mt-1 text-xs font-medium text-st-ditolak">
           {errorMessage}
         </span>
       )}

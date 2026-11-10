@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Select } from '../../components/common/Select';
 import { Link } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 import { useAdminWorkspace, useMessageReporter, ageLabel, daysSince, EmptyNote, Notice } from '../../components/admin';
@@ -94,13 +95,13 @@ export const AdminDisposisi: React.FC<Props> = () => {
           <label htmlFor="agency-filter" className="sr-only">
             Filter dinas
           </label>
-          <select id="agency-filter" value={agencyFilter} onChange={(e) => setAgencyFilter(e.target.value)} className="titik-pill-input px-3 max-w-[16rem]">
+          <Select id="agency-filter" value={agencyFilter} onChange={setAgencyFilter} className="max-w-[16rem]">
             {agencies.map((a) => (
               <option key={a} value={a}>
                 {a === 'Semua' ? 'Semua dinas' : a}
               </option>
             ))}
-          </select>
+          </Select>
           <button type="button" onClick={fetchReports} disabled={isLoadingReports} aria-label="Segarkan" className="w-10 h-10 rounded-lg bg-surface-2 text-ink-2 hover:text-ink flex items-center justify-center cursor-pointer disabled:opacity-60">
             <RefreshCw className={`w-4 h-4 ${isLoadingReports ? 'animate-spin' : ''}`} />
           </button>

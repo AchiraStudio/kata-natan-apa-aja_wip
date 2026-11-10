@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Select } from '../common/Select';
 import { Check, Trash2 } from 'lucide-react';
 import type { ReportStatus } from '../../types/domain';
 import { getStatusMeta } from '../../utils/reportStatus';
@@ -131,13 +132,13 @@ export const StatusTransitionActions: React.FC<StatusTransitionActionsProps> = (
               <label htmlFor="manual-status" className="block text-xs text-ink-3 mb-1">
                 Ubah status langsung
               </label>
-              <select id="manual-status" value={manualTarget} onChange={(e) => setManualTarget(e.target.value as ReportStatus)} className="titik-pill-input px-3">
+              <Select id="manual-status" value={manualTarget} onChange={setManualTarget}>
                 {ALL_STATUSES.map((s) => (
                   <option key={s} value={s}>
                     {getStatusMeta(s).label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <button
               type="button"

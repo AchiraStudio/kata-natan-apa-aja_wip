@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Select } from '../common/Select';
 import { useNavigate } from 'react-router-dom';
 import { Check, CheckCircle2, Copy, ImagePlus, Loader2, MapPin, Video, X } from 'lucide-react';
 import { useTitik } from '../../context/useTitik';
@@ -10,11 +11,14 @@ import { stripExifAndCleanImage, uploadFileToSupabase } from './useMediaUpload';
 import { isSupabaseConfigured } from '../../services/supabaseClient';
 import { ErrorNote, Field, GhostButton, INPUT_CLASS, PrimaryButton, Segmented } from './ui';
 
-interface SelectedEvidence {
+interface EvidenceItem {
+  id: string;
+  type: 'image' | 'video';
   fileName: string;
   dataUrl: string;
   file: File;
   uploadFile: Blob;
+  sizeBytes: number;
 }
 
 interface ReportFormProps {
@@ -56,8 +60,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel, onD
     isAuthenticated ? 'verified_citizen' : 'anonymous'
   );
   const [reporterDisplayName, setReporterDisplayName] = useState(profile.displayName);
-  const [photoEvidence, setPhotoEvidence] = useState<SelectedEvidence | null>(null);
-  const [videoEvidence, setVideoEvidence] = useState<SelectedEvidence | null>(null);
+  const [evidenceList, setEvidenceList] = useState<EvidenceItem[]>([]);
   const [evidenceError, setEvidenceError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionResult, setSubmissionResult] = useState<ReportSubmitResult | null>(null);
@@ -117,8 +120,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel, onD
     title.trim() ||
       description.trim() ||
       address.trim() ||
-      photoEvidence ||
-      videoEvidence ||
+      evidenceList.length > 0 ||
       supportingDocuments.length
   );
 
@@ -126,33 +128,46 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel, onD
     onDirtyChange?.(isDirty && !submissionResult);
   }, [isDirty, onDirtyChange, submissionResult]);
 
-  const handleEvidenceFile = async (kind: 'photo' | 'video', file?: File) => {
-    if (!file) return;
+  const handleEvidenceFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setEvidenceError('');
 
-    const allowedTypes =
-      kind === 'photo'
-        ? ['image/jpeg', 'image/png', 'image/webp']
-        : ['video/mp4', 'video/webm', 'video/quicktime'];
-    if (!allowedTypes.includes(file.type)) {
-      setEvidenceError(kind === 'photo' ? 'Foto harus JPG, PNG, atau WebP.' : 'Video harus MP4, WebM, atau MOV.');
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setEvidenceError('Ukuran setiap foto dan video maksimal 10 MB.');
+    const newFiles = Array.from(files);
+    if (evidenceList.length + newFiles.length > 10) {
+      setEvidenceError('Maksimal 10 berkas media bukti per laporan.');
       return;
     }
 
-    try {
-      const buffer = await file.arrayBuffer();
-      if (hasExplicitAIGenerationMarker(new Uint8Array(buffer))) {
-        setEvidenceError('Berkas memiliki penanda eksplisit alat generatif AI dan tidak dapat digunakan sebagai bukti.');
-        return;
+    const MAX_SIZE = 100 * 1024 * 1024;
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+
+    const added: EvidenceItem[] = [];
+
+    for (const file of newFiles) {
+      const isImg = allowedImageTypes.includes(file.type);
+      const isVid = allowedVideoTypes.includes(file.type);
+
+      if (!isImg && !isVid) {
+        setEvidenceError(`Format "${file.name}" tidak didukung. Gunakan JPG, PNG, WebP, MP4, WebM, atau MOV.`);
+        continue;
       }
 
-      let uploadFile: Blob = file;
-      let fileName = file.name;
-      const dataUrl =
-        kind === 'photo'
+      if (file.size > MAX_SIZE) {
+        setEvidenceError(`Ukuran berkas "${file.name}" melebihi batas 100 MB.`);
+        continue;
+      }
+
+      try {
+        const buffer = await file.arrayBuffer();
+        if (hasExplicitAIGenerationMarker(new Uint8Array(buffer))) {
+          setEvidenceError(`Berkas "${file.name}" memiliki penanda alat generatif AI dan tidak dapat digunakan.`);
+          continue;
+        }
+
+        let uploadFile: Blob = file;
+        let fileName = file.name;
+        const dataUrl = isImg
           ? await stripExifAndCleanImage(file).then((cleaned) => {
               uploadFile = cleaned.blob;
               fileName = file.name.replace(/\.[^.]+$/, '.jpg');
@@ -164,15 +179,32 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel, onD
               reader.onerror = () => reject(new Error(`Gagal membaca ${file.name}`));
               reader.readAsDataURL(file);
             });
-      const evidence = { fileName, dataUrl, file, uploadFile };
-      if (kind === 'photo') setPhotoEvidence(evidence);
-      else setVideoEvidence(evidence);
+
+        added.push({
+          id: `media-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          type: isImg ? 'image' : 'video',
+          fileName,
+          dataUrl,
+          file,
+          uploadFile,
+          sizeBytes: file.size,
+        });
+      } catch (err) {
+        console.error('Failed to read report evidence:', err);
+        setEvidenceError(`Berkas "${file.name}" tidak dapat diproses.`);
+      }
+    }
+
+    if (added.length > 0) {
+      setEvidenceList((prev) => [...prev, ...added]);
       setEvidenceError('');
-    } catch (error) {
-      console.error('Failed to read report evidence:', error);
-      setEvidenceError(`Berkas ${file.name} tidak dapat dibaca. Coba pilih berkas lain.`);
     }
   };
+
+  const handleRemoveEvidence = (id: string) => {
+    setEvidenceList((prev) => prev.filter((item) => item.id !== id));
+  };
+
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -246,30 +278,26 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel, onD
     event.preventDefault();
     setSubmissionError('');
 
-    const photo = photoEvidence;
-    const video = videoEvidence;
-    if (!photo || !video || !hasRequiredReportEvidence([photo.dataUrl, video.dataUrl])) {
-      setEvidenceError('Foto dan video bukti wajib diunggah sebelum mengirim laporan.');
+    if (evidenceList.length === 0) {
+      setEvidenceError('Wajib melampirkan minimal 1 bukti foto atau video lapangan.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      let photoUrl = photo.dataUrl;
-      let videoUrl = video.dataUrl;
-      if (isSupabaseConfigured) {
-        photoUrl = await uploadFileToSupabase(
-          'post-media',
-          photo.uploadFile,
-          profile.id,
-          photo.fileName
-        );
-        videoUrl = await uploadFileToSupabase(
-          'post-media',
-          video.file,
-          profile.id,
-          video.fileName
-        );
+      const uploadedUrls: string[] = [];
+      for (const item of evidenceList) {
+        if (isSupabaseConfigured) {
+          const url = await uploadFileToSupabase(
+            'post-media',
+            item.uploadFile,
+            profile.id,
+            item.fileName
+          );
+          uploadedUrls.push(url);
+        } else {
+          uploadedUrls.push(item.dataUrl);
+        }
       }
 
       const input: NewReportInput = {
@@ -286,7 +314,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel, onD
         supportingDocuments,
         reporterType,
         reporterDisplayName: reporterType === 'verified_citizen' ? reporterDisplayName.trim() : undefined,
-        mediaUrls: [photoUrl, videoUrl],
+        mediaUrls: uploadedUrls,
       };
 
       const result = await submitReport(input);
@@ -389,22 +417,22 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel, onD
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Kategori" htmlFor="report-category">
-              <select id="report-category" value={category} onChange={(event) => setCategory(event.target.value)} className={INPUT_CLASS}>
+              <Select id="report-category" value={category} onChange={setCategory} className={INPUT_CLASS}>
                 {categories.map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
+              </Select>
             </Field>
             <Field label="Tingkat keparahan" htmlFor="report-severity">
-              <select
+              <Select
                 id="report-severity"
                 value={severity}
-                onChange={(event) => setSeverity(event.target.value as typeof severity)}
+                onChange={setSeverity}
                 className={INPUT_CLASS}
               >
                 <option value="low">Rendah</option>
                 <option value="medium">Sedang</option>
                 <option value="high">Tinggi</option>
                 <option value="critical">Kritis</option>
-              </select>
+              </Select>
             </Field>
           </div>
           <Field label="Deskripsi" htmlFor="report-description" hint="Jelaskan kondisi, dampak, dan sejak kapan masalah terjadi.">
@@ -449,16 +477,16 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel, onD
             <p className="mt-1.5 text-xs text-ink-3">Koordinat: {latitude.toFixed(5)}, {longitude.toFixed(5)}</p>
           </Field>
           <Field label="Fasilitas publik terkait" htmlFor="report-facility" optional>
-            <select
+            <Select
               id="report-facility"
               value={selectedFacilityValue}
-              onChange={(event) => handleSelectFacility(event.target.value)}
+              onChange={handleSelectFacility}
               className={INPUT_CLASS}
             >
               <option value="">Pilih fasilitas (opsional)</option>
               {sectorFacilities.map((facility) => <option key={facility.id} value={facility.name}>{facility.name}</option>)}
               <option value="__other__">Fasilitas lain</option>
-            </select>
+            </Select>
             {selectedFacility && (
               <p className="mt-2 text-xs text-ink-2">Dikelola {selectedFacility.responsibleAgency}</p>
             )}
@@ -501,26 +529,83 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel, onD
 
         <section className="space-y-4 border-t border-line-soft pt-5">
           <h3 className="text-sm font-semibold text-ink">Bukti dan pelapor</h3>
-          <Field label="Bukti foto dan video" hint="Wajib satu foto dan satu video, masing-masing maksimal 10 MB.">
-            <div className="grid grid-cols-2 gap-3">
-              <EvidenceSlot
-                id="report-photo-input"
-                kind="photo"
-                label="Foto"
-                accept="image/jpeg,image/png,image/webp"
-                evidence={photoEvidence}
-                onPick={(file) => void handleEvidenceFile('photo', file)}
-                onClear={() => setPhotoEvidence(null)}
-              />
-              <EvidenceSlot
-                id="report-video-input"
-                kind="video"
-                label="Video"
-                accept="video/mp4,video/webm,video/quicktime"
-                evidence={videoEvidence}
-                onPick={(file) => void handleEvidenceFile('video', file)}
-                onClear={() => setVideoEvidence(null)}
-              />
+          <Field label="Bukti media lapangan" hint="Wajib minimal 1 bukti foto atau video (maksimal 100 MB per berkas).">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-brand text-on-brand hover:bg-brand-hover rounded-xl text-xs font-semibold cursor-pointer transition-colors shadow-xs">
+                  <ImagePlus className="w-3.5 h-3.5" />
+                  <span>{evidenceList.length > 0 ? '+ Tambah Foto / Video Lain' : 'Pilih Foto / Video (Multi-select)'}</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+                    multiple
+                    className="hidden"
+                    onChange={(event) => {
+                      void handleEvidenceFiles(event.target.files);
+                      event.currentTarget.value = '';
+                    }}
+                  />
+                </label>
+                <span className="text-xs text-ink-3">
+                  {evidenceList.length} / 10 media terpilih
+                </span>
+              </div>
+
+              {evidenceList.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                  {evidenceList.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="group relative rounded-xl border border-line bg-canvas overflow-hidden flex flex-col"
+                    >
+                      <div className="relative aspect-video w-full bg-black/90 flex items-center justify-center overflow-hidden">
+                        {item.type === 'image' ? (
+                          <img
+                            src={item.dataUrl}
+                            alt={item.fileName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <video
+                            src={item.dataUrl}
+                            playsInline
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+
+                        <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/70 text-white uppercase tracking-wider">
+                            {item.type === 'image' ? 'Foto' : 'Video'}
+                          </span>
+                          {index === 0 && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-lime-700 text-lime-100 shadow-xs">
+                              ⭐ Cover Feed
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveEvidence(item.id)}
+                          title="Hapus media ini"
+                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 hover:bg-rose-600 text-white flex items-center justify-center transition-colors cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="p-2 flex items-center justify-between text-[10px] text-ink-2">
+                        <span className="truncate max-w-[110px]" title={item.fileName}>
+                          {item.fileName}
+                        </span>
+                        <span className="tabular-nums shrink-0">
+                          {(item.sizeBytes / (1024 * 1024)).toFixed(1)} MB
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             {evidenceError && <p role="alert" className="mt-2 text-sm text-st-ditolak">{evidenceError}</p>}
             <p className="mt-2 text-xs text-ink-3">Gunakan dokumentasi asli dari lokasi. Metadata yang menyebut alat generatif AI akan ditolak.</p>
@@ -606,51 +691,3 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSuccess, onCancel, onD
     </form>
   );
 };
-
-interface EvidenceSlotProps {
-  id: string;
-  kind: 'photo' | 'video';
-  label: string;
-  accept: string;
-  evidence: SelectedEvidence | null;
-  onPick: (file?: File) => void;
-  onClear: () => void;
-}
-
-const EvidenceSlot: React.FC<EvidenceSlotProps> = ({ id, kind, label, accept, evidence, onPick, onClear }) => (
-  <div>
-    <input
-      type="file"
-      accept={accept}
-      id={id}
-      className="sr-only"
-      onChange={(event) => {
-        onPick(event.target.files?.[0]);
-        event.currentTarget.value = '';
-      }}
-    />
-    {evidence ? (
-      <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-surface-2">
-        {kind === 'photo' ? (
-          <img src={evidence.dataUrl} alt="Pratinjau foto bukti" className="w-full h-full object-cover" />
-        ) : (
-          <video src={evidence.dataUrl} muted playsInline preload="metadata" aria-label="Pratinjau video bukti" className="w-full h-full object-cover" />
-        )}
-        <span className="absolute inset-x-0 bottom-0 px-2.5 py-1.5 text-xs text-white bg-black/60 truncate">{evidence.fileName}</span>
-        <button
-          type="button"
-          onClick={onClear}
-          aria-label={`Hapus ${label.toLowerCase()}`}
-          className="absolute top-1.5 right-1.5 w-8 h-8 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-st-ditolak cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-    ) : (
-      <label htmlFor={id} className="aspect-[4/3] rounded-xl border border-dashed border-line flex flex-col items-center justify-center gap-1.5 text-ink-2 hover:border-brand hover:text-brand transition-colors cursor-pointer focus-within:outline-2">
-        {kind === 'photo' ? <ImagePlus className="w-6 h-6" aria-hidden="true" /> : <Video className="w-6 h-6" aria-hidden="true" />}
-        <span className="text-sm font-semibold">Pilih {label.toLowerCase()}</span>
-      </label>
-    )}
-  </div>
-);

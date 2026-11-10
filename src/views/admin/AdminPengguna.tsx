@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Select } from '../../components/common/Select';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Search } from 'lucide-react';
+import { RefreshCw, Search, Trash2 } from 'lucide-react';
 import type { UserProfile } from '../../types/domain';
 import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 import { dataService } from '../../services/dataService';
@@ -71,17 +72,33 @@ export const AdminPengguna: React.FC<Props> = ({ profile }) => {
       const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       setUsers(
-        (data ?? []).map((row: Record<string, any>) => ({
-          id: row.id,
-          username: row.username || 'pengguna',
-          displayName: row.display_name || row.username || 'Warga',
-          email: row.email ?? undefined,
-          avatarUrl: row.avatar_url ?? undefined,
-          role: row.role === 'admin' ? 'admin' : 'citizen',
-          verifiedAgency: row.verified_agency ?? undefined,
-          district: row.district || undefined,
-          isVerified: Boolean(row.is_verified),
-        }))
+        (data ?? [])
+          .filter((row: Record<string, any>) => {
+            if (row.id === profile.id) return true;
+            const email = (row.email || '').toLowerCase();
+            const username = (row.username || '').toLowerCase();
+            const id = row.id || '';
+            const isBot =
+              email.includes('@demo.titik.id') ||
+              email.includes('demo.titik') ||
+              email.includes('bot') ||
+              id.startsWith('usr-kn-') ||
+              username.includes('demo') ||
+              username.includes('bot');
+            const isOld = row.created_at && new Date(row.created_at).getTime() < new Date('2026-11-10T00:00:00Z').getTime();
+            return !isBot && !isOld;
+          })
+          .map((row: Record<string, any>) => ({
+            id: row.id,
+            username: row.username || 'pengguna',
+            displayName: row.display_name || row.username || 'Warga',
+            email: row.email ?? undefined,
+            avatarUrl: row.avatar_url ?? undefined,
+            role: row.role === 'admin' ? 'admin' : 'citizen',
+            verifiedAgency: row.verified_agency ?? undefined,
+            district: row.district || undefined,
+            isVerified: Boolean(row.is_verified),
+          }))
       );
     } catch {
       setUsers([]);
@@ -89,7 +106,30 @@ export const AdminPengguna: React.FC<Props> = ({ profile }) => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [profile.id]);
+
+  const handlePurgeBots = async () => {
+    const ok = window.confirm(
+      'Hapus permanen semua akun bot (@demo.titik.id, usr-kn-*) dan akun lama sebelum 10 November 2026 dari basis data?'
+    );
+    if (!ok) return;
+
+    setIsLoading(true);
+    setFeedback(null);
+    try {
+      await supabase
+        .from('profiles')
+        .delete()
+        .neq('id', profile.id)
+        .or('email.ilike.%@demo.titik.id,id.like.usr-kn-%,created_at.lt.2026-11-10T00:00:00Z');
+      setFeedback({ kind: 'success', text: 'Berhasil membersihkan akun bot dan akun lama dari basis data.' });
+      await fetchUsers();
+    } catch (err) {
+      setFeedback({ kind: 'error', text: err instanceof Error ? err.message : 'Gagal membersihkan akun.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -164,9 +204,21 @@ export const AdminPengguna: React.FC<Props> = ({ profile }) => {
             {counts.total} akun, {counts.verified} terverifikasi, {counts.admins} admin.
           </p>
         </div>
-        <button type="button" onClick={fetchUsers} disabled={isLoading} aria-label="Segarkan" className="w-9 h-9 rounded-lg bg-surface-2 text-ink-2 hover:text-ink flex items-center justify-center cursor-pointer disabled:opacity-60">
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handlePurgeBots}
+            disabled={isLoading}
+            className="h-9 px-3.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 border border-rose-200 dark:border-rose-900/60 text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-60 transition-colors shadow-xs"
+            title="Hapus permanen akun bot dan akun lama sebelum 10 November 2026 dari basis data"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Bersihkan Akun Bot & Lama (&lt; 10 Nov)</span>
+          </button>
+          <button type="button" onClick={fetchUsers} disabled={isLoading} aria-label="Segarkan" className="w-9 h-9 rounded-lg bg-surface-2 text-ink-2 hover:text-ink flex items-center justify-center cursor-pointer disabled:opacity-60">
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </header>
 
       {loadError && <Notice kind="error">{loadError}</Notice>}
@@ -185,18 +237,18 @@ export const AdminPengguna: React.FC<Props> = ({ profile }) => {
               className="titik-pill-input pl-9 pr-3"
             />
           </div>
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as RoleFilter)} aria-label="Filter peran" className="titik-pill-input px-3 md:w-40">
+          <Select value={roleFilter} onChange={setRoleFilter} aria-label="Filter peran" className="md:w-40">
             {(Object.keys(ROLE_LABEL) as RoleFilter[]).map((r) => (
               <option key={r} value={r}>
                 {ROLE_LABEL[r]}
               </option>
             ))}
-          </select>
-          <select value={verifyFilter} onChange={(e) => setVerifyFilter(e.target.value as VerifyFilter)} aria-label="Filter verifikasi" className="titik-pill-input px-3 md:w-48">
+          </Select>
+          <Select value={verifyFilter} onChange={setVerifyFilter} aria-label="Filter verifikasi" className="md:w-48">
             <option value="Semua">Semua verifikasi</option>
             <option value="Terverifikasi">Terverifikasi</option>
             <option value="Belum">Belum terverifikasi</option>
-          </select>
+          </Select>
         </div>
 
         {isLoading && users.length === 0 ? (

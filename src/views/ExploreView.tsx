@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Select } from '../components/common/Select';
 import { Link } from 'react-router-dom';
 import { Search, X, MapPin, ThumbsUp, Plus, ArrowRight } from 'lucide-react';
 import { useTitik } from '../context/TitikContext';
@@ -157,18 +158,17 @@ export const ExploreView: React.FC = () => {
 
           {tab === 'reports' && (
             <div className="sm:w-44 shrink-0">
-              <select
+              <Select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as StatusFilter)}
+                onChange={setStatus}
                 aria-label="Filter status"
-                className="titik-pill-input px-3"
               >
                 <option value="all">Semua status</option>
                 <option value="baru">Menunggu</option>
                 <option value="ditindak">Ditindak</option>
                 <option value="tuntas">Tuntas</option>
                 <option value="ditolak">Ditolak</option>
-              </select>
+              </Select>
             </div>
           )}
         </div>
