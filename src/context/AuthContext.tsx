@@ -126,7 +126,7 @@ export const ANONYMOUS_PROFILE: UserProfile = {
   email: '',
   avatarUrl: '',
   role: 'citizen',
-  district: 'Kota Bogor',
+  district: 'Jabodetabek',
   isVerified: false,
   bio: 'Identitas dilindungi token satu arah.',
 };

@@ -79,7 +79,7 @@ export const EvidenceInspector: React.FC<EvidenceInspectorProps> = ({ report, on
                 onRegisterFacility(
                   report.facilityName!,
                   report.category,
-                  report.location?.address || 'Kota Bogor',
+                  report.location?.address || 'Jabodetabek',
                   report.location?.latitude || -6.5971,
                   report.location?.longitude || 106.806
                 )

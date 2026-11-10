@@ -36,7 +36,7 @@ export function getConnectionStatus(): ConnectionStatusInfo {
     status: 'connected',
     isConfigured: true,
     isLiveMode: true,
-    message: 'Terhubung ke server Supabase Kota Bogor.',
+    message: 'Terhubung ke server Supabase Jabodetabek.',
   };
 }
 

@@ -85,7 +85,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ ctrl }) => {
                           </h4>
                           <p className="text-xs text-ink-2 flex items-center gap-1.5 truncate">
                             <MapPin className="w-3.5 h-3.5 text-brand shrink-0" />
-                            <span>{report.location?.address || 'Kota Bogor'}</span>
+                            <span>{report.location?.address || 'Jabodetabek'}</span>
                           </p>
                           {report.mediaUrls.length > 0 && (
                             <div className="flex gap-2 pt-2" onClick={(event) => event.stopPropagation()}>

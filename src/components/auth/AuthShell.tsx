@@ -50,7 +50,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({ mode, title, description, 
             <span className="text-lime">Pantau hasilnya.</span>
           </p>
           <p className="hidden lg:block text-sm text-white/75 max-w-sm leading-relaxed">
-            Kanal warga Kota Bogor untuk melaporkan masalah fasilitas publik dan mengawal penanganannya secara terbuka.
+            Kanal warga Jabodetabek untuk melaporkan masalah fasilitas publik dan mengawal penanganannya secara terbuka.
           </p>
         </div>
 

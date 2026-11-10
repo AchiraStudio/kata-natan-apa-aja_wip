@@ -321,7 +321,7 @@ BEGIN
     new.email,
     COALESCE(new.raw_user_meta_data->>'avatar_url', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'),
     'citizen', -- Always citizen! No self-service admin
-    COALESCE(new.raw_user_meta_data->>'district', 'Bogor'),
+    COALESCE(new.raw_user_meta_data->>'district', 'Jabodetabek'),
     false,
     'Warga terdaftar di portal TITIK.',
     false
@@ -1088,7 +1088,7 @@ BEGIN
       aud = 'authenticated',
       role = 'authenticated',
       raw_app_meta_data = '{"provider":"email","providers":["email"]}'::jsonb,
-      raw_user_meta_data = '{"username":"admin.pupr","display_name":"Administrator Dinas PUPR","district":"Bogor Tengah"}'::jsonb,
+      raw_user_meta_data = '{"username":"admin.pupr","display_name":"Administrator Dinas PUPR","district":"Jabodetabek"}'::jsonb,
       confirmation_token = COALESCE(confirmation_token, ''),
       email_change = COALESCE(email_change, ''),
       email_change_token_new = COALESCE(email_change_token_new, ''),
@@ -1104,7 +1104,7 @@ BEGIN
       '00000000-0000-0000-0000-000000000000', v_admin_id, 'authenticated', 'authenticated',
       'admin@titik.id', v_encrypted_admin_pw, NOW(),
       '{"provider":"email","providers":["email"]}'::jsonb,
-      '{"username":"admin.pupr","display_name":"Administrator Dinas PUPR","district":"Bogor Tengah"}'::jsonb,
+      '{"username":"admin.pupr","display_name":"Administrator Dinas PUPR","district":"Jabodetabek"}'::jsonb,
       NOW(), NOW(),
       '', '', '', ''
     );
@@ -1121,7 +1121,7 @@ BEGIN
       aud = 'authenticated',
       role = 'authenticated',
       raw_app_meta_data = '{"provider":"email","providers":["email"]}'::jsonb,
-      raw_user_meta_data = '{"username":"budi.santoso","display_name":"Budi Santoso","district":"Bogor Selatan"}'::jsonb,
+      raw_user_meta_data = '{"username":"budi.santoso","display_name":"Budi Santoso","district":"Jabodetabek"}'::jsonb,
       confirmation_token = COALESCE(confirmation_token, ''),
       email_change = COALESCE(email_change, ''),
       email_change_token_new = COALESCE(email_change_token_new, ''),
@@ -1137,7 +1137,7 @@ BEGIN
       '00000000-0000-0000-0000-000000000000', v_citizen_id, 'authenticated', 'authenticated',
       'warga@titik.id', v_encrypted_citizen_pw, NOW(),
       '{"provider":"email","providers":["email"]}'::jsonb,
-      '{"username":"budi.santoso","display_name":"Budi Santoso","district":"Bogor Selatan"}'::jsonb,
+      '{"username":"budi.santoso","display_name":"Budi Santoso","district":"Jabodetabek"}'::jsonb,
       NOW(), NOW(),
       '', '', '', ''
     );
@@ -1187,7 +1187,7 @@ BEGIN
   VALUES (
     v_admin_id::text, 'admin.pupr', 'Administrator Dinas PUPR', 'admin@titik.id',
     'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
-    'admin', 'Bogor Tengah', true, 'Akun resmi verifikator dan pengawas infrastruktur Dinas PUPR Kota Bogor.', false
+    'admin', 'Jabodetabek', true, 'Akun resmi verifikator dan pengawas infrastruktur Dinas PUPR Jabodetabek.', false
   )
   ON CONFLICT (id) DO UPDATE SET
     role = 'admin', display_name = 'Administrator Dinas PUPR', username = 'admin.pupr',
@@ -1200,7 +1200,7 @@ BEGIN
   VALUES (
     v_citizen_id::text, 'budi.santoso', 'Budi Santoso', 'warga@titik.id',
     'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-    'citizen', 'Bogor Selatan', true, 'Warga aktif pemerhati fasilitas umum dan transparansi APBD Kota Bogor.', false
+    'citizen', 'Jabodetabek', true, 'Warga aktif pemerhati fasilitas umum dan transparansi APBD Jabodetabek.', false
   )
   ON CONFLICT (id) DO UPDATE SET
     role = 'citizen', display_name = 'Budi Santoso', username = 'budi.santoso',

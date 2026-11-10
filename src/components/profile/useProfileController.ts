@@ -427,7 +427,7 @@ export function useProfileController() {
     const url = window.location.href;
     const shareData = {
       title: `${profile?.displayName} (@${profile?.username}) di TITIK.`,
-      text: `Lihat kontribusi warga ${profile?.displayName} untuk keterbukaan publik Kota Bogor.`,
+      text: `Lihat kontribusi warga ${profile?.displayName} untuk keterbukaan publik Jabodetabek.`,
       url,
     };
 

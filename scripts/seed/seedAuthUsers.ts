@@ -20,7 +20,7 @@ export async function seedAuthUsers(): Promise<number> {
       user_metadata: {
         username: 'admin.pupr',
         display_name: 'Administrator Dinas PUPR',
-        district: 'Bogor Tengah',
+        district: 'Jabodetabek',
       },
       role: 'admin' as const,
     },
@@ -30,7 +30,7 @@ export async function seedAuthUsers(): Promise<number> {
       user_metadata: {
         username: 'budi.santoso',
         display_name: 'Budi Santoso',
-        district: 'Bogor Selatan',
+        district: 'Jabodetabek',
       },
       role: 'citizen' as const,
     },

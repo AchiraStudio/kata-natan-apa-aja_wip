@@ -118,7 +118,7 @@ export const AdminAnggaran: React.FC<Props> = () => {
 
   const copySummary = async () => {
     const lines = [
-      `Rekap APBD Kota Bogor${year ? ` TA ${year}` : ''}`,
+      `Rekap APBD Jabodetabek${year ? ` TA ${year}` : ''}`,
       `Pagu: ${formatRupiahShort(totals.pagu)}`,
       `Realisasi: ${formatRupiahShort(totals.realized)} (${totals.absorption.toFixed(1)}%)`,
       `Estimasi kerusakan dari laporan warga: ${formatRupiahShort(totals.damage)}`,

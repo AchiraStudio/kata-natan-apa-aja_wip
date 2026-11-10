@@ -30,7 +30,7 @@ export const WorkflowView: React.FC = () => {
         'Warga mengunggah bukti visual (foto/video) masalah fasilitas publik dan menandai titik koordinat geospasial secara presisi. Tidak ada kewajiban registrasi akun atau pengumpulan data pribadi sensitif.',
       features: [
         'Dukungan multi-rasio media (1:1, 4:3, 16:9, video 9:16)',
-        'Pin lokasi interaktif berbasis peta wilayah Kota Bogor',
+        'Pin lokasi interaktif berbasis peta wilayah Jabodetabek',
         'Opsi anonimitas penuh dengan token pelacakan 16-karakter',
       ],
     },
@@ -55,7 +55,7 @@ export const WorkflowView: React.FC = () => {
       summary:
         'Setiap laporan dipetakan secara otomatis dengan pagu anggaran sektor APBD 2026 yang relevan (drainase, jalan, penerangan jalan umum, sekolah) dan dinas penanggung jawabnya.',
       features: [
-        'Transparansi pagu vs realisasi belanja APBD Kota Bogor',
+        'Transparansi pagu vs realisasi belanja APBD Jabodetabek',
         'Indikator skor ketanggapan dinas berwenang',
         'Sumber data terbuka SIKD Kemendagri & Portal Satu Data',
       ],

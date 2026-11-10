@@ -49,7 +49,7 @@ export const MapView: React.FC = () => {
       delete container._leaflet_id;
     }
 
-    // Center of Kota Bogor
+    // Center of Jabodetabek
     const map = L.map(mapContainerRef.current, {
       center: [-6.595038, 106.790422],
       zoom: 13,
@@ -133,7 +133,7 @@ export const MapView: React.FC = () => {
               Peta Titik Infrastruktur Publik
             </h1>
             <p className="text-sm text-ink-2 mt-0.5">
-              Laporan warga dan fasilitas publik di Kota Bogor, lengkap dengan lokasinya.
+              Laporan warga dan fasilitas publik di Jabodetabek, lengkap dengan lokasinya.
             </p>
           </div>
 

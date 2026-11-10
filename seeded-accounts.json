@@ -6,10 +6,10 @@
     "email": "admin@titik.com",
     "avatar_url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
     "role": "admin",
-    "district": "Bogor Tengah",
+    "district": "Jabodetabek",
     "is_verified": true,
-    "verified_agency": "Pemerintah Kota Bogor",
-    "bio": "Akun resmi administrator sistem TITIK Kota Bogor.",
+    "verified_agency": "Pemerintah Jabodetabek",
+    "bio": "Akun resmi administrator sistem TITIK Jabodetabek.",
     "created_at": "2026-11-10T00:00:00.000Z"
   }
 ]

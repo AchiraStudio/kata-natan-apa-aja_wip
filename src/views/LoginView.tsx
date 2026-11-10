@@ -29,7 +29,7 @@ const DEFAULT_QUICK_ACCOUNTS: QuickAccount[] = [
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
     description: 'Akses penuh verifikasi laporan, disposisi OPD, data analitik, dan moderasi publik.',
     username: 'admin',
-    verifiedAgency: 'Pemerintah Kota Bogor',
+    verifiedAgency: 'Pemerintah Jabodetabek',
   },
 ];
 

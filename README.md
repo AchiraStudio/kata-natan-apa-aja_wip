@@ -1,6 +1,6 @@
 # TITIK.
 
-Platform warga untuk melaporkan masalah fasilitas publik di Kota Bogor dan memantau penanganannya secara transparan. Dilengkapi feed vertikal, penandaan lokasi geospasial, pelacakan anggaran APBD, dan pesan langsung terenkripsi end-to-end (E2EE).
+Platform warga untuk melaporkan masalah fasilitas publik di Jabodetabek dan memantau penanganannya secara transparan. Dilengkapi feed vertikal, penandaan lokasi geospasial, pelacakan anggaran APBD, dan pesan langsung terenkripsi end-to-end (E2EE).
 
 Dibuat untuk **Multimedia In Action 2026 (Web In Action)**, subtema Civic.
 

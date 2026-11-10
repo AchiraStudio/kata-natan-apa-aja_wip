@@ -36,7 +36,7 @@ const supabaseKey = env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON
 
 const countArg = parseInt(process.argv[2], 10) || 100;
 
-console.log(`\n🌱 [TITIK.] Menyiapkan generator untuk ${countArg} akun warga Kota Bogor...`);
+console.log(`\n🌱 [TITIK.] Menyiapkan generator untuk ${countArg} akun warga Jabodetabek...`);
 
 const FIRST_NAMES = [
   'Rizky', 'Sari', 'Budi', 'Dewi', 'Dika', 'Nurul', 'Bambang', 'Wulandari',
@@ -89,7 +89,7 @@ for (let i = 1; i <= countArg; i++) {
     district,
     // Authentic verification: Admin accounts are verified; citizen accounts require formal identity verification
     is_verified: role === 'admin',
-    bio: `Warga aktif kecamatan ${district} Kota Bogor.`,
+    bio: `Warga aktif kecamatan ${district} Jabodetabek.`,
     created_at: new Date().toISOString(),
   });
 }

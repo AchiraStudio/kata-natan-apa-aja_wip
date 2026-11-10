@@ -420,12 +420,12 @@ export function useAdminWorkspace() {
       const created = await dataService.createFacility({
         name: facilityName.trim(),
         category,
-        address: address || 'Kota Bogor',
+        address: address || 'Jabodetabek',
         latitude,
         longitude,
-        responsibleAgency: selectedReport?.responsibleAgency || 'Pemerintah Kota Bogor',
+        responsibleAgency: selectedReport?.responsibleAgency || 'Pemerintah Jabodetabek',
       });
-      setActionSuccess(`Fasilitas "${created.name}" berhasil didaftarkan ke katalog resmi Kota Bogor.`);
+      setActionSuccess(`Fasilitas "${created.name}" berhasil didaftarkan ke katalog resmi Jabodetabek.`);
       await fetchReports();
       return true;
     } catch (error) {

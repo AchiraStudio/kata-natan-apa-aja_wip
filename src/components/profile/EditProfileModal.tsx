@@ -192,7 +192,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ ctrl }) => {
                 </div>
 
                 <div>
-                  <p className="text-xs text-ink-3 mb-2">Atau pilih foto Bogor</p>
+                  <p className="text-xs text-ink-3 mb-2">Atau pilih foto Jabodetabek</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {BANNER_PRESETS.map((preset) => {
                       const selected = editBannerUrl === preset.url;

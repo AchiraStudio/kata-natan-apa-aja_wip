@@ -134,7 +134,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ ctrl }) => {
                 </div>
 
                 <div className="text-center pt-2 text-[11px] text-ink-2">
-                  TITIK. Platform Partisipasi Sipil Kota Bogor • Versi 2.0 (Supabase RLS Protected)
+                  TITIK. Platform Partisipasi Sipil Jabodetabek • Versi 2.0 (Supabase RLS Protected)
                 </div>
               </div>
             )}

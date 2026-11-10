@@ -122,7 +122,7 @@ BEGIN
     new.email,
     COALESCE(new.raw_user_meta_data->>'avatar_url', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'),
     'citizen', -- Always citizen! No self-service admin
-    COALESCE(new.raw_user_meta_data->>'district', 'Bogor'),
+    COALESCE(new.raw_user_meta_data->>'district', 'Jabodetabek'),
     false,
     'Warga terdaftar di portal TITIK.',
     false

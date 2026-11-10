@@ -11,7 +11,7 @@ export interface ComposerDraft {
 
 const DEFAULT_DRAFT: ComposerDraft = {
   caption: '',
-  locationTag: 'Kota Bogor',
+  locationTag: 'Jabodetabek',
 };
 
 export function useComposerDraft() {

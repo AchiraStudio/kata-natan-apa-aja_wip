@@ -111,12 +111,12 @@ export interface BudgetSectorContext {
   realizedSpending: number; // e.g. Rp 28.500.000.000
   executionRatePercent: number; // e.g. 63.3
   fiscalYear: number; // e.g. 2026
-  responsibleAgency: string; // e.g. "Dinas Pekerjaan Umum dan Penataan Ruang (PUPR) Kota Bogor"
+  responsibleAgency: string; // e.g. "Dinas Pekerjaan Umum dan Penataan Ruang (PUPR) Jabodetabek"
   agencyAcronym: string; // e.g. "Dinas PUPR"
   responsivenessScore: number; // e.g. 88 (scale 0-100)
   avgResolutionDays: number; // e.g. 14 days
   lastUpdated: string;
-  dataSource: string; // e.g. "Simulasi SIKD Kemendagri / Portal Satu Data Kota Bogor 2026"
+  dataSource: string; // e.g. "Simulasi SIKD Kemendagri / Portal Satu Data Jabodetabek 2026"
   isSampleData: boolean;
 }
 
@@ -168,7 +168,7 @@ export interface Post {
   body: string;
   postType: PostType;
   media: PostMedia[];
-  locationTag: string; // e.g. "Bogor, Jawa Barat"
+  locationTag: string; // e.g. "Jabodetabek"
   relatedReportId?: string;
   relatedReport?: Report;
   supportCount: number; // Civic verification: "Saya terdampak juga"

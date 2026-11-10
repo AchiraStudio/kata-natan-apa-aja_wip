@@ -62,9 +62,9 @@ function mapReportRow(row: any, isSupportedByMe = false, isSavedByMe = false): R
       : {
           latitude: -6.5971,
           longitude: 106.806,
-          address: 'Kota Bogor',
-          district: 'Bogor Tengah',
-          city: 'Kota Bogor',
+          address: 'Jabodetabek',
+          district: 'Jabodetabek',
+          city: 'Jabodetabek',
           province: 'Jawa Barat',
         };
 
@@ -91,7 +91,7 @@ function mapReportRow(row: any, isSupportedByMe = false, isSavedByMe = false): R
     location,
     facilityName,
     estimatedCost,
-    responsibleAgency: row.responsible_agency || 'Pemerintah Kota Bogor',
+    responsibleAgency: row.responsible_agency || 'Pemerintah Jabodetabek',
     mediaUrls: Array.isArray(row.media_urls) ? row.media_urls : [],
     supportingDocuments: Array.isArray(row.supporting_documents) ? row.supporting_documents : [],
     reporterType: row.reporter_type || 'verified_citizen',
@@ -178,7 +178,7 @@ function mapPostRow(
     body: row.body,
     postType: row.post_type || 'citizen_report',
     media: normalizePostMedia(row.media, relatedReport?.mediaUrls),
-    locationTag: row.location_tag || 'Kota Bogor',
+    locationTag: row.location_tag || 'Jabodetabek',
     relatedReportId: row.related_report_id || undefined,
     relatedReport,
     supportCount: dynamicSupportCount,
@@ -220,7 +220,7 @@ function mapBudgetSectorRow(row: any): BudgetSectorContext {
     realizedSpending: realized,
     executionRatePercent: executionRate,
     fiscalYear: row.fiscal_year || 2026,
-    responsibleAgency: row.department || 'Pemerintah Kota Bogor',
+    responsibleAgency: row.department || 'Pemerintah Jabodetabek',
     agencyAcronym: row.department
       ? row.department
           .split(' ')
@@ -230,7 +230,7 @@ function mapBudgetSectorRow(row: any): BudgetSectorContext {
     responsivenessScore: 85,
     avgResolutionDays: 14,
     lastUpdated: row.created_at || new Date().toISOString(),
-    dataSource: 'Satu Data Kota Bogor / APBD 2026',
+    dataSource: 'Satu Data Jabodetabek / APBD 2026',
     isSampleData: Boolean(row.is_demo),
   };
 }
@@ -469,7 +469,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
         },
         p_responsible_agency: input.facilityName
           ? `Dinas terkait ${input.facilityName}`
-          : 'Pemerintah Kota Bogor',
+          : 'Pemerintah Jabodetabek',
         p_media_urls: input.mediaUrls,
         p_supporting_documents: input.supportingDocuments || [],
         p_reporter_type: input.reporterType,
@@ -510,13 +510,13 @@ export class SupabaseDataAdapter implements IDataAdapter {
           latitude: input.latitude,
           longitude: input.longitude,
           address: input.address,
-          district: 'Bogor Tengah',
-          city: 'Kota Bogor',
+          district: 'Jabodetabek',
+          city: 'Jabodetabek',
           province: 'Jawa Barat',
         },
         facilityName: input.facilityName,
         estimatedCost: input.estimatedCost,
-        responsibleAgency: 'Pemerintah Kota Bogor',
+        responsibleAgency: 'Pemerintah Jabodetabek',
         mediaUrls: input.mediaUrls,
         supportingDocuments: input.supportingDocuments || [],
         reporterType: input.reporterType,
@@ -1082,10 +1082,10 @@ export class SupabaseDataAdapter implements IDataAdapter {
         id,
         name: facility.name,
         category: facility.category,
-        address: facility.address || 'Kota Bogor',
+        address: facility.address || 'Jabodetabek',
         latitude: facility.latitude || -6.5971,
         longitude: facility.longitude || 106.806,
-        responsible_agency: facility.responsibleAgency || 'Pemerintah Kota Bogor',
+        responsible_agency: facility.responsibleAgency || 'Pemerintah Jabodetabek',
         active_reports_count: 1,
         resolved_reports_count: 0,
       };
