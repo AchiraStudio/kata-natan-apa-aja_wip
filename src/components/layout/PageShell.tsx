@@ -19,7 +19,7 @@ const WIDTHS = {
  */
 export const PageShell: React.FC<PageShellProps> = ({ children, width = 'default', className = '' }) => (
   <main className="flex-1 min-w-0 w-full">
-    <div className={`mx-auto w-full ${WIDTHS[width]} px-4 sm:px-6 lg:px-10 pt-5 lg:pt-10 pb-32 lg:pb-14 ${className}`}>
+    <div className={`titik-stagger mx-auto w-full ${WIDTHS[width]} px-4 sm:px-6 lg:px-10 pt-5 lg:pt-10 pb-32 lg:pb-14 ${className}`}>
       {children}
     </div>
   </main>

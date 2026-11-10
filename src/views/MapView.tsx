@@ -145,7 +145,7 @@ export const MapView: React.FC = () => {
               onClick={() => setFilterType('all')}
               className={`map-filter-chip px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer font-medium tabular-nums ${
                 filterType === 'all'
-                  ? 'bg-ink text-canvas border-ink font-semibold'
+                  ? 'bg-ink text-on-ink border-ink font-semibold'
                   : 'bg-surface-2 text-ink-2 border-transparent hover:text-ink'
               }`}
             >
@@ -160,7 +160,7 @@ export const MapView: React.FC = () => {
               onClick={() => setFilterType('reports')}
               className={`map-filter-chip px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer font-medium tabular-nums ${
                 filterType === 'reports'
-                  ? 'bg-ink text-canvas border-ink font-semibold'
+                  ? 'bg-ink text-on-ink border-ink font-semibold'
                   : 'bg-surface-2 text-ink-2 border-transparent hover:text-ink'
               }`}
             >
@@ -175,7 +175,7 @@ export const MapView: React.FC = () => {
               onClick={() => setFilterType('facilities')}
               className={`map-filter-chip px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer font-medium tabular-nums ${
                 filterType === 'facilities'
-                  ? 'bg-ink text-canvas border-ink font-semibold'
+                  ? 'bg-ink text-on-ink border-ink font-semibold'
                   : 'bg-surface-2 text-ink-2 border-transparent hover:text-ink'
               }`}
             >

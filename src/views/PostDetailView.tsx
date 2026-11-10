@@ -211,7 +211,7 @@ export const PostDetailView: React.FC = () => {
   }, [comments, profile]);
 
   return (
-    <div className="flex-1 min-w-0 bg-canvas text-ink pb-24 lg:pb-0">
+    <div className="flex-1 min-w-0 text-ink pb-24 lg:pb-0">
 
       <main className="flex-1 min-w-0 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-10 pt-5 lg:pt-10 pb-32 lg:pb-14">
         {/* Navigation Top Bar */}

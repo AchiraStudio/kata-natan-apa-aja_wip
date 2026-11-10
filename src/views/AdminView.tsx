@@ -30,7 +30,7 @@ const AdminConsoleInner: React.FC<{ profile: UserProfile }> = ({ profile }) => {
 
   return (
     <div className="flex-1 min-w-0 min-h-0 flex flex-col">
-      <header className="shrink-0 bg-surface border-b border-line-soft">
+      <header className="shrink-0 bg-surface border-b md:border border-line-soft md:mx-3 md:mt-3 md:rounded-3xl md:overflow-hidden md:shadow-[var(--glass-shadow)]">
         <div className="flex items-center gap-3 px-4 lg:px-8 h-14">
           <button
             type="button"
@@ -63,7 +63,7 @@ const AdminConsoleInner: React.FC<{ profile: UserProfile }> = ({ profile }) => {
         </nav>
       </header>
 
-      <main className="flex-1 h-screen min-h-0 overflow-y-auto p-4 lg:p-8 w-full max-w-[1560px] min-w-0 pb-28 lg:pb-12">
+      <main className="titik-rise flex-1 h-screen min-h-0 overflow-y-auto p-4 lg:p-8 w-full max-w-[1560px] min-w-0 pb-28 lg:pb-12">
         {active === 'overview' && <AdminOverview profile={profile} />}
         {active === 'validasi' && <AdminValidasi profile={profile} />}
         {active === 'disposisi' && <AdminDisposisi profile={profile} />}

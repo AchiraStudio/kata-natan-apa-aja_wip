@@ -182,7 +182,7 @@ export const ExploreView: React.FC = () => {
                 aria-pressed={category === name}
                 onClick={() => setCategory(name)}
                 className={`shrink-0 h-8 px-3 rounded-lg text-[13px] font-medium transition-colors ${
-                  category === name ? 'bg-ink text-canvas' : 'bg-surface-2 text-ink-2 hover:text-ink'
+                  category === name ? 'bg-ink text-on-ink' : 'bg-surface-2 text-ink-2 hover:text-ink'
                 }`}
               >
                 {name} <span className="opacity-60 tabular-nums">{count}</span>

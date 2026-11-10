@@ -300,15 +300,16 @@ export const MessagesView: React.FC = () => {
   const hasThread = Boolean(activeId);
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col bg-canvas">
+    <div className="flex-1 min-h-0 flex flex-col">
       {localOnly && (
-        <p role="note" className="shrink-0 px-4 py-2 text-xs text-ink-2 bg-brand-soft border-b border-line-soft">
+        <p role="note" className="shrink-0 md:mx-3 md:mt-3 md:rounded-2xl px-4 py-2 text-xs text-ink-2 bg-brand-soft border-b md:border border-line-soft">
           Server pesan belum aktif. Percakapan disimpan di perangkat ini dan tetap ada setelah halaman dimuat ulang.
         </p>
       )}
-      <div className="flex-1 min-h-0 flex">
+      {/* Two floating glass panels on desktop (gap + radius), full-bleed single pane on phones */}
+      <div className="flex-1 min-h-0 flex md:gap-3 md:p-3">
       <div
-        className={`${hasThread ? 'hidden md:block' : 'block'} w-full md:w-[340px] lg:w-[360px] shrink-0 border-r border-line-soft min-h-0`}
+        className={`${hasThread ? 'hidden md:block' : 'block'} w-full md:w-[340px] lg:w-[360px] titik-pop shrink-0 min-h-0 bg-surface md:rounded-3xl md:overflow-hidden md:border md:border-line md:shadow-[var(--glass-shadow)]`}
       >
         <ConversationList
           conversations={visibleConversations}
@@ -325,7 +326,7 @@ export const MessagesView: React.FC = () => {
         />
       </div>
 
-      <div className={`${hasThread ? 'block' : 'hidden md:flex'} flex-1 min-w-0 min-h-0`}>
+      <div className={`${hasThread ? 'block' : 'hidden md:flex'} titik-pop flex-1 min-w-0 min-h-0 bg-surface md:rounded-3xl md:overflow-hidden md:border md:border-line md:shadow-[var(--glass-shadow)]`}>
         {hasThread && me ? (
           <div className="h-full w-full">
             <ChatThread

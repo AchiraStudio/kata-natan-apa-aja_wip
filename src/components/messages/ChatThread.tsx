@@ -56,9 +56,9 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   }, [messages.length, isOtherTyping]);
 
   return (
-    <section aria-label={`Percakapan dengan ${name}`} className="flex flex-col h-full min-h-0 bg-canvas">
+    <section aria-label={`Percakapan dengan ${name}`} className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <header className="shrink-0 flex items-center gap-3 px-3 sm:px-4 h-16 bg-surface border-b border-line-soft">
+      <header className="shrink-0 flex items-center gap-3 px-3 sm:px-5 h-16 border-b border-line-soft">
         <button
           type="button"
           onClick={onBack}
@@ -127,7 +127,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                   <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                     <div
                       className={`max-w-[82%] sm:max-w-[70%] px-3.5 py-2 rounded-2xl ${
-                        mine ? 'bg-brand text-on-brand rounded-br-md' : 'bg-surface text-ink border border-line-soft rounded-bl-md'
+                        mine ? 'bg-brand text-on-brand rounded-br-md' : 'bg-surface-2 text-ink border border-line-soft rounded-bl-md'
                       }`}
                     >
                       <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
@@ -156,7 +156,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
 
         {isOtherTyping && (
           <div className="flex justify-start mt-2" data-testid="chat-typing-indicator" role="status" aria-label={`${name} sedang mengetik`}>
-            <div className="px-3.5 py-3 rounded-2xl rounded-bl-md bg-surface border border-line-soft flex items-center gap-1">
+            <div className="px-3.5 py-3 rounded-2xl rounded-bl-md bg-surface-2 border border-line-soft flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-ink-3 animate-bounce" />
               <span className="w-1.5 h-1.5 rounded-full bg-ink-3 animate-bounce [animation-delay:150ms]" />
               <span className="w-1.5 h-1.5 rounded-full bg-ink-3 animate-bounce [animation-delay:300ms]" />
@@ -167,7 +167,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
       </div>
 
       {/* Composer */}
-      <div className="shrink-0 bg-surface border-t border-line-soft px-3 sm:px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="shrink-0 border-t border-line-soft px-3 sm:px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {canUseQuickActions && conversation?.report_id && (
           <div className="flex gap-1.5 mb-2 overflow-x-auto no-scrollbar" role="group" aria-label="Balasan cepat untuk petugas">
             {QUICK_ACTIONS.map(([key, label]) => (

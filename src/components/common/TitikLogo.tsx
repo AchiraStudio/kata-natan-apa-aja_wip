@@ -17,7 +17,7 @@ export const TitikLogo: React.FC<TitikLogoProps> = ({
   textClassName = 'font-display text-xl font-extrabold tracking-tight text-ink',
   dotColor = 'var(--ink)',
   pinColor = 'var(--brand)',
-  innerColor = 'var(--canvas)',
+  innerColor = 'var(--base)',
 }) => {
   const svgSize = size ? { width: size, height: size } : {};
 

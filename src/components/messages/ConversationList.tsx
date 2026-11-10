@@ -40,7 +40,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   onSelect,
   onNewChat,
 }) => (
-  <section aria-label="Daftar percakapan" className="flex flex-col h-full min-h-0 bg-surface">
+  <section aria-label="Daftar percakapan" className="flex flex-col h-full min-h-0">
     <div className="px-4 pt-5 pb-3 space-y-3 shrink-0">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-ink">Pesan</h1>
@@ -74,8 +74,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({
             type="button"
             aria-pressed={filter === key}
             onClick={() => onFilter(key)}
-            className={`h-8 px-3 rounded-lg text-[13px] font-medium transition-colors cursor-pointer ${
-              filter === key ? 'bg-ink text-canvas' : 'bg-surface-2 text-ink-2 hover:text-ink'
+            className={`h-8 px-3.5 rounded-full text-[13px] font-medium transition-colors cursor-pointer ${
+              filter === key ? 'bg-brand text-on-brand font-semibold' : 'bg-surface-2 text-ink-2 hover:text-ink hover:bg-brand-soft'
             }`}
           >
             {label}
@@ -84,7 +84,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
       </div>
     </div>
 
-    <div className="flex-1 min-h-0 overflow-y-auto pb-28 md:pb-2 border-t border-line-soft">
+    <div className="flex-1 min-h-0 overflow-y-auto pb-28 md:pb-3 px-2">
       {isLoading && !hasAnyConversation ? (
         <p role="status" className="p-6 text-sm text-ink-2 text-center">
           Memuat percakapan
@@ -106,7 +106,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
           )}
         </div>
       ) : (
-        <ul>
+        <ul className="titik-stagger space-y-0.5">
           {conversations.map((c) => {
             const other = c.other_participant;
             const last = c.last_message;
@@ -123,8 +123,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                   type="button"
                   onClick={() => onSelect(c.id)}
                   aria-current={isActive ? 'true' : undefined}
-                  className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors cursor-pointer ${
-                    isActive ? 'bg-surface-2' : 'hover:bg-surface-2/60'
+                  className={`w-full flex items-start gap-3 px-3 py-3 rounded-2xl text-left transition-colors cursor-pointer ${
+                    isActive ? 'bg-brand-soft shadow-[inset_0_1px_0_var(--glass-hi)]' : 'hover:bg-surface-2'
                   }`}
                 >
                   <UserAvatar src={other?.avatarUrl} alt={name} name={name} role={other?.role} className="w-11 h-11 rounded-full object-cover shrink-0" />

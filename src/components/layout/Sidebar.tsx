@@ -144,8 +144,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
       size === 'md' ? (isWide ? 'h-11 2xl:h-[58px] px-3.5 2xl:px-4' : 'h-11 px-3.5') : 'h-9 px-3.5'
     } ${
       active
-        ? 'bg-white/12 text-side-ink font-semibold'
-        : 'text-side-ink-2 font-medium hover:bg-white/7 hover:text-side-ink'
+        ? 'bg-white/14 text-side-ink font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]'
+        : 'text-side-ink-2 font-medium hover:bg-white/8 hover:text-side-ink'
     }`;
 
   const renderLink = (item: NavEntry, size: 'md' | 'sm' = 'md') => {
@@ -165,7 +165,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
         }}
         className={`${linkClass(item.active, size)} cursor-pointer text-sm`}
       >
-        <span className="relative shrink-0">
+        <span className="relative shrink-0 transition-transform duration-200 ease-out group-hover:scale-110 group-active:scale-95">
           <Icon
             className={`${isWide && size === 'md' ? 'w-[18px] h-[18px] 2xl:w-5 2xl:h-5' : 'w-[18px] h-[18px]'} ${item.active ? 'text-lime' : ''}`}
             strokeWidth={item.active ? 2.2 : 1.8}
@@ -191,7 +191,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
   return (
     <aside
       aria-label="Sidebar"
-      className={`${widthClass} ${padClass} shrink-0 hidden lg:flex flex-col justify-between h-screen sticky top-0 py-5 bg-side text-side-ink select-none z-30 print:hidden transition-[width] duration-200`}
+      className={`${widthClass} ${padClass} shrink-0 hidden lg:flex flex-col justify-between sticky top-3 h-[calc(100dvh-1.5rem)] m-3 mr-0 py-5 rounded-3xl bg-side text-side-ink border border-side-line backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_24px_48px_-24px_rgba(0,0,0,0.6)] select-none z-30 print:hidden transition-[width] duration-200`}
     >
       <div className="space-y-6 overflow-y-auto no-scrollbar min-h-0">
         {/* Brand */}
@@ -206,7 +206,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
           }}
           className="flex items-center justify-center xl:justify-start gap-2.5 h-10 xl:px-1.5 cursor-pointer"
         >
-          <TitikLogo className="w-8 h-8 shrink-0" pinColor="#cde46a" innerColor="var(--side)" dotColor="#eaf3e2" />
+          <TitikLogo className="w-8 h-8 shrink-0" pinColor="#cde46a" innerColor="#0f2a1b" dotColor="#eaf3e2" />
           <span className={`hidden xl:flex items-baseline font-display font-extrabold tracking-tight text-side-ink ${isWide ? 'text-[22px] 2xl:text-[28px]' : 'text-[22px]'}`}>
             TITIK<span className="text-lime">.</span>
           </span>
@@ -246,7 +246,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
 
         {/* Live city summary: only on the wide pages, only when real reports are loaded */}
         {isWide && summary.total > 0 && (
-          <section aria-label="Ringkasan laporan kota" className="hidden 2xl:block rounded-xl bg-black/20 border border-side-line p-4">
+          <section aria-label="Ringkasan laporan kota" className="hidden 2xl:block rounded-2xl bg-white/6 border border-side-line p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
             <div className="flex items-center justify-between">
               <h2 className="font-sans text-xs font-semibold text-side-ink-2">Laporan Kota Bogor</h2>
               <span className="inline-flex items-center gap-1.5 text-[11px] text-side-ink-2">

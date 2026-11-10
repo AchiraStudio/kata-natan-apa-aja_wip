@@ -49,7 +49,7 @@ function useChartTip() {
   const node = tip ? (
     <div
       role="tooltip"
-      className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-[130%] whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 text-xs font-medium text-canvas tabular-nums"
+      className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-[130%] whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 text-xs font-medium text-on-ink tabular-nums"
       style={{ left: tip.x, top: tip.y }}
     >
       {tip.text}
