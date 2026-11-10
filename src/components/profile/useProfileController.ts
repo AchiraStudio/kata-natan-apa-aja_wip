@@ -8,16 +8,25 @@ import { stripExifAndCleanImage, uploadFileToSupabase } from '../../components/c
 import { THEME_OPTIONS } from './profileThemes';
 import { createConversation } from '../../services/messagesService';
 import { resolveAvatarUrl } from '../../utils/avatar';
+import type { UserFollowStats } from '../../services/adapters/types';
 
 export function useProfileController() {
   const { username } = useParams<{ username?: string }>();
   const navigate = useNavigate();
   const { profile: currentAuthProfile, isAuthenticated, refreshProfile, signOut, invalidateSession } = useAuth();
-  const { openComposer, openReportDetail } = useTitik();
+  const { openComposer, openReportDetail, refreshFeed } = useTitik();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [reportsLoadError, setReportsLoadError] = useState<string | null>(null);
+  const [followStats, setFollowStats] = useState<UserFollowStats>({
+    followerCount: 0,
+    followingCount: 0,
+    isFollowing: false,
+  });
+  const [isTogglingFollow, setIsTogglingFollow] = useState(false);
+  const [followStatsError, setFollowStatsError] = useState<string | null>(null);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [savedReports, setSavedReports] = useState<Report[]>([]);
   const [activeTab, setActiveTab] = useState<'posts' | 'reports' | 'saved' | 'settings'>('posts');
@@ -43,6 +52,8 @@ export function useProfileController() {
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [deletingReportId, setDeletingReportId] = useState('');
+  const [deletingPostId, setDeletingPostId] = useState('');
 
   const isOwnProfile = Boolean(
     isAuthenticated &&
@@ -98,16 +109,45 @@ export function useProfileController() {
 
       setProfile(fetchedProfile);
       setError(null);
+      setReportsLoadError(null);
+      setFollowStats({ followerCount: 0, followingCount: 0, isFollowing: false });
+      setFollowStatsError(null);
 
       // Load posts and reports for this user safely without crashing profile
       try {
-        const [userPosts, userReports] = await Promise.all([
-          dataService.getUserPosts(fetchedProfile.id).catch(() => []),
-          dataService.getUserReports(fetchedProfile.id).catch(() => []),
+        const [userPosts, userReportsResult, fetchedFollowStats] = await Promise.all([
+          dataService.getUserPosts(fetchedProfile.id).catch((postsError) => {
+            console.error('Could not load profile posts:', postsError);
+            return [];
+          }),
+          dataService
+            .getUserReports(fetchedProfile.id)
+            .then((userReports) => ({ reports: userReports, error: null as string | null }))
+            .catch((reportsError: unknown) => ({
+              reports: [],
+              error: reportsError instanceof Error ? reportsError.message : 'Gagal memuat laporan profil.',
+            })),
+          dataService
+            .getUserFollowStats(fetchedProfile.id, isAuthenticated ? currentAuthProfile.id : undefined)
+            .then((stats) => ({ stats, error: null as string | null }))
+            .catch((statsError: unknown) => ({
+              stats: null,
+              error: statsError instanceof Error ? statsError.message : 'Gagal memuat statistik pengikut.',
+            })),
         ]);
 
         setPosts(userPosts);
-        setReports(userReports);
+        setReports(userReportsResult.reports);
+        setReportsLoadError(userReportsResult.error);
+        if (userReportsResult.error) {
+          console.error('Could not load profile reports:', userReportsResult.error);
+        }
+        if (fetchedFollowStats.stats) {
+          setFollowStats(fetchedFollowStats.stats);
+        } else {
+          console.error('Could not load profile follow stats:', fetchedFollowStats.error);
+          setFollowStatsError('Statistik pengikut belum dapat dimuat. Coba muat ulang halaman.');
+        }
 
         // If viewing own profile, load saved posts
         const isViewerOwner =
@@ -346,6 +386,88 @@ export function useProfileController() {
     }
   };
 
+  const handleToggleFollow = async () => {
+    if (!profile) return;
+    if (!isAuthenticated || !currentAuthProfile?.id) {
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+
+    setIsTogglingFollow(true);
+    try {
+      const nextStats = await dataService.toggleUserFollow(profile.id);
+      setFollowStats(nextStats);
+      setFollowStatsError(null);
+      showToast(nextStats.isFollowing ? `Anda mengikuti ${profile.displayName}.` : `Anda berhenti mengikuti ${profile.displayName}.`);
+    } catch (err: unknown) {
+      console.error('Failed to update follow status:', err);
+      showToast(err instanceof Error ? err.message : 'Gagal memperbarui status mengikuti.');
+    } finally {
+      setIsTogglingFollow(false);
+    }
+  };
+
+  const handleDeleteOwnReport = async (report: Report) => {
+    if (
+      !isOwnProfile ||
+      !currentAuthProfile?.id ||
+      report.reporterUserId !== currentAuthProfile.id ||
+      report.reporterType === 'anonymous'
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Hapus laporan ${report.publicReference} secara permanen? Tindakan ini tidak dapat dibatalkan.`
+    );
+    if (!confirmed || deletingReportId) return;
+
+    setDeletingReportId(report.id);
+    try {
+      await dataService.deleteOwnReport(report.id);
+      setReports((current) => current.filter((item) => item.id !== report.id));
+      setSavedReports((current) => current.filter((item) => item.id !== report.id));
+      void refreshFeed().catch((refreshError: unknown) => {
+        console.error('Failed to refresh feed after deleting report:', refreshError);
+      });
+      showToast(`Laporan ${report.publicReference} berhasil dihapus.`);
+    } catch (deleteError) {
+      console.error('Failed to delete own profile report:', deleteError);
+      showToast(deleteError instanceof Error ? deleteError.message : 'Laporan gagal dihapus. Silakan coba lagi.');
+    } finally {
+      setDeletingReportId('');
+    }
+  };
+
+  const handleDeleteOwnPost = async (post: Post) => {
+    if (
+      !isOwnProfile ||
+      !currentAuthProfile?.id ||
+      post.author.id !== currentAuthProfile.id
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm('Hapus postingan ini secara permanen? Tindakan ini tidak dapat dibatalkan.');
+    if (!confirmed || deletingPostId) return;
+
+    setDeletingPostId(post.id);
+    try {
+      await dataService.deleteOwnPost(post.id);
+      setPosts((current) => current.filter((item) => item.id !== post.id));
+      setSavedPosts((current) => current.filter((item) => item.id !== post.id));
+      void refreshFeed().catch((refreshError: unknown) => {
+        console.error('Failed to refresh feed after deleting post:', refreshError);
+      });
+      showToast('Postingan berhasil dihapus.');
+    } catch (deleteError) {
+      console.error('Failed to delete own profile post:', deleteError);
+      showToast(deleteError instanceof Error ? deleteError.message : 'Postingan gagal dihapus. Silakan coba lagi.');
+    } finally {
+      setDeletingPostId('');
+    }
+  };
+
   const handleShareProfile = async () => {
     const url = window.location.href;
     const shareData = {
@@ -390,6 +512,14 @@ export function useProfileController() {
     setPosts,
     reports,
     setReports,
+    reportsLoadError,
+    followStats,
+    followStatsError,
+    isTogglingFollow,
+    deletingReportId,
+    handleDeleteOwnReport,
+    deletingPostId,
+    handleDeleteOwnPost,
     savedPosts,
     setSavedPosts,
     savedReports,
@@ -440,6 +570,7 @@ export function useProfileController() {
     handleSaveProfile,
     handleShareProfile,
     handleStartChat,
+    handleToggleFollow,
     isStartingChat,
     totalSupportAndLikes,
     currentTheme,

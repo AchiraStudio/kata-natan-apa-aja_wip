@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageSquare, MapPin, Building, CheckCircle2, ArrowRight, Sparkles, Plus } from 'lucide-react';
+import { Heart, MessageSquare, MapPin, Building, CheckCircle2, ArrowRight, Sparkles, Plus, Trash2 } from 'lucide-react';
 import { formatIndonesianTimeAgo } from '../../utils/timeAgo';
 import type { ProfileController } from './useProfileController';
 
@@ -9,7 +9,15 @@ interface PostsTabProps {
 }
 
 export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
-  const { openComposer, posts, activeTab, isOwnProfile } = ctrl;
+  const {
+    openComposer,
+    posts,
+    activeTab,
+    isOwnProfile,
+    currentAuthProfile,
+    deletingPostId,
+    handleDeleteOwnPost,
+  } = ctrl;
   return (
     <>
       {activeTab === 'posts' && (
@@ -118,12 +126,23 @@ export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {posts.map((post) => (
-                <Link
+                <div
                   key={post.id}
-                  to={`/post/${post.id}`}
-                  className="group bg-surface dark:bg-surface-2 border border-line rounded-2xl overflow-hidden hover:border-brand/40 transition-all shadow-xs flex flex-col justify-between"
+                  className="group relative bg-surface dark:bg-surface-2 border border-line rounded-2xl overflow-hidden hover:border-brand/40 transition-all shadow-xs"
                 >
-                  <div>
+                  {isOwnProfile && post.author.id === currentAuthProfile.id && (
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteOwnPost(post)}
+                      disabled={Boolean(deletingPostId)}
+                      aria-label={`Hapus postingan: ${post.body.slice(0, 60)}`}
+                      className="absolute right-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white/95 px-2.5 py-2 text-xs font-semibold text-rose-700 shadow-sm hover:bg-rose-50 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {deletingPostId === post.id ? 'Menghapus...' : 'Hapus'}
+                    </button>
+                  )}
+                  <Link to={`/post/${post.id}`} className="flex h-full flex-col justify-between">
                     {/* Media Preview if available */}
                     {post.media && post.media.length > 0 && (
                       <div className="relative aspect-video w-full bg-stone-900 overflow-hidden">
@@ -151,10 +170,10 @@ export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
                         {post.body}
                       </p>
                     </div>
-                  </div>
+                  </Link>
 
                   {/* Card Footer */}
-                  <div className="px-4 py-3 bg-canvas/50 dark:bg-surface/50 border-t border-line/60 flex items-center justify-between text-[11px] text-ink-2">
+                  <Link to={`/post/${post.id}`} className="px-4 py-3 bg-canvas/50 dark:bg-surface/50 border-t border-line/60 flex items-center justify-between text-[11px] text-ink-2">
                     <div className="flex items-center gap-3">
                       <span className="inline-flex items-center gap-1">
                         <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500/20" />
@@ -169,8 +188,8 @@ export const PostsTab: React.FC<PostsTabProps> = ({ ctrl }) => {
                       <span>Buka Selengkapnya</span>
                       <ArrowRight className="w-3 h-3" />
                     </span>
-                  </div>
-                </Link>
+                  </Link>
+                </div>
               ))}
             </div>
           )}

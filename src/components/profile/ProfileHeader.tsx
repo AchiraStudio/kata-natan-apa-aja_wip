@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Calendar, Globe, BadgeCheck, MessageSquare, Share2, Pencil, ShieldAlert, Camera } from 'lucide-react';
+import { MapPin, Calendar, Globe, BadgeCheck, MessageSquare, Share2, Pencil, ShieldAlert, Camera, UserCheck, UserPlus } from 'lucide-react';
 import { UserAvatar } from '../common/UserAvatar';
 import { getProfileTheme } from './profileThemes';
 import type { ProfileController } from './useProfileController';
@@ -31,6 +31,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
     handleStartChat,
     isStartingChat,
     totalSupportAndLikes,
+    followStats,
+    followStatsError,
+    isTogglingFollow,
+    handleToggleFollow,
   } = ctrl;
   if (!profile) return null;
 
@@ -133,17 +137,33 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
               <Pencil className="w-4 h-4" /> Ubah Profil
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={handleStartChat}
-              disabled={isStartingChat}
-              aria-label="Kirim Pesan"
-              title={`Kirim pesan langsung ke ${profile.displayName}`}
-              className={`${actionBtn} bg-brand text-on-brand hover:bg-brand-hover`}
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>{isStartingChat ? 'Menghubungkan' : 'Kirim Pesan'}</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleToggleFollow}
+                disabled={isTogglingFollow}
+                aria-pressed={followStats.isFollowing}
+                className={`${actionBtn} ${
+                  followStats.isFollowing
+                    ? 'bg-surface-2 text-ink hover:bg-line'
+                    : 'bg-brand text-on-brand hover:bg-brand-hover'
+                }`}
+              >
+                {followStats.isFollowing ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                <span>{isTogglingFollow ? 'Memproses' : followStats.isFollowing ? 'Mengikuti' : 'Ikuti'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleStartChat}
+                disabled={isStartingChat}
+                aria-label="Kirim Pesan"
+                title={`Kirim pesan langsung ke ${profile.displayName}`}
+                className={`${actionBtn} bg-surface-2 text-ink hover:bg-line`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>{isStartingChat ? 'Menghubungkan' : 'Kirim Pesan'}</span>
+              </button>
+            </>
           )}
           <button type="button" onClick={handleShareProfile} className={`${actionBtn} bg-surface-2 text-ink hover:bg-line`}>
             <Share2 className="w-4 h-4" /> Bagikan Profil
@@ -155,7 +175,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
           )}
         </div>
 
-        <dl className="mt-6 pt-5 border-t border-line-soft grid grid-cols-3 gap-2 text-left">
+        <dl className="mt-6 pt-5 border-t border-line-soft grid grid-cols-2 sm:grid-cols-5 gap-2 text-left">
           <button type="button" onClick={() => setActiveTab('posts')} className="text-left cursor-pointer group">
             <dd className="font-display text-xl font-bold text-ink tabular-nums group-hover:text-brand transition-colors">{posts.length}</dd>
             <dt className="text-xs text-ink-3">Postingan</dt>
@@ -168,7 +188,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ ctrl }) => {
             <dd className="font-display text-xl font-bold text-ink tabular-nums">{totalSupportAndLikes}</dd>
             <dt className="text-xs text-ink-3">Dukungan diterima</dt>
           </div>
+          <div>
+            <dd className="font-display text-xl font-bold text-ink tabular-nums">{followStats.followerCount}</dd>
+            <dt className="text-xs text-ink-3">Pengikut</dt>
+          </div>
+          <div>
+            <dd className="font-display text-xl font-bold text-ink tabular-nums">{followStats.followingCount}</dd>
+            <dt className="text-xs text-ink-3">Mengikuti</dt>
+          </div>
         </dl>
+        {followStatsError && <p role="status" className="mt-3 text-xs text-st-ditolak">{followStatsError}</p>}
       </div>
     </section>
   );

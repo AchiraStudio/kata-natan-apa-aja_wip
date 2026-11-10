@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FileText, MapPin, Plus, RefreshCw, Send, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { FileText, MapPin, Plus, RefreshCw, Send, AlertCircle, ArrowRight, CheckCircle2, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTitik } from '../context/TitikContext';
 import { dataService } from '../services/dataService';
@@ -42,7 +42,7 @@ async function loadAllMyReports(userId: string): Promise<Report[]> {
 export const MyReportsView: React.FC = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { openReportModal } = useTitik();
+  const { openReportModal, refreshFeed } = useTitik();
   const [loadedReports, setLoadedReports] = useState<{
     userId: string;
     reports?: Report[];
@@ -56,6 +56,9 @@ export const MyReportsView: React.FC = () => {
   const [respondingReportId, setRespondingReportId] = useState('');
   const [additionalInfoText, setAdditionalInfoText] = useState('');
   const [isSubmittingInfo, setIsSubmittingInfo] = useState(false);
+  const [deletingReportId, setDeletingReportId] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleteSuccess, setDeleteSuccess] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -172,6 +175,34 @@ export const MyReportsView: React.FC = () => {
     }
   };
 
+  const handleDeleteReport = async (report: Report) => {
+    const confirmed = window.confirm(
+      `Hapus laporan ${report.publicReference} secara permanen? Tindakan ini tidak dapat dibatalkan.`
+    );
+    if (!confirmed || deletingReportId) return;
+
+    setDeletingReportId(report.id);
+    setDeleteError('');
+    setDeleteSuccess('');
+    try {
+      await dataService.deleteOwnReport(report.id);
+      setLoadedReports((current) =>
+        current?.userId === profile.id
+          ? { userId: profile.id, reports: (current.reports || []).filter((item) => item.id !== report.id) }
+          : current
+      );
+      void refreshFeed().catch((refreshError: unknown) => {
+        console.error('Failed to refresh feed after deleting report:', refreshError);
+      });
+      setDeleteSuccess(`Laporan ${report.publicReference} berhasil dihapus.`);
+    } catch (error) {
+      console.error('Failed to delete own report:', error);
+      setDeleteError(error instanceof Error ? error.message : 'Laporan gagal dihapus. Silakan coba lagi.');
+    } finally {
+      setDeletingReportId('');
+    }
+  };
+
   return (
     <>
       <main className="flex-1 min-w-0 w-full mx-auto max-w-5xl px-4 sm:px-6 lg:px-10 pt-5 lg:pt-10 pb-32 lg:pb-14">
@@ -197,6 +228,17 @@ export const MyReportsView: React.FC = () => {
             Buat Laporan
           </button>
         </header>
+
+        {deleteError && (
+          <p role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+            {deleteError}
+          </p>
+        )}
+        {deleteSuccess && (
+          <p role="status" className="mb-4 rounded-xl border border-brand-soft bg-brand-soft/50 p-3 text-sm text-ink">
+            {deleteSuccess}
+          </p>
+        )}
 
         {isLoading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-sm text-ink-2">
@@ -481,6 +523,17 @@ export const MyReportsView: React.FC = () => {
                   >
                     Lihat detail
                   </button>
+                  {report.reporterUserId === profile.id && report.reporterType !== 'anonymous' && (
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteReport(report)}
+                      disabled={deletingReportId === report.id}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 hover:text-rose-800 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {deletingReportId === report.id ? 'Menghapus...' : 'Hapus laporan'}
+                    </button>
+                  )}
                 </div>
 
                 {report.events.length > 0 && (

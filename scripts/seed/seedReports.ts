@@ -1,5 +1,6 @@
 import { getSeedClient } from './seedClient';
 import { MOCK_REPORTS_KN, LEGACY_REPORTS, MOCK_BUDGET_SECTORS } from './fixtures/civicSeedData';
+import { ADDITIONAL_DEMO_REPORTS } from './fixtures/additionalReports';
 
 export async function seedReports(): Promise<number> {
   const client = getSeedClient();
@@ -8,6 +9,7 @@ export async function seedReports(): Promise<number> {
   const allReportsSource = [
     ...MOCK_REPORTS_KN,
     ...LEGACY_REPORTS,
+    ...ADDITIONAL_DEMO_REPORTS,
     {
       id: 'rep-budi-001',
       publicReference: 'TIK-2026-000188',

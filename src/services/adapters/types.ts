@@ -23,6 +23,12 @@ export interface ReportSubmitResult {
   secretFollowUpToken: string; // Plaintext token shown once to reporter
 }
 
+export interface UserFollowStats {
+  followerCount: number;
+  followingCount: number;
+  isFollowing: boolean;
+}
+
 export interface RejectedReportEdits {
   title: string;
   description: string;
@@ -63,6 +69,7 @@ export interface IDataAdapter {
     newMediaUrl?: string
   ): Promise<Report>;
   deleteReport(reportId: string): Promise<void>;
+  deleteOwnReport(reportId: string): Promise<void>;
   updateReportStatus(
     reportId: string,
     newStatus: ReportStatus,
@@ -105,6 +112,9 @@ export interface IDataAdapter {
   getBudgetSectors(): Promise<BudgetSectorContext[]>;
   getAllReports(): Promise<Report[]>;
   getProfileByUsername(username: string): Promise<UserProfile | null>;
+  getUserFollowStats(userId: string, viewerId?: string): Promise<UserFollowStats>;
+  toggleUserFollow(userId: string): Promise<UserFollowStats>;
+  deleteOwnPost(postId: string): Promise<void>;
   getUserPosts(userId: string): Promise<Post[]>;
   getUserReports(userId: string): Promise<Report[]>;
   getPostById(postId: string): Promise<Post | null>;

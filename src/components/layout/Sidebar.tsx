@@ -34,7 +34,7 @@ interface SidebarProps {
 
 interface NavEntry {
   label: string;
-  /** One-line hint shown under the label when the sidebar is in its wide form. */
+  /** One-line explanation shown under the label or in the sidebar tooltip. */
   hint?: string;
   title?: string;
   icon: LucideIcon;
@@ -64,6 +64,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
   const { openComposer, setActiveFeedTab, setSearchModalOpen, unreadMessagesCount, posts } = useTitik();
 
   const isAdminRoute = currentPath.startsWith('/admin');
+  const [sidebarTooltip, setSidebarTooltip] = React.useState<{
+    label: string;
+    hint: string;
+    top: number;
+    left: number;
+  } | null>(null);
   const [manualOpen, setManualOpen] = React.useState<boolean | null>(null);
   const [lastAdminRoute, setLastAdminRoute] = React.useState(isAdminRoute);
 
@@ -121,8 +127,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
   ];
 
   const utilityLinks: NavEntry[] = [
-    { label: 'Lacak Laporan', title: 'Lacak status laporan', icon: ScanSearch, href: '/track', active: currentPath === '/track' },
-    { label: 'Alur Penanganan', title: 'Alur penanganan laporan', icon: RouteIcon, href: '/alur', active: currentPath === '/alur' },
+    { label: 'Lacak Laporan', hint: 'Cari laporan dan pantau statusnya', title: 'Lacak status laporan', icon: ScanSearch, href: '/track', active: currentPath === '/track' },
+    { label: 'Alur Penanganan', hint: 'Pelajari proses tindak lanjut laporan', title: 'Alur penanganan laporan', icon: RouteIcon, href: '/alur', active: currentPath === '/alur' },
   ];
 
   const adminSubRoutes: NavEntry[] = [
@@ -151,13 +157,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
   const renderLink = (item: NavEntry, size: 'md' | 'sm' = 'md') => {
     const Icon = item.icon;
     const showHint = isWide && size === 'md' && item.hint;
+    const tooltipHint = item.hint || item.title;
+    const showTooltip = (element: HTMLAnchorElement) => {
+      if (!tooltipHint) return;
+      const bounds = element.getBoundingClientRect();
+      setSidebarTooltip({
+        label: item.label,
+        hint: tooltipHint,
+        top: Math.max(48, Math.min(bounds.top + bounds.height / 2, window.innerHeight - 48)),
+        left: Math.max(12, Math.min(bounds.right + 12, window.innerWidth - 260)),
+      });
+    };
     return (
       <a
         key={item.href}
         href={item.href}
-        title={item.title || item.label}
-        aria-label={item.label}
+        aria-label={tooltipHint ? `${item.label}. ${tooltipHint}` : item.label}
         aria-current={item.active ? 'page' : undefined}
+        onMouseEnter={(event) => showTooltip(event.currentTarget)}
+        onMouseLeave={() => setSidebarTooltip(null)}
+        onFocus={(event) => showTooltip(event.currentTarget)}
+        onBlur={() => setSidebarTooltip(null)}
         onClick={(e) => {
           e.preventDefault();
           if (item.onSelect) item.onSelect();
@@ -367,6 +387,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath: propPath }) => {
         )}
         <ThemeToggle variant="side" className="shrink-0" />
       </div>
+      {sidebarTooltip && (
+        <div
+          role="tooltip"
+          className="fixed z-[100] w-60 -translate-y-1/2 rounded-xl border border-side-line bg-side px-3.5 py-2.5 text-side-ink shadow-xl backdrop-blur-xl pointer-events-none"
+          style={{ top: sidebarTooltip.top, left: sidebarTooltip.left }}
+        >
+          <span className="block text-sm font-semibold">{sidebarTooltip.label}</span>
+          <span className="mt-0.5 block text-xs leading-relaxed text-side-ink-2">{sidebarTooltip.hint}</span>
+        </div>
+      )}
     </aside>
   );
 };

@@ -5,10 +5,10 @@ import { useComposerDraft } from './useComposerDraft';
 import { useAuth } from '../../context/AuthContext';
 import { useTitik } from '../../context/useTitik';
 import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
-import { Post, PostMedia } from '../../types/domain';
+import { Post, PostMedia, PostType } from '../../types/domain';
 import { generatePostId } from '../../utils/idGenerator';
 import { UserAvatar } from '../common/UserAvatar';
-import { Field, Segmented, FormFooter, PrimaryButton, GhostButton, ErrorNote, INPUT_CLASS } from './ui';
+import { Field, FormFooter, PrimaryButton, GhostButton, ErrorNote, INPUT_CLASS } from './ui';
 
 interface PostComposerProps {
   onSuccess: (newPost: Post) => void;
@@ -23,9 +23,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel,
   const { draft, updateDraft, clearDraft } = useComposerDraft();
   const { items, isProcessing, uploadError, addFiles, removeItem, clearAll } = useMediaUpload(4);
 
-  const [postType, setPostType] = useState<'citizen_report' | 'community_discussion' | 'official_update'>(
-    profile.role === 'admin' ? 'official_update' : 'community_discussion'
-  );
+  const postType: PostType = profile.role === 'admin' ? 'official_update' : 'community_discussion';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,11 +64,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel,
       for (const item of items) {
         let finalUrl = item.dataUrl;
         if (isSupabaseConfigured && isAuthenticated) {
-          try {
-            finalUrl = await uploadFileToSupabase('post-media', item.file, user?.id, item.file.name);
-          } catch (uploadErr) {
-            console.warn('Storage upload fallback to dataUrl:', uploadErr);
-          }
+          finalUrl = await uploadFileToSupabase('post-media', item.file, user?.id, item.file.name);
         }
         mediaList.push({
           id: item.id,
@@ -144,11 +138,6 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel,
     }
   };
 
-  const typeOptions: Array<{ value: typeof postType; label: string }> = [
-    { value: 'community_discussion', label: 'Diskusi warga' },
-    { value: 'citizen_report', label: 'Kabar lapangan' },
-    ...(profile.role === 'admin' ? [{ value: 'official_update' as const, label: 'Pembaruan resmi' }] : []),
-  ];
   const nearLimit = remainingChars <= 200;
 
   return (
@@ -164,13 +153,6 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onSuccess, onCancel,
             </p>
           </div>
         </div>
-
-        <Segmented
-          label="Jenis postingan"
-          value={postType}
-          onChange={setPostType}
-          options={typeOptions}
-        />
 
         <Field label="Isi postingan" htmlFor="post-body" hint="Tampil terbuka di linimasa TITIK. Jangan cantumkan data pribadi orang lain.">
           <textarea

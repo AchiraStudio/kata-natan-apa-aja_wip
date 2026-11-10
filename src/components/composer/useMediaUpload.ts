@@ -75,40 +75,38 @@ export async function uploadFileToSupabase(
   fileName = 'upload'
 ): Promise<string> {
   if (isSupabaseConfigured) {
-    try {
-      // Determine folder: Must match auth.uid() for storage RLS
-      let folder = userId;
-      if (!folder || folder === 'public') {
-        const { data: userData } = await supabase.auth.getUser();
-        folder = userData.user?.id || userId || 'public';
-      }
-
-      const cleanExt = fileName.includes('.') ? fileName.split('.').pop() : 'jpg';
-      const path = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${cleanExt}`;
-      const mimeType = (fileOrBlob as Blob).type || (cleanExt === 'png' ? 'image/png' : 'image/jpeg');
-
-      const { data, error } = await supabase.storage.from(bucket).upload(path, fileOrBlob, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: mimeType,
-      });
-
-      if (!error && data) {
-        if (bucket === 'post-media' || bucket === 'avatars') {
-          const { data: pubData } = supabase.storage.from(bucket).getPublicUrl(path);
-          return pubData.publicUrl;
-        }
-        return path;
-      }
-      if (error) {
-        console.warn('Storage upload returned error, falling back:', error.message);
-      }
-    } catch (err) {
-      console.warn('Storage upload fallback:', err);
+    const { data: userData, error: authError } = await supabase.auth.getUser();
+    if (authError || !userData.user) {
+      throw new Error('Sesi Supabase tidak aktif. Masuk kembali sebelum mengunggah media.');
     }
+    if (userId && userId !== 'public' && userId !== userData.user.id) {
+      throw new Error('Identitas akun tidak cocok. Muat ulang halaman sebelum mengunggah media.');
+    }
+
+    const cleanExt = fileName.includes('.') ? fileName.split('.').pop() : 'jpg';
+    const path = `${userData.user.id}/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${cleanExt}`;
+    const mimeType = fileOrBlob.type || (cleanExt === 'png' ? 'image/png' : 'image/jpeg');
+
+    const { data, error } = await supabase.storage.from(bucket).upload(path, fileOrBlob, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: mimeType,
+    });
+
+    if (error) {
+      throw new Error(`Gagal mengunggah media: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error('Penyimpanan tidak mengembalikan hasil unggahan.');
+    }
+
+    if (bucket === 'post-media' || bucket === 'avatars') {
+      const { data: pubData } = supabase.storage.from(bucket).getPublicUrl(path);
+      return pubData.publicUrl;
+    }
+    return path;
   }
 
-  // Fallback to data URL
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));

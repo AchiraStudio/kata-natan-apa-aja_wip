@@ -31,6 +31,16 @@ npm install
 npm run dev
 ```
 
+### Seeding Demo Reports
+
+The deterministic seed pipeline creates 30 demo reports from multiple demo citizen profiles, along with demo profiles, facilities, posts, and comments. Configure a locally available Supabase key with permission to write seed data, then run:
+
+```bash
+npm run seed:all
+```
+
+Keep any service-role key in a local `.env.seed` file and never commit it. The optional `--reset-demo` flag deletes existing rows marked `is_demo = true` before reseeding.
+
 ---
 
 ## 3. Database Migrations Execution
@@ -39,13 +49,17 @@ Execute the SQL migration files located in `supabase/migrations/` in sequential 
 
 - Forward-only security hardening migration: `supabase/migrations/20261028000001_security_hardening.sql`
 - Saved-report bookmarks: `supabase/migrations/20261030000001_add_report_saves.sql`
+- User follow relationships: `supabase/migrations/20261110000002_user_follows.sql`
+- Report attachment storage compatibility: `supabase/migrations/20261110000003_add_report_private_supporting_documents.sql`
+- Allow reporters to delete their own reports: `supabase/migrations/20261110000004_allow_reporter_delete_own_report.sql`
+- Allow QuickTime report evidence: `supabase/migrations/20261110000005_allow_quicktime_post_media.sql`
 - Or use `supabase/schema.sql` for a clean full setup.
 
 ### Option A: Via Supabase Dashboard SQL Editor (Quickest)
 
 1. Open your Supabase Dashboard:
    `https://supabase.com/dashboard/project/<your-project-ref>/sql/new`
-2. For an existing installation, run pending migrations in order, including `20261030000001_add_report_saves.sql` to enable private report bookmarks. For a clean setup, run `supabase/schema.sql`.
+2. For an existing installation, run pending migrations in order, including the user-follows migration to enable profile following. For a clean setup, run `supabase/schema.sql`.
 
 ### Option B: Via Supabase CLI
 
@@ -67,7 +81,7 @@ The migrations configure the following buckets:
 1. `post-media`:
    - **Public**: `true`
    - **File size limit**: 10 MB
-   - **Allowed MIME types**: `image/jpeg`, `image/png`, `image/webp`, `video/mp4`, `video/webm`
+   - **Allowed MIME types**: `image/jpeg`, `image/png`, `image/webp`, `video/mp4`, `video/webm`, `video/quicktime`
 2. `avatars`:
    - **Public**: `true`
    - **File size limit**: 2 MB

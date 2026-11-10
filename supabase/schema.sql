@@ -18,6 +18,17 @@ CREATE TABLE IF NOT EXISTS public.user_roles (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS public.user_follows (
+  follower_id TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  followed_id TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (follower_id, followed_id),
+  CONSTRAINT user_follows_no_self_follow CHECK (follower_id <> followed_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_follows_followed_id
+  ON public.user_follows (followed_id);
+
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON public.user_roles FROM anon, authenticated;
@@ -193,6 +204,47 @@ CREATE POLICY "Users can update own profile" ON public.profiles
   FOR UPDATE
   USING (id = (SELECT auth.uid()::text) OR public.is_admin())
   WITH CHECK (id = (SELECT auth.uid()::text) OR public.is_admin());
+
+ALTER TABLE public.user_follows ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.user_follows FROM anon, authenticated;
+GRANT SELECT ON public.user_follows TO anon, authenticated;
+DROP POLICY IF EXISTS "Follow relationships are publicly readable" ON public.user_follows;
+CREATE POLICY "Follow relationships are publicly readable" ON public.user_follows
+  FOR SELECT USING (true);
+
+CREATE OR REPLACE FUNCTION public.toggle_user_follow(p_followed_user_id TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_follower_id TEXT := (SELECT auth.uid()::text);
+BEGIN
+  IF v_follower_id IS NULL THEN
+    RAISE EXCEPTION 'Autentikasi diperlukan untuk mengikuti akun.'
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF p_followed_user_id IS NULL OR p_followed_user_id = v_follower_id THEN
+    RAISE EXCEPTION 'Akun tujuan mengikuti tidak valid.'
+      USING ERRCODE = '22023';
+  END IF;
+
+  DELETE FROM public.user_follows
+  WHERE follower_id = v_follower_id
+    AND followed_id = p_followed_user_id;
+
+  IF FOUND THEN
+    RETURN FALSE;
+  END IF;
+
+  INSERT INTO public.user_follows (follower_id, followed_id)
+  VALUES (v_follower_id, p_followed_user_id)
+  ON CONFLICT (follower_id, followed_id) DO NOTHING;
+
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+REVOKE ALL ON FUNCTION public.toggle_user_follow(TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.toggle_user_follow(TEXT) TO authenticated;
 
 -- RPC to update profile cleanly
 DROP FUNCTION IF EXISTS public.update_my_profile(TEXT, TEXT, TEXT, TEXT, TEXT);
@@ -1270,11 +1322,39 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 
+CREATE OR REPLACE FUNCTION public.delete_my_report(p_report_id TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_user_id TEXT := (SELECT auth.uid()::text);
+  v_deleted_id TEXT;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Autentikasi diperlukan untuk menghapus laporan.'
+      USING ERRCODE = '42501';
+  END IF;
+
+  DELETE FROM public.reports
+  WHERE id = p_report_id
+    AND reporter_user_id = v_user_id
+    AND reporter_type <> 'anonymous'
+  RETURNING id INTO v_deleted_id;
+
+  IF v_deleted_id IS NULL THEN
+    RAISE EXCEPTION 'Laporan tidak ditemukan atau bukan milik akun Anda.'
+      USING ERRCODE = '42501';
+  END IF;
+
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
 GRANT EXECUTE ON FUNCTION public.admin_set_citizen_verification(TEXT, BOOLEAN, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_transition_report_status(TEXT, TEXT, TEXT, BOOLEAN, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_verify_report_evidence(TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_update_report_status(TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_delete_report(TEXT) TO authenticated;
+REVOKE ALL ON FUNCTION public.delete_my_report(TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.delete_my_report(TEXT) TO authenticated;
 
 -- -----------------------------------------------------------------------------
 -- 8. STORAGE BUCKETS & ISOLATION POLICIES
@@ -1282,7 +1362,7 @@ GRANT EXECUTE ON FUNCTION public.admin_delete_report(TEXT) TO authenticated;
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES
-  ('post-media', 'post-media', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm']),
+  ('post-media', 'post-media', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime']),
   ('avatars', 'avatars', true, 2097152, ARRAY['image/jpeg', 'image/png', 'image/webp']),
   ('report-evidence-private', 'report-evidence-private', false, 20971520, ARRAY['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm', 'application/pdf'])
 ON CONFLICT (id) DO UPDATE SET

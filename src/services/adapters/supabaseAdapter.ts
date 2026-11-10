@@ -5,6 +5,7 @@ import {
   RejectedReportEdits,
   ReportSubmitResult,
   FeedComment,
+  UserFollowStats,
 } from './types';
 import { formatIndonesianTimeAgo } from '../../utils/timeAgo';
 import { resolveAvatarUrl } from '../../utils/avatar';
@@ -34,6 +35,23 @@ function mapPostgrestError(error: unknown, fallbackMessage: string): DataError {
     return new DataError('auth', `Autentikasi diperlukan: ${msg}`, error);
   }
   return new DataError('network', msg, error);
+}
+
+function getFollowSchemaError(error: unknown): DataError | null {
+  const err = error as { code?: string; message?: string } | null;
+  if (
+    err?.code === 'PGRST202' ||
+    err?.code === 'PGRST205' ||
+    err?.message?.includes('toggle_user_follow') ||
+    err?.message?.includes('user_follows')
+  ) {
+    return new DataError(
+      'network',
+      'Fitur ikuti belum aktif di database Supabase. Jalankan supabase/migrations/20261110000002_user_follows.sql di SQL Editor, lalu muat ulang aplikasi.',
+      error
+    );
+  }
+  return null;
 }
 
 function mapReportRow(row: any, isSupportedByMe = false, isSavedByMe = false): Report {
@@ -223,6 +241,23 @@ export class SupabaseDataAdapter implements IDataAdapter {
     userId?: string
   ): Promise<Post[]> {
     try {
+      let followedUserIds: string[] | null = null;
+      if (tab === 'following') {
+        if (!userId) return [];
+
+        const { data: follows, error: followsError } = await supabase
+          .from('user_follows')
+          .select('followed_id')
+          .eq('follower_id', userId);
+
+        if (followsError) {
+          throw mapPostgrestError(followsError, 'Gagal memuat akun yang diikuti.');
+        }
+
+        followedUserIds = (follows || []).map((follow) => follow.followed_id);
+        if (followedUserIds.length === 0) return [];
+      }
+
       let query = supabase
         .from('posts')
         .select(`
@@ -232,6 +267,10 @@ export class SupabaseDataAdapter implements IDataAdapter {
           likes:post_likes(count),
           saves:post_saves(count)
         `);
+
+      if (followedUserIds) {
+        query = query.in('author_id', followedUserIds);
+      }
 
       if (category && category !== 'Semua') {
         query = query.ilike('category', `%${category}%`);
@@ -607,6 +646,27 @@ export class SupabaseDataAdapter implements IDataAdapter {
     } catch (err) {
       if (err instanceof DataError) throw err;
       throw mapPostgrestError(err, 'Gagal menghapus laporan.');
+    }
+  }
+
+  async deleteOwnReport(reportId: string): Promise<void> {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw mapPostgrestError(authError, 'Gagal memeriksa autentikasi.');
+      if (!user) throw new DataError('auth', 'Masuk untuk menghapus laporan Anda.');
+
+      const { data, error } = await supabase.rpc('delete_my_report', {
+        p_report_id: reportId,
+      });
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal menghapus laporan Anda.');
+      }
+      if (data !== true) {
+        throw new DataError('not_found', 'Laporan tidak ditemukan atau bukan milik akun Anda.');
+      }
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal menghapus laporan Anda.');
     }
   }
 
@@ -1213,6 +1273,105 @@ export class SupabaseDataAdapter implements IDataAdapter {
     }
   }
 
+  async getUserFollowStats(userId: string, viewerId?: string): Promise<UserFollowStats> {
+    try {
+      const [followersResult, followingResult, relationshipResult] = await Promise.all([
+        supabase
+          .from('user_follows')
+          .select('follower_id', { count: 'exact', head: true })
+          .eq('followed_id', userId),
+        supabase
+          .from('user_follows')
+          .select('followed_id', { count: 'exact', head: true })
+          .eq('follower_id', userId),
+        viewerId && viewerId !== userId
+          ? supabase
+              .from('user_follows')
+              .select('follower_id')
+              .eq('follower_id', viewerId)
+              .eq('followed_id', userId)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      if (followersResult.error) {
+        const setupError = getFollowSchemaError(followersResult.error);
+        if (setupError) throw setupError;
+        throw mapPostgrestError(followersResult.error, 'Gagal memuat jumlah pengikut.');
+      }
+      if (followingResult.error) {
+        const setupError = getFollowSchemaError(followingResult.error);
+        if (setupError) throw setupError;
+        throw mapPostgrestError(followingResult.error, 'Gagal memuat jumlah akun yang diikuti.');
+      }
+      if (relationshipResult.error) {
+        const setupError = getFollowSchemaError(relationshipResult.error);
+        if (setupError) throw setupError;
+        throw mapPostgrestError(relationshipResult.error, 'Gagal memeriksa status mengikuti.');
+      }
+
+      return {
+        followerCount: followersResult.count ?? 0,
+        followingCount: followingResult.count ?? 0,
+        isFollowing: Boolean(relationshipResult.data),
+      };
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal memuat statistik pengikut.');
+    }
+  }
+
+  async toggleUserFollow(userId: string): Promise<UserFollowStats> {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw mapPostgrestError(authError, 'Gagal memeriksa autentikasi.');
+      if (!user) throw new DataError('auth', 'Masuk untuk mengikuti akun ini.');
+
+      const { data, error } = await supabase.rpc('toggle_user_follow', {
+        p_followed_user_id: userId,
+      });
+      if (error) {
+        const setupError = getFollowSchemaError(error);
+        if (setupError) throw setupError;
+        throw mapPostgrestError(error, 'Gagal memperbarui status mengikuti.');
+      }
+      if (typeof data !== 'boolean') {
+        throw new DataError('network', 'Server mengembalikan status mengikuti yang tidak valid.');
+      }
+
+      return this.getUserFollowStats(userId, user.id);
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal memperbarui status mengikuti.');
+    }
+  }
+
+  async deleteOwnPost(postId: string): Promise<void> {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw mapPostgrestError(authError, 'Gagal memeriksa autentikasi.');
+      if (!user) throw new DataError('auth', 'Masuk untuk menghapus postingan Anda.');
+
+      const { data, error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId)
+        .eq('author_id', user.id)
+        .select('id')
+        .maybeSingle();
+
+      if (error) {
+        throw mapPostgrestError(error, 'Gagal menghapus postingan Anda.');
+      }
+      if (!data) {
+        throw new DataError('not_found', 'Postingan tidak ditemukan atau bukan milik akun Anda.');
+      }
+    } catch (err) {
+      if (err instanceof DataError) throw err;
+      throw mapPostgrestError(err, 'Gagal menghapus postingan Anda.');
+    }
+  }
+
   async getUserPosts(userId: string): Promise<Post[]> {
     try {
       const { data, error } = await supabase
@@ -1241,7 +1400,7 @@ export class SupabaseDataAdapter implements IDataAdapter {
     try {
       const { data, error } = await supabase
         .from('reports')
-        .select('*, supports:report_supports(count)')
+        .select('*')
         .eq('reporter_user_id', userId)
         .neq('reporter_type', 'anonymous')
         .order('created_at', { ascending: false });

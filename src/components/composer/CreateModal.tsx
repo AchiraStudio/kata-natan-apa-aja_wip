@@ -99,7 +99,7 @@ export const CreateModal: React.FC = () => {
             {(
               [
                 ['post', 'Postingan'],
-                ['report', 'Laporan warga'],
+                ['report', 'Laporan'],
               ] as const
             ).map(([key, label]) => (
               <button
